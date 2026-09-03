@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: '你的名字 · 个人工作站',
+  title: '开发阿雷 · 个人工作站',
   description: '写作、项目与持续生长的工作档案。',
 };
 
