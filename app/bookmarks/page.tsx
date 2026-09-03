@@ -1,0 +1,3 @@
+import { PageIntro, SiteFooter, SiteHeader } from '@/components/site-chrome';
+const bookmarks = [{ group: '设计与产品', items: ['A List Apart', 'Nielsen Norman Group', 'The Browser Company'] }, { group: '写作与阅读', items: ['The Marginalian', 'Works in Progress', 'Longform'] }, { group: '技术与工具', items: ['MDN Web Docs', 'Hacker News', 'The Pragmatic Engineer'] }];
+export default function BookmarksPage() { return <main className="site-shell"><SiteHeader /><PageIntro title="书签" text="像浏览器收藏夹一样，保存那些值得随时重新打开的网站与资料。" /><section className="bookmark-grid">{bookmarks.map((group) => <article key={group.group}><p>{group.group}</p>{group.items.map((item) => <a href="#bookmark" key={item}><span>◌</span>{item}<b>↗</b></a>)}</article>)}</section><SiteFooter /></main>; }
