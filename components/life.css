@@ -10,6 +10,8 @@ body { padding-bottom: 175px; }
 .music-now small { display: block; margin-top: 5px; color: var(--muted); font-size: .6rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .music-transport { display: flex; align-items: center; }
 .music-dock .music-play { background: var(--lime); color: var(--navy); border-radius: 50%; }
+.music-dock .music-play:hover { background: color-mix(in srgb, var(--lime) 85%, var(--ink)); color: var(--navy); }
+.music-dock .music-disc:hover { background: color-mix(in srgb, var(--lime) 12%, var(--navy)); color: var(--lime); }
 .music-seek { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--muted); font: .6rem ui-monospace, monospace; }
 .music-dock input[type='range'] { min-width: 0; height: 18px; accent-color: var(--lime); cursor: pointer; }
 .music-seek input { flex: 1; width: 100%; }

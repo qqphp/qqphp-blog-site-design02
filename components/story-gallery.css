@@ -1,0 +1,18 @@
+.story-gallery-grid { display: grid; grid-template-columns: 1.3fr 1fr; grid-template-rows: 160px 160px; gap: 8px; margin: 20px 0; }
+.story-gallery-thumb { position: relative; overflow: hidden; padding: 0; border: 0; background: var(--navy); cursor: zoom-in; }
+.story-gallery-thumb:first-child { grid-row: 1 / -1; }
+.story-gallery-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .2s; }
+.story-gallery-thumb:hover img { transform: scale(1.03); }
+.story-gallery-thumb span { position: absolute; right: 9px; bottom: 9px; padding: 5px 8px; background: #111d24d9; color: #fff; font-size: .65rem; }
+.story-gallery-thumb:focus-visible, .story-lightbox button:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+.story-lightbox { width: min(1100px, 94vw) !important; max-width: 94vw !important; max-height: 94dvh; overflow-y: auto; border-radius: 0 !important; border: 1px solid var(--line); background: var(--navy) !important; color: var(--ink) !important; padding: 22px !important; }
+.story-lightbox [data-slot='dialog-title'] { padding-right: 30px; color: var(--ink); }
+.story-lightbox [data-slot='dialog-description'] { color: var(--muted); font-size: .75rem; }
+.story-lightbox-stage { position: relative; touch-action: pan-y; }
+.story-lightbox-stage img { width: 100%; height: min(65dvh, 700px); object-fit: contain; }
+.story-lightbox-stage button { position: absolute; top: 50%; display: grid; place-items: center; width: 44px; height: 44px; transform: translateY(-50%); border: 1px solid #ffffff88; background: #111d24dd; color: #fff; cursor: pointer; }
+.story-lightbox-stage .previous { left: 0; }.story-lightbox-stage .next { right: 0; }
+.story-lightbox output { color: var(--muted); font-size: .78rem; text-align: center; }
+.story-lightbox [data-slot='dialog-close'] { color: var(--ink); }
+@media (max-width: 700px) { .story-gallery-grid { grid-template-rows: 130px 130px; }.story-lightbox { padding: 16px !important; } }
+@media (prefers-reduced-motion: reduce) { .story-gallery-thumb img { transition: none; } }
