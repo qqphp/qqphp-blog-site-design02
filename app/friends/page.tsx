@@ -1,3 +1,7 @@
-import { PageIntro, SiteFooter, SiteHeader } from '@/components/site-chrome';
-const friends = [{ name: '未完待续', desc: '关于设计、阅读与缓慢生活的个人记录。', tag: '设计' }, { name: '折叠的地图', desc: '从技术工作到日常观察的持续写作。', tag: '写作' }, { name: '低频信号', desc: '研究、工具与独立创作的数字花园。', tag: '技术' }];
-export default function FriendsPage() { return <main className="site-shell"><SiteHeader /><PageIntro title="友链" text="一些我正在阅读、欣赏或愿意推荐的个人网站。" /><section className="friend-list">{friends.map((friend, index) => <a href="#friend" key={friend.name}><span>0{index + 1}</span><div><h2>{friend.name}</h2><p>{friend.desc}</p></div><em>{friend.tag}</em><b>↗</b></a>)}</section><SiteFooter /></main>; }
+import { SiteFooter, SiteHeader } from '@/components/site-chrome';
+import { FriendDirectory } from '@/components/friend-directory';
+import '@/components/directory.css';
+export const metadata = { title: '友链 · 开发阿雷', description: '独立网站与个人创作者的邻里目录。' };
+export default function FriendsPage() {
+  return <main className="site-shell"><SiteHeader /><FriendDirectory /><SiteFooter /></main>;
+}
