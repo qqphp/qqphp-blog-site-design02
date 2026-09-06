@@ -7,7 +7,12 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/s
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const links = [['写作', '/writing'], ['项目', '/projects'], ['说说', '/notes'], ['AI', '/ai'], ['投资', '/investing'], ['关于', '/about']];
-const life = [['音乐', '/music'], ['电影', '/films'], ['播客', '/podcasts'], ['旅行', '/travel'], ['爱好', '/hobbies']];
+const life = [['音乐', '/music'], ['电影', '/films'], ['播客', '/podcasts'], ['旅行', '/travel'], ['爱好', '/hobbies'], ['书籍', '/books']];
+
+export function LifeNavigation() {
+  const path = usePathname();
+  return <nav className="life-page-nav" aria-label="生活栏目">{life.map(([name, href]) => <Link key={href} href={href} aria-current={path === href ? 'page' : undefined}>{name}<span aria-hidden="true">↗</span></Link>)}</nav>;
+}
 
 export function SiteHeader() {
   const path = usePathname();

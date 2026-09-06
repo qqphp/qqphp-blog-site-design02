@@ -1,15 +1,15 @@
 'use client';
 
-import Link from 'next/link';
+
 import Image from 'next/image';
 import { useState } from 'react';
-import { ArrowUpRight, Headphones, Pause, Play } from 'lucide-react';
-import { SiteFooter, SiteHeader } from '@/components/site-chrome';
+import { Headphones, Pause, Play } from 'lucide-react';
+import { LifeNavigation, SiteFooter, SiteHeader } from '@/components/site-chrome';
 import { useMusic } from '@/components/music-player';
 import { formatTime, tracks } from '@/lib/music';
 import { lifeContent, type LifeKind } from '@/lib/life-content';
 
-const menu = [['音乐', '/music'], ['电影', '/films'], ['播客', '/podcasts'], ['旅行', '/travel'], ['爱好', '/hobbies']];
+
 
 function MusicShelf() {
   const { index, playing, playTrack, toggle } = useMusic();
@@ -41,5 +41,5 @@ function LifeCollection({ type }: { type: LifeKind }) {
 export function LifePage({ type }: { type: LifeKind | 'music' }) {
   const title = type === 'music' ? '音乐' : lifeContent[type].title;
   const intro = type === 'music' ? '声音是日常的另一种时间线。' : lifeContent[type].intro;
-  return <main className="site-shell"><SiteHeader /><div className="life-page"><header className="life-page-heading"><div><p className="life-overline">OFF THE CLOCK / 生活索引</p><h1>{title}</h1><p>{intro}</p></div><span>DEMO / 示例内容</span></header><div className="life-page-nav" aria-label="生活栏目">{menu.map(([name, href]) => <Link key={href} href={href} aria-current={href === `/${type}` ? 'page' : undefined}>{name}<ArrowUpRight size={13} /></Link>)}</div>{type === 'music' ? <MusicShelf /> : <LifeCollection key={type} type={type} />}</div><SiteFooter /></main>;
+  return <main className="site-shell"><SiteHeader /><div className="life-page"><header className="life-page-heading"><div><p className="life-overline">OFF THE CLOCK / 生活索引</p><h1>{title}</h1><p>{intro}</p></div><span>DEMO / 示例内容</span></header><LifeNavigation />{type === 'music' ? <MusicShelf /> : <LifeCollection key={type} type={type} />}</div><SiteFooter /></main>;
 }
