@@ -1,3 +1,4 @@
-import { PageIntro, SiteFooter, SiteHeader } from '@/components/site-chrome';
-const articles = ['如何读一份企业年报：从业务到现金流', '长期投资中，哪些指标值得持续观察', '建立自己的研究清单，而不是追逐市场噪音'];
-export default function InvestingPage() { return <main className="site-shell"><SiteHeader /><PageIntro title="投资研究与工具" text="记录学习与研究框架、公开资料和个人工具。内容仅供交流，不构成任何投资建议。" /><section className="invest-grid"><div className="invest-feature"><p>研究文章</p><h2>把判断建立在可复查的信息上。</h2><a href="#articles">进入文章索引 →</a></div><div className="invest-tools"><p>常用观察维度</p><div><span>营收质量</span><span>自由现金流</span><span>资本回报率</span><span>估值区间</span></div><a href="#tools">查看研究工具 ↗</a></div></section><section className="invest-list" id="articles">{articles.map((article, index) => <a href="#read" key={article}><span>0{index + 1}</span><h2>{article}</h2><em>研究笔记 ↗</em></a>)}</section><SiteFooter /></main>; }
+import { SiteFooter, SiteHeader } from '@/components/site-chrome';
+import { ResearchHub } from '@/components/research-hub';
+export const metadata = { title: '投资研究台 · 开发阿雷', description: '趋势分析、策略指标、量化策略与研究复盘的学习笔记。' };
+export default function InvestingPage() { return <main className="site-shell"><SiteHeader /><ResearchHub type="investing" /><SiteFooter /></main>; }
