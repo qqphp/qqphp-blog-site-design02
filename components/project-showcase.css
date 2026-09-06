@@ -1,0 +1,74 @@
+.folio-toolbar, .folio-workspace { width:100%; max-width:1420px; margin-inline:auto; padding-inline:10.3%; }
+.folio-toolbar { display:flex; align-items:center; justify-content:space-between; gap:20px; padding-block:18px; border-block:1px solid var(--line); margin-bottom:28px; }
+.folio-eyebrow { font-size:12px; letter-spacing:.12em; color:var(--muted); }
+.folio-toolbar > div { display:flex; flex-wrap:wrap; gap:6px; }
+.folio-toolbar button { padding:9px 13px; border:1px solid transparent; font-size:14px; color:var(--muted); cursor:pointer; }
+.folio-toolbar button small { margin-left:9px; opacity:.7; }
+.folio-toolbar button[aria-pressed=true] { background:var(--lime); color:var(--navy); }
+.folio-workspace { display:grid; grid-template-columns:280px minmax(0,1fr); gap:36px; margin-bottom:80px; align-items:start; }
+.folio-section-label { display:flex; justify-content:space-between; align-items:center; gap:12px; color:var(--muted); font-size:12px; letter-spacing:.06em; margin-bottom:17px; }
+.folio-section-label h3 { font-size:17px; font-weight:600; color:var(--ink); letter-spacing:0; }
+.folio-project-list { display:grid; gap:16px; }
+.folio-project { width:100%; text-align:left; border:1px solid var(--line); background:var(--navy); cursor:pointer; transition:border-color .2s; }
+.folio-project[aria-pressed=true] { border-color:var(--lime); box-shadow:inset 3px 0 var(--lime); }
+.folio-project-cover { position:relative; height:124px; overflow:hidden; }
+.folio-project-cover img { width:100%; height:100%; object-fit:cover; transition:transform .3s; }
+.folio-project:hover .folio-project-cover img { transform:scale(1.035); }
+.folio-project-cover > span { position:absolute; bottom:9px; left:12px; padding:4px 7px; background:#111d24dc; color:#e7e9e5; font-size:12px; }
+.folio-project-copy { padding:16px; }
+.folio-project-copy h2 { display:flex; justify-content:space-between; font-size:18px; font-weight:600; }
+.folio-project-copy h2 span { color:var(--lime); }
+.folio-project-copy p { font-size:14px; color:var(--muted); margin:6px 0 14px; }
+.folio-project-copy small { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:12px; }
+.folio-project-copy i { width:5px; height:5px; background:var(--lime); }
+.folio-note { border-top:1px solid var(--line); padding-top:24px; margin-top:28px; }
+.folio-note h3 { font-size:23px; line-height:1.6; margin:12px 0; }
+.folio-note p { font-size:14px; line-height:1.9; color:var(--muted); }
+.folio-detail { min-width:0; }
+.folio-title { display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.folio-title h2 { font-size:clamp(26px,3vw,38px); letter-spacing:-.04em; font-weight:600; line-height:1.3; }
+.folio-title > span { font-size:12px; color:var(--lime); border:1px solid var(--line); padding:6px 9px; white-space:nowrap; }
+.folio-detail-header > p { color:var(--muted); font-size:16px; line-height:1.85; max-width:680px; margin:14px 0; }
+.folio-tags { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:23px; }
+.folio-tags span { font-size:12px; border:1px solid var(--line); padding:4px 9px; color:var(--muted); }
+.folio-gallery { border:1px solid var(--line); }
+.folio-expand { position:relative; display:block; width:100%; cursor:zoom-in; }
+.folio-expand img { width:100%; aspect-ratio:16/9; object-fit:cover; }
+.folio-expand > span { position:absolute; right:14px; top:14px; background:#111d24df; color:#e7e9e5; padding:7px 10px; font-size:12px; }
+.folio-gallery-bar { display:flex; justify-content:space-between; align-items:center; min-height:48px; padding-left:15px; font-size:12px; color:var(--muted); border-top:1px solid var(--line); }
+.folio-gallery-bar b { color:var(--ink); font-size:14px; font-weight:400; margin-left:20px; }
+.folio-gallery-bar > div { display:flex; }
+.folio-gallery-bar button { width:48px; height:48px; border-left:1px solid var(--line); color:var(--ink); cursor:pointer; font-size:20px; }
+.folio-thumbnails { display:flex; gap:12px; margin:14px 0 24px; }
+.folio-thumbnails button { display:flex; align-items:center; gap:12px; flex:1; min-width:0; text-align:left; padding:6px; border:1px solid var(--line); cursor:pointer; }
+.folio-thumbnails button[aria-pressed=true] { border-color:var(--lime); background:color-mix(in srgb,var(--lime) 5%,transparent); }
+.folio-thumbnails img { width:80px; height:50px; object-fit:cover; }
+.folio-thumbnails span { font-size:14px; }
+.folio-thumbnails small { display:block; color:var(--muted); font-size:12px; margin-bottom:3px; }
+.folio-facts { display:grid; grid-template-columns:1fr 2fr; border-block:1px solid var(--line); padding:19px 0; margin-bottom:28px; gap:20px; }
+.folio-facts dt { font-size:12px; color:var(--muted); margin-bottom:7px; }
+.folio-facts dd { font-size:14px; line-height:1.7; }
+.folio-question { position:relative; overflow:hidden; background:color-mix(in srgb,var(--lime) 7%,var(--navy)); border-left:3px solid var(--lime); padding:26px; margin-bottom:32px; }
+.folio-question h3 { position:relative; z-index:1; font-size:clamp(20px,2vw,26px); line-height:1.65; margin-top:10px; max-width:85%; }
+.folio-question-mark { position:absolute; right:15px; top:-20px; font-size:150px; line-height:1.2; font-weight:700; color:var(--lime); opacity:.12; }
+.folio-decision-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:1px solid var(--line); }
+.folio-decision-grid > div { padding:22px 18px; }
+.folio-decision-grid > div + div { border-left:1px solid var(--line); }
+.folio-decision-number { font-size:28px; font-weight:300; color:var(--lime); }
+.folio-decision-grid h4 { font-size:16px; line-height:1.6; margin:15px 0 10px; font-weight:600; }
+.folio-decision-grid p { font-size:14px; line-height:1.9; color:var(--muted); }
+.folio-process { margin-top:30px; }
+.folio-process ol { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); list-style:none; padding:0; gap:18px; }
+.folio-process li { display:flex; gap:12px; border-top:1px solid var(--line); padding-top:17px; }
+.folio-process li > span { color:var(--lime); font-size:12px; padding-top:3px; }
+.folio-process h4 { font-size:16px; font-weight:500; }
+.folio-process p { margin-top:6px; font-size:14px; line-height:1.7; color:var(--muted); }
+.folio-next { margin-top:28px; display:flex; gap:22px; padding:19px 0; border-block:1px solid var(--line); font-size:14px; line-height:1.8; }
+.folio-next > span { flex-shrink:0; color:var(--lime); }
+.folio-next p { color:var(--muted); }
+.folio-workspace button:focus-visible,.folio-toolbar button:focus-visible { outline:2px solid var(--lime); outline-offset:4px; }
+.folio-gallery-bar button:hover { background:color-mix(in srgb,var(--lime) 12%,transparent); }
+@media(max-width:1000px) { .folio-workspace { grid-template-columns:220px minmax(0,1fr); gap:24px; } .folio-decision-grid { grid-template-columns:1fr; } .folio-decision-grid > div + div { border-left:0; border-top:1px solid var(--line); } .folio-decision-grid > div { padding:18px; } .folio-decision-grid h4 { margin-top:8px; } .folio-thumbnails img { width:56px; } }
+@media(max-width:720px) { .folio-toolbar { align-items:flex-start; flex-direction:column; gap:12px; } .folio-toolbar button { padding:8px 9px; } .folio-workspace { grid-template-columns:1fr; gap:28px; } .folio-project-list { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; } .folio-project-cover { height:86px; } .folio-project-cover > span { left:5px; bottom:5px; font-size:12px; padding:3px; } .folio-project-copy { padding:10px 8px; } .folio-project-copy h2 { font-size:14px; line-height:1.6; } .folio-project-copy h2 span,.folio-project-copy p,.folio-note { display:none; } .folio-project-copy small { margin-top:8px; } .folio-title { align-items:flex-start; } .folio-title h2 { font-size:27px; } .folio-process ol { grid-template-columns:1fr; gap:15px; } .folio-facts { grid-template-columns:1fr; gap:15px; } .folio-question { padding:20px; } .folio-question h3 { max-width:95%; } .folio-next { gap:15px; } }
+@media(max-width:700px) { .folio-toolbar, .folio-workspace { padding-inline:25px; } }
+@media(prefers-reduced-motion:reduce) { .folio-project,.folio-project-cover img { transition:none; } }

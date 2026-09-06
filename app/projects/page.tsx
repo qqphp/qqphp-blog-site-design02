@@ -2,22 +2,57 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { projects } from '../content';
+import { showcaseProjects as projects } from '@/lib/project-showcase';
 import { PageIntro, SiteFooter, SiteHeader } from '@/components/site-chrome';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import '@/components/project-showcase.css';
 
 const statuses = ['全部', '持续迭代', '概念研究', '内部使用'];
 
 export default function ProjectsPage() {
   const [status, setStatus] = useState('全部');
-  const [selected, setSelected] = useState(projects[0].number);
+  const [selected, setSelected] = useState(projects[0].id);
   const [imageIndex, setImageIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const visible = projects.filter((project) => status === '全部' || project.status === status);
-  const active = projects.find((project) => project.number === selected) ?? visible[0] ?? projects[0];
-  const previousImage = () => setImageIndex((imageIndex + active.images.length - 1) % active.images.length);
-  const nextImage = () => setImageIndex((imageIndex + 1) % active.images.length);
-  return <main className="site-shell"><SiteHeader /><PageIntro title="做过的事，以及它们留下的方法。" text="项目页记录问题、角色、过程与下一步；选择一个项目，查看它的工作档案。" />
-    <section className="project-filters"><span>项目状态</span>{statuses.map((item) => <button className={status === item ? 'active' : ''} type="button" onClick={() => setStatus(item)} key={item}>{item}</button>)}</section>
-    <section className="project-workspace"><aside className="project-menu"><p>项目列表 / {visible.length}</p>{visible.map((project) => <button type="button" className={active.number === project.number ? 'selected' : ''} onClick={() => { setSelected(project.number); setImageIndex(0); }} key={project.number}><span>{project.number}</span><div><b>{project.title}</b><small>{project.status}</small></div><i>↗</i></button>)}</aside><article className="project-detail"><div className="project-gallery"><button className="gallery-control previous" type="button" onClick={previousImage} aria-label="查看上一张项目图片">←</button><button className="gallery-expand" type="button" onClick={() => setExpanded(true)} aria-label="放大查看项目图片"><Image src={active.images[imageIndex]} width={920} height={620} alt={`${active.title} 项目示例`} priority /></button><button className="gallery-control next" type="button" onClick={nextImage} aria-label="查看下一张项目图片">→</button><span>{String(imageIndex + 1).padStart(2, '0')} / {String(active.images.length).padStart(2, '0')}</span></div><div className="gallery-thumbs">{active.images.map((image, index) => <button type="button" className={index === imageIndex ? 'active' : ''} onClick={() => setImageIndex(index)} key={image}><Image src={image} width={90} height={90} alt="切换项目示例图" /></button>)}</div><div className="detail-meta"><span>{active.year}</span><span>{active.status}</span></div><h2>{active.title}</h2><p className="detail-description">{active.detail}</p><dl><div><dt>方向</dt><dd>{active.category}</dd></div><div><dt>我的工作</dt><dd>{active.role}</dd></div><div><dt>GitHub</dt><dd><a href={`https://${active.github}`} target="_blank" rel="noreferrer">{active.github} ↗</a></dd></div></dl></article></section><Dialog open={expanded} onOpenChange={setExpanded}><DialogContent className="image-dialog"><DialogTitle>{active.title} · 项目示例</DialogTitle><div className="dialog-gallery"><button className="dialog-gallery-control previous" type="button" onClick={previousImage} aria-label="查看上一张项目图片">←</button><Image src={active.images[imageIndex]} width={1200} height={900} alt={`${active.title} 放大项目示例`} /><button className="dialog-gallery-control next" type="button" onClick={nextImage} aria-label="查看下一张项目图片">→</button><span>{String(imageIndex + 1).padStart(2, '0')} / {String(active.images.length).padStart(2, '0')}</span></div></DialogContent></Dialog><SiteFooter /></main>;
+  const visible = projects.filter(project => status === '全部' || project.status === status);
+  const active = visible.find(project => project.id === selected) ?? visible[0];
+  const currentImage = active.images[imageIndex];
+  const previousImage = () => setImageIndex(index => (index + active.images.length - 1) % active.images.length);
+  const nextImage = () => setImageIndex(index => (index + 1) % active.images.length);
+
+  return (
+    <main className="site-shell">
+      <SiteHeader />
+      <PageIntro title="从一个想法，到一件作品。" text="收录产品原型、设计探索与个人工具，记录每个项目的构思、实现与迭代。" />
+      <section className="folio-toolbar" aria-label="项目状态筛选">
+        <span className="folio-eyebrow">PROJECT INDEX / {String(projects.length).padStart(2, '0')}</span>
+        <div>{statuses.map(item => <button type="button" key={item} aria-pressed={status === item} onClick={() => { setStatus(item); setImageIndex(0); }}>{item}<small>{item === '全部' ? projects.length : projects.filter(project => project.status === item).length}</small></button>)}</div>
+      </section>
+      <section className="folio-workspace">
+        <aside className="folio-sidebar">
+          <div className="folio-section-label"><span>浏览项目</span><span>{String(visible.length).padStart(2, '0')} ENTRIES</span></div>
+          <div className="folio-project-list">{visible.map(project => <button type="button" className="folio-project" aria-pressed={active.id === project.id} onClick={() => { setSelected(project.id); setImageIndex(0); }} key={project.id}>
+            <div className="folio-project-cover"><Image src={project.images[0].src} width={420} height={230} alt="" /><span>{project.number} / {project.category}</span></div>
+            <div className="folio-project-copy"><h2>{project.title}<span aria-hidden="true">↗</span></h2><p>{project.subtitle}</p><small><i />{project.status}</small></div>
+          </button>)}</div>
+          <div className="folio-note"><span className="folio-eyebrow">ABOUT THIS INDEX</span><h3>不只陈列结果，<br />也留下思考。</h3><p>这里的项目文案和视觉为概念示例。真实案例与过程记录将陆续补充。</p></div>
+        </aside>
+        <article className="folio-detail">
+          <header className="folio-detail-header"><div className="folio-section-label"><span>项目档案 / {active.number}</span><span>概念示例 · {active.year}</span></div><div className="folio-title"><h2>{active.title}</h2><span>{active.status}</span></div><p>{active.description}</p><div className="folio-tags">{active.tags.map(tag => <span key={tag}>{tag}</span>)}</div></header>
+          <div className="folio-gallery">
+            <button type="button" className="folio-expand" onClick={() => setExpanded(true)} aria-label={`放大查看${currentImage.label}`}><Image src={currentImage.src} width={1100} height={660} alt={currentImage.alt} priority /><span>↗ 放大查看</span></button>
+            <div className="folio-gallery-bar"><span>{String(imageIndex + 1).padStart(2, '0')} / {String(active.images.length).padStart(2, '0')}<b>{currentImage.label}</b></span><div><button type="button" onClick={previousImage} aria-label="查看上一张项目图片">←</button><button type="button" onClick={nextImage} aria-label="查看下一张项目图片">→</button></div></div>
+          </div>
+          <div className="folio-thumbnails">{active.images.map((image, index) => <button type="button" key={image.src} aria-pressed={index === imageIndex} aria-label={`查看${image.label}`} onClick={() => setImageIndex(index)}><Image src={image.src} width={112} height={70} alt="" /><span><small>0{index + 1}</small>{image.label}</span></button>)}</div>
+          <dl className="folio-facts"><div><dt>项目方向</dt><dd>{active.category}</dd></div><div><dt>工作范围</dt><dd>{active.role}</dd></div></dl>
+          <section className="folio-question"><span className="folio-eyebrow">THE STARTING POINT / 起点</span><h3>{active.question}</h3><span className="folio-question-mark" aria-hidden="true">?</span></section>
+          <section className="folio-decisions"><div className="folio-section-label"><h3>设计中的三个选择</h3><span>DESIGN NOTES</span></div><div className="folio-decision-grid">{active.decisions.map((decision, index) => <div key={decision.title}><span className="folio-decision-number">0{index + 1}</span><h4>{decision.title}</h4><p>{decision.text}</p></div>)}</div></section>
+          <section className="folio-process"><div className="folio-section-label"><h3>过程拆解</h3><span>WORKING PROCESS</span></div><ol>{active.steps.map((step, index) => <li key={step.title}><span>0{index + 1}</span><div><h4>{step.title}</h4><p>{step.text}</p></div></li>)}</ol></section>
+          <div className="folio-next"><span>下一步 ↗</span><p>{active.next}</p></div>
+        </article>
+      </section>
+      <Dialog open={expanded} onOpenChange={setExpanded}><DialogContent className="image-dialog" onKeyDown={event => { if (event.key === 'ArrowLeft') { event.preventDefault(); previousImage(); } if (event.key === 'ArrowRight') { event.preventDefault(); nextImage(); } }}><DialogTitle>{active.title} · {currentImage.label}</DialogTitle><div className="dialog-gallery"><button className="dialog-gallery-control previous" type="button" onClick={previousImage} aria-label="查看上一张项目图片">←</button><Image src={currentImage.src} width={1200} height={900} alt={currentImage.alt} /><button className="dialog-gallery-control next" type="button" onClick={nextImage} aria-label="查看下一张项目图片">→</button><span>{String(imageIndex + 1).padStart(2, '0')} / {String(active.images.length).padStart(2, '0')}</span></div></DialogContent></Dialog>
+      <SiteFooter />
+    </main>
+  );
 }
