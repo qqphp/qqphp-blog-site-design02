@@ -6,6 +6,7 @@ import '@/components/life.css';
 
 export const metadata: Metadata = {
   title: '开发阿雷 · 个人工作站',
+  icons: { icon: '/favicon.ico' },
   description: '写作、项目与持续生长的工作档案。',
 };
 
