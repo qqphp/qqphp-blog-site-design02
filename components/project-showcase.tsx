@@ -1,15 +1,22 @@
 'use client';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { CmsText } from '@/components/cms-text';
+
+import { useContent } from '@/components/content-provider';
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { showcaseProjects as projects } from '@/lib/project-showcase';
+
 import { PageIntro, SiteFooter, SiteHeader } from '@/components/site-chrome';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import '@/components/project-showcase.css';
 
-const statuses = ['全部', '持续迭代', '概念研究', '内部使用'];
 
 export function ProjectShowcase({ initialId }: { initialId: string }) {
+  const { projects: projectDocument } = useContent();
+  const projects = projectDocument.items;
+  const statuses = ['全部', ...new Set(projects.map(project => project.status))];
   const [status, setStatus] = useState('全部');
   const [selected, setSelected] = useState(initialId);
   const [imageIndex, setImageIndex] = useState(0);
@@ -19,7 +26,8 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
   );
   const active =
     visible.find((project) => project.id === selected) ?? visible[0];
-  const currentImage = active.images[imageIndex];
+  if (!active) return <main className="site-shell"><SiteHeader /><p className="page-intro"><CmsText page="项目页" name="01 暂无已发布项目。" /></p><button type="button" onClick={() => setStatus('全部')}><CmsText page="项目页" name="02 查看全部项目" /></button><SiteFooter /></main>;
+  const currentImage = active.images[imageIndex] ?? active.images[0];
   const previousImage = () =>
     setImageIndex(
       (index) => (index + active.images.length - 1) % active.images.length,
@@ -35,8 +43,7 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
         text="收录产品原型、设计探索与个人工具，记录每个项目的构思、实现与迭代。"
       />
       <section className="folio-toolbar" aria-label="项目状态筛选">
-        <span className="folio-eyebrow">
-          PROJECT INDEX / {String(projects.length).padStart(2, '0')}
+        <span className="folio-eyebrow"><CmsText page="项目页" name="03 PROJECT INDEX /" />{String(projects.length).padStart(2, '0')}
         </span>
         <div>
           {statuses.map((item) => (
@@ -63,8 +70,8 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
       <section className="folio-workspace">
         <aside className="folio-sidebar">
           <div className="folio-section-label">
-            <span>浏览项目</span>
-            <span>{String(visible.length).padStart(2, '0')} ENTRIES</span>
+            <span><CmsText page="项目页" name="04 浏览项目" /></span>
+            <span>{String(visible.length).padStart(2, '0')}<CmsText page="项目页" name="05 ENTRIES" /></span>
           </div>
           <div className="folio-project-list">
             {visible.map((project) => (
@@ -86,7 +93,7 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
                     alt=""
                   />
                   <span>
-                    {project.number} / {project.category}
+                    {project.category}
                   </span>
                 </div>
                 <div className="folio-project-copy">
@@ -104,22 +111,16 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
             ))}
           </div>
           <div className="folio-note">
-            <span className="folio-eyebrow">ABOUT THIS INDEX</span>
-            <h3>
-              不只陈列结果，
-              <br />
-              也留下思考。
-            </h3>
-            <p>
-              这里的项目文案和视觉为概念示例。真实案例与过程记录将陆续补充。
-            </p>
+            <span className="folio-eyebrow"><CmsText page="项目页" name="06 ABOUT THIS INDEX" /></span>
+            <h3><CmsText page="项目页" name="07 不只陈列结果，" /><br /><CmsText page="项目页" name="08 也留下思考。" /></h3>
+            <p><CmsText page="项目页" name="09 这里的项目文案和视觉为概念示例。真实" /></p>
           </div>
         </aside>
         <article className="folio-detail">
           <header className="folio-detail-header">
             <div className="folio-section-label">
-              <span>项目档案 / {active.number}</span>
-              <span>概念示例 · {active.year}</span>
+              <span>项目档案</span>
+              <span><CmsText page="项目页" name="11 概念示例 ·" />{active.year}</span>
             </div>
             <div className="folio-title">
               <h2>{active.title}</h2>
@@ -146,7 +147,7 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
                 alt={currentImage.alt}
                 priority
               />
-              <span>↗ 放大查看</span>
+              <span><CmsText page="项目页" name="12 ↗ 放大查看" /></span>
             </button>
             <div className="folio-gallery-bar">
               <span>
@@ -191,57 +192,15 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
           </div>
           <dl className="folio-facts">
             <div>
-              <dt>项目方向</dt>
+              <dt><CmsText page="项目页" name="13 项目方向" /></dt>
               <dd>{active.category}</dd>
             </div>
             <div>
-              <dt>工作范围</dt>
+              <dt><CmsText page="项目页" name="14 工作范围" /></dt>
               <dd>{active.role}</dd>
             </div>
           </dl>
-          <section className="folio-question">
-            <span className="folio-eyebrow">THE STARTING POINT / 起点</span>
-            <h3>{active.question}</h3>
-            <span className="folio-question-mark" aria-hidden="true">
-              ?
-            </span>
-          </section>
-          <section className="folio-decisions">
-            <div className="folio-section-label">
-              <h3>设计中的三个选择</h3>
-              <span>DESIGN NOTES</span>
-            </div>
-            <div className="folio-decision-grid">
-              {active.decisions.map((decision, index) => (
-                <div key={decision.title}>
-                  <span className="folio-decision-number">0{index + 1}</span>
-                  <h4>{decision.title}</h4>
-                  <p>{decision.text}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-          <section className="folio-process">
-            <div className="folio-section-label">
-              <h3>过程拆解</h3>
-              <span>WORKING PROCESS</span>
-            </div>
-            <ol>
-              {active.steps.map((step, index) => (
-                <li key={step.title}>
-                  <span>0{index + 1}</span>
-                  <div>
-                    <h4>{step.title}</h4>
-                    <p>{step.text}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </section>
-          <div className="folio-next">
-            <span>下一步 ↗</span>
-            <p>{active.next}</p>
-          </div>
+          {active.body && <section className="folio-markdown"><h3>项目说明</h3><ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>{active.body}</ReactMarkdown></section>}
         </article>
       </section>
       <Dialog open={expanded} onOpenChange={setExpanded}>

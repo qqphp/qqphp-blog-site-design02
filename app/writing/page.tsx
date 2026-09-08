@@ -1,29 +1,29 @@
 'use client';
+import { WritingCategoryTree } from '@/components/writing-category-tree';
+import { CmsText } from '@/components/cms-text';
+
+import { useContent } from '@/components/content-provider';
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
-import { writing } from '../content';
+import { categoryRows, categoryBranch } from '@/lib/article-categories';
+import { useState } from 'react';
+
 import { PageIntro, SiteFooter, SiteHeader } from '@/components/site-chrome';
 import { Input } from '@/components/ui/input';
 
-const groups = [...new Set(writing.map((item) => item.category))];
-
 export default function WritingPage() {
-  const [group, setGroup] = useState('全部');
-  const [subgroup, setSubgroup] = useState('全部');
+  const { writing, categories } = useContent();
+  const rows = categoryRows(categories);
+  const [group, setGroup] = useState('');
   const [query, setQuery] = useState('');
-  const filtered = useMemo(
-    () =>
-      writing.filter(
-        (item) =>
-          (group === '全部' || item.category === group) &&
-          (subgroup === '全部' || item.label === subgroup) &&
-          `${item.title} ${item.excerpt} ${item.tag} ${item.category} ${item.label}`
-            .toLocaleLowerCase()
-            .includes(query.trim().toLocaleLowerCase()),
-      ),
-    [group, subgroup, query],
+  const branch = categoryBranch(categories, group);
+  const filtered = writing.filter(
+    (item) =>
+      (!group || branch.has(item.categoryId)) &&
+      `${item.title} ${item.excerpt} ${item.tag} ${item.category} ${item.label}`
+        .toLocaleLowerCase()
+        .includes(query.trim().toLocaleLowerCase()),
   );
   return (
     <main className="site-shell">
@@ -41,72 +41,42 @@ export default function WritingPage() {
             aria-label="搜索文章"
           />
         </div>
-        <span>共 {filtered.length} 篇结果</span>
+        <span>
+          共 {filtered.length}
+          <CmsText page="写作页" name="01 篇结果" />
+        </span>
       </section>
-      <section className="archive-layout">
+      <section className="archive-layout writing-archive">
         <aside className="archive-side">
-          <p>文章分类</p>
+          <p>
+            <CmsText page="写作页" name="02 文章分类" />
+          </p>
           <button
-            className={group === '全部' && subgroup === '全部' ? 'active' : ''}
+            className={group === '' ? 'active' : ''}
             type="button"
             onClick={() => {
-              setGroup('全部');
-              setSubgroup('全部');
+              setGroup('');
             }}
           >
-            全部文章<b>{writing.length}</b>
+            <CmsText page="写作页" name="03 全部文章" />
+            <b>{writing.length}</b>
           </button>
-          {groups.map((item) => (
-            <div className="category-tree" key={item}>
-              <button
-                className={
-                  group === item && subgroup === '全部' ? 'active' : ''
-                }
-                type="button"
-                onClick={() => {
-                  setGroup(item);
-                  setSubgroup('全部');
-                }}
-              >
-                {item}
-                <b>
-                  {writing.filter((entry) => entry.category === item).length}
-                </b>
-              </button>
-              <div className="subcategories">
-                {[
-                  ...new Set(
-                    writing
-                      .filter((entry) => entry.category === item)
-                      .map((entry) => entry.label),
-                  ),
-                ].map((sub) => (
-                  <button
-                    className={subgroup === sub ? 'active' : ''}
-                    type="button"
-                    onClick={() => {
-                      setGroup(item);
-                      setSubgroup(sub);
-                    }}
-                    key={sub}
-                  >
-                    {sub}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+          <WritingCategoryTree
+            categories={categories}
+            articles={writing}
+            selected={group}
+            onSelect={setGroup}
+          />
         </aside>
         <div className="archive-main" id="all">
           <div className="archive-toolbar">
             <span>
-              {subgroup !== '全部'
-                ? subgroup
-                : group === '全部'
-                  ? '全部文章'
-                  : group}
+              {rows.find((row) => row.category.id === group)?.path ||
+                '全部文章'}
             </span>
-            <span>按最新发布</span>
+            <span>
+              <CmsText page="写作页" name="04 按最新发布" />
+            </span>
           </div>
           {filtered.map((entry) => (
             <article className="archive-item cover-item" key={entry.title}>
@@ -140,7 +110,10 @@ export default function WritingPage() {
           ))}
           {filtered.length === 0 && (
             <div className="archive-end">
-              没有找到匹配的文章，换个关键词试试。
+              <CmsText
+                page="写作页"
+                name="05 没有找到匹配的文章，换个关键词试试。"
+              />
             </div>
           )}
         </div>

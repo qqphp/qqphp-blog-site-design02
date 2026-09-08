@@ -1,0 +1,20 @@
+import { pathToFileURL } from 'node:url';
+import { resolve as resolvePath } from 'node:path';
+
+export async function resolve(specifier, context, next) {
+  if (specifier === 'next/image' || specifier === 'next/link')
+    return {
+      url: pathToFileURL(
+        resolvePath(
+          `node_modules/vinext/dist/shims/${specifier.split('/')[1]}.js`,
+        ),
+      ).href,
+      shortCircuit: true,
+    };
+  return next(specifier, context);
+}
+export async function load(url, context, next) {
+  if (url.endsWith('.css'))
+    return { format: 'module', source: '', shortCircuit: true };
+  return next(url, context);
+}

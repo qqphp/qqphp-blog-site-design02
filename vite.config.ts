@@ -1,8 +1,9 @@
 import { sites } from '@openai/sites-vite-plugin';
 import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
-import { defineConfig } from 'vite';
+import { defineConfig, type ViteDevServer } from 'vite';
 import hostingConfig from './.openai/hosting.json';
+import { startAiTransport } from './scripts/local-ai-transport.mjs';
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   '00000000-0000-4000-8000-000000000000';
@@ -34,7 +35,8 @@ const localBindingConfig = {
     : [],
 };
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ command }) => {
+  const transport = command === 'serve' ? await startAiTransport() : undefined;
   // Keep Wrangler and Miniflare state project-local. These are non-secret tool
   // settings; application environment belongs in ignored `.env*` files.
   process.env.WRANGLER_WRITE_LOGS ??= 'false';
@@ -50,11 +52,22 @@ export default defineConfig(async () => {
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
     plugins: [
+      {
+        name: 'local-ai-transport',
+        configureServer(server: ViteDevServer) {
+          server.httpServer?.once('close', () => {
+            void transport?.close();
+          });
+        },
+      },
       vinext(),
       sites(),
       cloudflare({
+        persistState: process.env.CMS_TEST_STATE
+          ? { path: process.env.CMS_TEST_STATE }
+          : true,
         viteEnvironment: { name: 'rsc', childEnvironments: ['ssr'] },
-        config: localBindingConfig,
+        config: { ...localBindingConfig, vars: transport?.vars },
       }),
     ],
   };

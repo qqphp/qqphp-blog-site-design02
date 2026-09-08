@@ -1,4 +1,7 @@
 'use client';
+import { CmsText } from '@/components/cms-text';
+
+import { useContent } from '@/components/content-provider';
 
 import {
   createContext,
@@ -20,7 +23,7 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
-import { formatTime, tracks } from '@/lib/music';
+import { formatTime } from '@/lib/music';
 
 const MusicContext = createContext<{
   index: number;
@@ -36,12 +39,13 @@ export function useMusic() {
 }
 
 export function MusicProvider({ children }: { children: ReactNode }) {
+  const { tracks } = useContent();
   const audio = useRef<HTMLAudioElement>(null);
   const request = useRef(0);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
-  const [duration, setDuration] = useState(tracks[0].duration);
+  const [duration, setDuration] = useState(tracks[0]?.duration ?? 0);
   const [volume, setVolume] = useState(0.5);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -81,7 +85,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       setDuration(tracks[next].duration);
       void start();
     },
-    [start],
+    [start, tracks],
   );
 
   const toggle = useCallback(() => {
@@ -101,6 +105,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     [index, playing, playTrack, toggle],
   );
 
+  if (!tracks.length) return <MusicContext.Provider value={controls}>{children}</MusicContext.Provider>;
   return (
     <MusicContext.Provider value={controls}>
       {children}
@@ -144,8 +149,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
             aria-label="当前歌单"
           >
             <div className="music-queue-heading">
-              <h2>
-                日常的背景音 <small>{tracks.length} 首</small>
+              <h2><CmsText page="音乐播放器" name="01 日常的背景音" /><small>{tracks.length} 首</small>
               </h2>
               <button
                 type="button"
@@ -177,7 +181,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
                 </li>
               ))}
             </ol>
-            <p>原创合成示例 · 无第三方录音采样</p>
+            <p><CmsText page="音乐播放器" name="02 原创合成示例 · 无第三方录音采样" /></p>
           </section>
         )}
         <div className="music-dock-main">
@@ -281,7 +285,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
                   }}
                 />
               </label>
-              <span>顺序循环</span>
+              <span><CmsText page="音乐播放器" name="03 顺序循环" /></span>
               <button
                 type="button"
                 aria-label="收起播放器"

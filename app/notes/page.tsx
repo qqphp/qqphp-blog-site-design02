@@ -1,19 +1,25 @@
 'use client';
+import { CmsText } from '@/components/cms-text';
+
+import { useContent } from '@/components/content-provider';
 
 import { StoryGallery } from '@/components/story-gallery';
 import { StoryCover } from '@/components/story-cover';
 import { useState } from 'react';
-import { stories } from '../content';
+
 import { monthSummary } from '@/lib/story-calendar';
+import { newestStoriesFirst, normalizeStoryTopics } from '@/lib/story-content';
 import { SiteFooter, SiteHeader } from '@/components/site-chrome';
 
 const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
-const latestDate = stories
-  .map((story) => story.date)
-  .sort()
-  .at(-1)!;
 
 export default function StoriesPage() {
+  const { stories, site } = useContent();
+  const latestDate =
+    stories
+      .map((story) => story.date)
+      .sort()
+      .at(-1) ?? '2026-09-01';
   const [period, setPeriod] = useState(
     () =>
       Number(latestDate.slice(0, 4)) * 12 + Number(latestDate.slice(5, 7)) - 1,
@@ -37,18 +43,27 @@ export default function StoriesPage() {
         <div className="story-profile">
           <div className="story-avatar">A</div>
           <div>
-            <h1>开发阿雷</h1>
-            <p>记录正在发生的事，也保留还没有答案的问题。</p>
+            <h1>{site.name}</h1>
+            <p>
+              <CmsText
+                page="说说页"
+                name="01 记录正在发生的事，也保留还没有答案的"
+              />
+            </p>
           </div>
         </div>
       </section>
       <section className="story-layout">
         <aside className="story-sidebar calendar-side">
-          <p>{year} 年发布汇总 · 示例</p>
+          <p>
+            {year}
+            <CmsText page="说说页" name="02 年发布汇总 · 示例" />
+          </p>
           <strong>{yearlyStories.length}</strong>
           <span>
-            条说说 · {new Set(yearlyStories.map((story) => story.topic)).size}{' '}
-            个话题
+            <CmsText page="说说页" name="03 条说说 ·" />
+            {new Set(yearlyStories.flatMap((story) => story.topics)).size}{' '}
+            <CmsText page="说说页" name="04 个话题" />
           </span>
           <div className="calendar-head">
             <button
@@ -87,46 +102,40 @@ export default function StoriesPage() {
             ))}
           </div>
           <div className="today-card">
-            <b>阅读间隙</b>
-            <p>“每一个当下，都是通向未来的入口。”</p>
+            <b>
+              <CmsText page="说说页" name="05 阅读间隙" />
+            </b>
+            <p>
+              <CmsText
+                page="说说页"
+                name="06 “每一个当下，都是通向未来的入口。”"
+              />
+            </p>
           </div>
         </aside>
         <div className="story-feed">
-          <p className="story-demo-note">
-            以下说说、互动数量与回复均为示例。点赞与评论暂未开放。
-          </p>
-          {stories.map((story, index) => (
-            <article className="story-post" key={story.date}>
+          {newestStoriesFirst(stories).map((story) => (
+            <article className="story-post" key={story.id}>
               <div className="post-avatar">A</div>
               <div className="post-body">
                 <header>
-                  <b>开发阿雷</b>
+                  <b>
+                    <CmsText page="说说页" name="08 开发阿雷" />
+                  </b>
                   <time dateTime={story.date}>
                     {story.date.slice(0, 10).replaceAll('-', '.')}{' '}
-                    {story.date.slice(11, 16)}
+                    {story.date.slice(11, 19)}
                   </time>
                 </header>
                 <p>{story.text}</p>
-                <span className="story-topic">#{story.topic}</span>
-                {index === 0 && <StoryGallery />}
-                <div className="post-actions">
-                  <button type="button" disabled title="点赞暂未开放">
-                    ♡ {story.reactions}
-                  </button>
-                  <button type="button" disabled>
-                    ◌ 评论暂未开放
-                  </button>
+                <StoryGallery images={story.images} />
+                <div className="story-post-topics">
+                  {normalizeStoryTopics(story.topics).map((topic) => (
+                    <span className="story-topic" key={topic}>
+                      #{topic}
+                    </span>
+                  ))}
                 </div>
-                {story.replies.length > 0 && (
-                  <div className="replies">
-                    {story.replies.map((reply) => (
-                      <p key={reply}>
-                        <b>示例回复：</b>
-                        {reply}
-                      </p>
-                    ))}
-                  </div>
-                )}
               </div>
             </article>
           ))}

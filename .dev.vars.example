@@ -1,0 +1,5 @@
+# 运行 npm run admin:password 生成本地 .dev.vars，密码至少 12 位。
+ADMIN_PASSWORD=
+
+# Teamorouter / OpenAI 兼容中转站密钥，仅供服务端使用。
+TEAMOROUTER_KEY=

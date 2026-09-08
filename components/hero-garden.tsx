@@ -1,3 +1,4 @@
+import { CmsText } from '@/components/cms-text';
 import './hero-garden.css';
 
 export function HeroGarden() {
@@ -8,6 +9,6 @@ export function HeroGarden() {
     <div className="garden-satellite satellite-one"><i /></div><div className="garden-satellite satellite-two"><i /></div>
     <div className="garden-spark spark-one">✳</div><div className="garden-spark spark-two">+</div>
     <div className="garden-seed seed-one" /><div className="garden-seed seed-two" />
-    <span className="garden-caption">IDEAS IN BLOOM</span>
+    <span className="garden-caption"><CmsText page="首页装饰" name="01 IDEAS IN BLOOM" /></span>
   </div>;
 }

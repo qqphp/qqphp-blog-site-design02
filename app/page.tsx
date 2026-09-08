@@ -1,27 +1,21 @@
+import { CmsText } from '@/components/cms-text';
 import Link from 'next/link';
 import { HeroGarden } from '@/components/hero-garden';
-import { writing } from './content';
-import { showcaseProjects as projects } from '@/lib/project-showcase';
+import { getPublicContent } from '@/lib/cms-server';
+
 import { SiteFooter, SiteHeader } from '@/components/site-chrome';
 
-export default function Home() {
+export default async function Home() {
+  const { writing, projects, home } = await getPublicContent();
   return (
     <main className="site-shell">
       <SiteHeader />
       <section className="hero hero-live" id="top">
         <div className="hero-copy">
-          <p className="eyebrow">PERSONAL WORKSTATION / 2026</p>
-          <h1>
-            思考、制作，
-            <br />
-            并留下值得回看的东西。
-          </h1>
+          <p className="eyebrow">{home.eyebrow}</p>
+          <h1 style={{ whiteSpace: 'pre-line' }}>{home.title}</h1>
           <div className="hero-bottom">
-            <p>
-              这里存放我的写作、项目与尚未成形的灵感。
-              <br />
-              欢迎从最近的更新开始。
-            </p>
+            <p style={{ whiteSpace: 'pre-line' }}>{home.description}</p>
             <Link
               className="round-link"
               href="/writing"
@@ -35,8 +29,7 @@ export default function Home() {
       </section>
       <section className="latest">
         <div className="section-label">
-          <span>01</span> 最近更新
-        </div>
+          <span>01</span><CmsText page="首页栏目" name="01 最近更新" /></div>
         <div className="entry-list">
           {writing.slice(0, 3).map((entry) => (
             <Link
@@ -54,25 +47,24 @@ export default function Home() {
               <span className="entry-arrow">↗</span>
             </Link>
           ))}
-          <Link className="more-row" href="/writing">
-            查看全部写作 <span>→</span>
+          <Link className="more-row" href="/writing"><CmsText page="首页栏目" name="02 查看全部写作" /><span>→</span>
           </Link>
         </div>
       </section>
       <section className="home-projects">
         <div className="home-project-head">
-          <p className="eyebrow">SELECTED WORK</p>
-          <Link href="/projects">全部项目 →</Link>
+          <p className="eyebrow"><CmsText page="首页栏目" name="03 SELECTED WORK" /></p>
+          <Link href="/projects"><CmsText page="首页栏目" name="04 全部项目 →" /></Link>
         </div>
         <div className="project-shelf">
-          {projects.slice(0, 2).map((project, index) => (
+          {projects.items.slice(0, 2).map((project, index) => (
             <Link
               className={`shelf-card ${['a', 'b'][index]}`}
               href={`/projects?project=${project.id}`}
               key={project.id}
             >
               <div className="shelf-art">
-                <b>{project.number}</b>
+
                 <em />
               </div>
               <p>{project.category}</p>
@@ -84,14 +76,13 @@ export default function Home() {
       </section>
       <section className="home-note">
         <div>
-          <p className="eyebrow">MOMENTS</p>
-          <h2>不是所有内容都需要成为文章。</h2>
+          <p className="eyebrow"><CmsText page="首页栏目" name="05 MOMENTS" /></p>
+          <h2>{home.noteTitle}</h2>
         </div>
         <p>
-          说说记录正在形成的想法、值得再次查看的素材，以及尚未适合被归类的问题。
+          {home.noteText}
         </p>
-        <Link className="line-link" href="/notes">
-          查看全部说说 <span>→</span>
+        <Link className="line-link" href="/notes"><CmsText page="首页栏目" name="06 查看全部说说" /><span>→</span>
         </Link>
       </section>
       <SiteFooter />

@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 
+.story-post-topics { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 8px 16px; margin: 14px 0 0; padding: 0; text-align: left; }
 :root {
   --ink: #e7e9e5;
   --muted: #9ca4a2;
@@ -2848,4 +2849,13 @@ nav a:hover {
   .story-demo-note {
     padding-left: 0;
   }
+}
+.writing-category-tree { list-style: none; margin: 0; padding: 0; }
+.writing-category-tree .writing-category-tree { padding-left: 14px; margin-left: 3px; border-left: 1px solid var(--line); }
+.writing-category-tree button { align-items: center; gap: 10px; text-align: left; }
+.writing-category-tree button span { overflow-wrap: anywhere; }
+.writing-category-tree button b { flex-shrink: 0; }
+@media (max-width: 900px) {
+  .writing-archive .archive-side { display: block; padding: 20px 0; border-bottom: 1px solid var(--line); }
+  .writing-archive { grid-template-columns: 1fr; }
 }

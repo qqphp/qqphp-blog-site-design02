@@ -23,6 +23,8 @@
     "typeCheck": true
   },
   "ignorePatterns": [
+    "work/**",
+    ".wrangler/**",
     ".next/**",
     ".vinext/**",
     "out/**",

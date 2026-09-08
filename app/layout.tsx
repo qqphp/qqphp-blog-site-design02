@@ -1,15 +1,17 @@
-import type { Metadata } from 'next';
+import { getPublicContent } from '@/lib/cms-server';
+import { ContentProvider } from '@/components/content-provider';
 import Script from 'next/script';
 import './globals.css';
 import { MusicProvider } from '@/components/music-player';
 import '@/components/life.css';
 
-export const metadata: Metadata = {
-  title: '开发阿雷 · 个人工作站',
-  icons: { icon: '/favicon.ico' },
-  description: '写作、项目与持续生长的工作档案。',
-};
+export const dynamic = 'force-dynamic';
+export async function generateMetadata() {
+  const { site } = await getPublicContent();
+  return { title: site.title, description: site.description, icons: { icon: '/favicon.ico' } };
+}
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="zh-CN" suppressHydrationWarning><head><Script id="theme-preference" strategy="beforeInteractive">{`try { if (localStorage.getItem('site-theme') === 'fresh') document.documentElement.classList.add('fresh-theme'); } catch (_) {}`}</Script></head><body><MusicProvider>{children}</MusicProvider></body></html>;
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const content = await getPublicContent();
+  return <html lang="zh-CN" suppressHydrationWarning><head><Script id="theme-preference" strategy="beforeInteractive">{`try { if (localStorage.getItem('site-theme') === 'fresh') document.documentElement.classList.add('fresh-theme'); } catch (_) {}`}</Script></head><body><ContentProvider content={content}><MusicProvider>{children}</MusicProvider></ContentProvider></body></html>;
 }
