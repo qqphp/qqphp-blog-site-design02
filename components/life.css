@@ -33,11 +33,15 @@ body { padding-bottom: 175px; }
 .music-queue li small { display: block; margin-top: 5px; color: var(--muted); font-size: .65rem; }
 .music-queue > p { margin: 0; color: var(--muted); font-size: .65rem; }
 .life-page { max-width: 1240px; margin: auto; padding: 0 42px; }
-.life-page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; padding: 40px 0 26px; }
+.life-page-heading { display: flex; align-items: stretch; justify-content: space-between; gap: 36px; padding: 40px 0 26px; }
+.life-page-heading-main { align-self: flex-end; min-width: 0; }
 .life-overline { margin: 0 0 17px; color: var(--lime); font: .65rem ui-monospace, monospace; letter-spacing: .12em; }
 .life-page-heading h1 { margin: 0; font-size: 2.6rem; font-weight: 500; letter-spacing: -.05em; }
-.life-page-heading div > p:last-child { margin: 12px 0 0; color: var(--muted); font-size: .87rem; line-height: 1.8; }
-.life-page-heading > span { color: var(--muted); font: .65rem ui-monospace, monospace; white-space: nowrap; }
+.life-page-heading-main > p:last-child { max-width: 620px; margin: 12px 0 0; color: var(--muted); font-size: .87rem; line-height: 1.8; }
+.life-page-heading-aside { flex: 0 0 280px; display: grid; grid-template-columns: 30px minmax(0, 1fr); align-content: center; column-gap: 18px; padding: 10px 0 10px 36px; border-left: 1px solid var(--line); }
+.life-page-heading-aside svg { grid-row: 1 / 3; color: var(--lime); }
+.life-page-heading-aside p { margin: 0; font: 1.18rem/1.65 Georgia, 'Songti SC', SimSun, serif; }
+.life-page-heading-aside span { margin-top: 7px; color: var(--muted); font-size: .72rem; line-height: 1.6; }
 .life-page-nav { display: flex; flex-wrap: wrap; gap: 12px 26px; padding: 0 0 16px; border-bottom: 1px solid var(--line); }
 .life-page-nav a { white-space: nowrap; display: flex; align-items: center; gap: 8px; min-height: 32px; color: var(--muted); font-size: .8rem; }
 .life-page-nav a[aria-current='page'], .life-page-nav a:hover { color: var(--lime); }
@@ -128,7 +132,8 @@ body { padding-bottom: 175px; }
 @media (max-width: 700px) {
   .music-dock { right: 12px; width: min(350px, calc(100vw - 24px)); bottom: max(12px, env(safe-area-inset-bottom)); }
   .life-page { padding: 0 22px; }
-  .life-page-heading { padding-top: 30px; flex-wrap: wrap; }
+  .life-page-heading { padding-top: 30px; }
+  .life-page-heading-aside { display: none; }
   .life-page-heading h1 { font-size: 2.1rem; }
   .life-page-nav { gap: 8px 20px; }
   .life-page-nav a { gap: 4px; }

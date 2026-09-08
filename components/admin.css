@@ -775,7 +775,29 @@
 .admin-sidebar nav {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+.admin-nav-primary,
+.admin-nav-group > div {
+  display: flex;
+  flex-direction: column;
   gap: 2px;
+}
+.admin-nav-group {
+  display: grid;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid #d8ddd3;
+}
+.admin-nav-group-label {
+  padding: 0 10px;
+  color: #728074;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.admin-sidebar nav button.admin-nav-child {
+  padding-left: 22px;
 }
 .admin-sidebar nav button {
   background: transparent;
@@ -1015,11 +1037,20 @@
   flex-wrap: wrap;
 }
 .admin-story-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 160px) max-content;
   margin-bottom: 20px;
 }
 .admin-story-toolbar input {
-  flex: 1;
-  min-width: 160px;
+  width: 100%;
+  min-width: 0;
+}
+.admin-story-toolbar select {
+  width: 100%;
+  min-width: 120px;
+}
+.admin-story-toolbar button {
+  white-space: nowrap;
 }
 .admin-story-tab-help {
   margin: 0 26px;
@@ -1073,6 +1104,10 @@
 .admin-story-editor .admin-story-date {
   width: 100%;
   max-width: 320px;
+}
+.admin-story-editor .admin-story-status {
+  width: 100%;
+  max-width: 220px;
 }
 .admin-story-editor .admin-tags {
   width: 100%;
@@ -1286,8 +1321,15 @@ body:has(.admin-login) .music-dock {
     padding: 18px;
   }
   .admin-sidebar nav {
+    display: block;
+  }
+  .admin-nav-primary,
+  .admin-nav-group > div {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .admin-nav-group {
+    margin-top: 10px;
   }
   .admin-sidebar nav button {
     font-size: 12px;

@@ -211,7 +211,7 @@ export const sectionLabels: Record<Section, string> = {
   projects: '项目',
   stories: '说说',
   slides: '说说封面',
-  profile: '个人资料',
+  profile: '关于',
   aiNotes: 'AI 手记',
   prompt: '提示词便签',
   investing: '投资研究',

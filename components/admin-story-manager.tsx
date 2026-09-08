@@ -21,8 +21,16 @@ export function AdminStoryManager({
 }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('all');
   const [message, setMessage] = useState('');
   const story = stories.find((item) => item.id === editing);
+  const filtered = newestStoriesFirst(stories).filter(
+    (item) =>
+      (status === 'all' || item._published === (status === 'published')) &&
+      `${item.text} ${item.topics.join(' ')}`
+        .toLocaleLowerCase()
+        .includes(query.trim().toLocaleLowerCase()),
+  );
   function update(change: Partial<Story>) {
     onChange(
       stories.map((item) =>
@@ -184,14 +192,19 @@ export function AdminStoryManager({
             update({ topics: normalizeStoryTopics(topics) })
           }
         />
-        <label className="admin-check">
-          <input
-            type="checkbox"
-            checked={story._published}
-            onChange={(e) => update({ _published: e.target.checked })}
-          />
-          发布到前台
-        </label>
+        <div className="admin-field admin-story-status">
+          <label htmlFor="story-status">发布状态</label>
+          <select
+            id="story-status"
+            value={story._published ? 'published' : 'draft'}
+            onChange={(e) =>
+              update({ _published: e.target.value === 'published' })
+            }
+          >
+            <option value="draft">草稿</option>
+            <option value="published">已发布</option>
+          </select>
+        </div>
       </div>
     );
   return (
@@ -204,6 +217,15 @@ export function AdminStoryManager({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        <select
+          aria-label="按发布状态筛选说说"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="all">全部状态</option>
+          <option value="draft">草稿</option>
+          <option value="published">已发布</option>
+        </select>
         <button
           type="button"
           onClick={() => {
@@ -234,63 +256,61 @@ export function AdminStoryManager({
             </tr>
           </thead>
           <tbody>
-            {newestStoriesFirst(stories)
-              .filter((item) =>
-                `${item.text} ${item.topics.join(' ')}`
-                  .toLowerCase()
-                  .includes(query.toLowerCase()),
-              )
-              .map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    {item.text || '未填写文字'}
-                    <small>{item.images.length} 张图片</small>
-                  </td>
-                  <td>{item.topics.join(' / ') || '—'}</td>
-                  <td>
-                    <time>{item.date.slice(0, 19).replace('T', ' ')}</time>
-                  </td>
-                  <td>{item._published ? '已发布' : '草稿'}</td>
-                  <td aria-label="说说操作">
-                    <div className="admin-row-actions">
-                      <button type="button" onClick={() => setEditing(item.id)}>
-                        编辑
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onChange(
-                            stories.map((s) =>
-                              s.id === item.id
-                                ? { ...s, _published: !s._published }
-                                : s,
-                            ),
-                          )
-                        }
-                      >
-                        {item._published ? '转为草稿' : '发布'}
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-danger"
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              '删除这条说说？保存后前台将不再展示。',
-                            )
-                          )
-                            onChange(stories.filter((s) => s.id !== item.id));
-                        }}
-                      >
-                        删除
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+            {filtered.map((item) => (
+              <tr key={item.id}>
+                <td>
+                  {item.text || '未填写文字'}
+                  <small>{item.images.length} 张图片</small>
+                </td>
+                <td>{item.topics.join(' / ') || '—'}</td>
+                <td>
+                  <time>{item.date.slice(0, 19).replace('T', ' ')}</time>
+                </td>
+                <td>{item._published ? '已发布' : '草稿'}</td>
+                <td aria-label="说说操作">
+                  <div className="admin-row-actions">
+                    <button type="button" onClick={() => setEditing(item.id)}>
+                      编辑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onChange(
+                          stories.map((s) =>
+                            s.id === item.id
+                              ? { ...s, _published: !s._published }
+                              : s,
+                          ),
+                        )
+                      }
+                    >
+                      {item._published ? '转为草稿' : '发布'}
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-danger"
+                      onClick={() => {
+                        if (
+                          window.confirm('删除这条说说？保存后前台将不再展示。')
+                        )
+                          onChange(stories.filter((s) => s.id !== item.id));
+                      }}
+                    >
+                      删除
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
-        {stories.length === 0 && <p>暂无说说，点击“新增说说”开始创作。</p>}
+        {!filtered.length && (
+          <p className="admin-empty">
+            {stories.length
+              ? '没有符合筛选条件的说说。'
+              : '暂无说说，点击“新增说说”开始创作。'}
+          </p>
+        )}
       </div>
     </div>
   );

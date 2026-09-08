@@ -6,6 +6,7 @@ import { useContent } from '@/components/content-provider';
 import { useState, type CSSProperties } from 'react';
 import { Search, ArrowUpRight, BookOpen, X } from 'lucide-react';
 import { LifeNavigation, SiteHeader, SiteFooter } from '@/components/site-chrome';
+import { LifePageHeader } from '@/components/life-page-header';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import type { books } from '@/lib/books';
 import './bookshelf.css';
@@ -27,7 +28,7 @@ export function Bookshelf() {
   const filtered = books.filter(book => (tab === '全部书籍' || tab === '主题书单' || book.status === tab) && (category === '全部' || book.category === category) && (!selectedList || selectedList.ids.includes(book.id)) && `${book.title} ${book.author}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const changeTab = (value: string) => { setTab(value); setCategory('全部'); setQuery(''); setListId(null); setLimit(12); };
   return <main className="site-shell"><SiteHeader /><div className="reading-room">
-    <header className="reading-intro"><div><p className="reading-kicker"><CmsText page="书籍页" name="02 THE READING ROOM /" /></p><h1><CmsText page="书籍页" name="03 书页之间，" /><br /><CmsText page="书籍页" name="04 遇见更大的世界。" /></h1><p className="reading-lead"><CmsText page="书籍页" name="05 读过的留在书架，想读的记在清单。" /><br /><CmsText page="书籍页" name="06 把相近的思考，整理成下一次阅读的起点" /></p></div><div className="reading-intro-aside"><BookOpen size={32} strokeWidth={1} /><p><CmsText page="书籍页" name="07 一本一本地读，" /><br /><CmsText page="书籍页" name="08 一点一点地积累。" /></p><span><CmsText page="书籍页" name="09 书籍与书单 · 持续整理" /></span></div></header>
+    <LifePageHeader kind="books" title="书籍" intro={<><CmsText page="书籍页" name="05 读过的留在书架，想读的记在清单。" /> <CmsText page="书籍页" name="06 把相近的思考，整理成下一次阅读的起点" /></>} />
     <LifeNavigation />
     <p className="reading-demo"><CmsText page="书籍页" name="10 书架预览：以下阅读状态、笔记和书单均" /></p>
     <nav className="reading-tabs" aria-label="书架视图">{['全部书籍', '读过', '想读', '主题书单'].map(value => <button type="button" aria-pressed={tab === value} onClick={() => changeTab(value)} key={value}>{value}<span>{value === '主题书单' ? booklists.length : value === '全部书籍' ? books.length : books.filter(book => book.status === value).length}</span></button>)}</nav>

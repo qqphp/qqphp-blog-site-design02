@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Headphones, Pause, Play } from 'lucide-react';
 import { LifeNavigation, SiteFooter, SiteHeader } from '@/components/site-chrome';
 import { useMusic } from '@/components/music-player';
+import { LifePageHeader } from '@/components/life-page-header';
 import { formatTime } from '@/lib/music';
 import { type LifeKind } from '@/lib/life-content';
 
@@ -48,5 +49,5 @@ export function LifePage({ type }: { type: LifeKind | 'music' }) {
   const lifeContent = useContent();
   const title = type === 'music' ? '音乐' : lifeContent[type].title;
   const intro = type === 'music' ? '声音是日常的另一种时间线。' : lifeContent[type].intro;
-  return <main className="site-shell"><SiteHeader /><div className="life-page"><header className="life-page-heading"><div><p className="life-overline"><CmsText page="生活栏目" name="20 OFF THE CLOCK / 生活" /></p><h1>{title}</h1><p>{intro}</p></div><span><CmsText page="生活栏目" name="21 DEMO / 示例内容" /></span></header><LifeNavigation />{type === 'music' ? <MusicShelf /> : <LifeCollection key={type} type={type} />}</div><SiteFooter /></main>;
+  return <main className="site-shell"><SiteHeader /><div className="life-page"><LifePageHeader kind={type} title={title} intro={intro} /><LifeNavigation />{type === 'music' ? <MusicShelf /> : <LifeCollection key={type} type={type} />}</div><SiteFooter /></main>;
 }

@@ -10,6 +10,10 @@ style.textContent = readFileSync(
   new URL('../components/admin.css', import.meta.url),
   'utf8',
 );
+const lifeCss = readFileSync(
+  new URL('../components/life.css', import.meta.url),
+  'utf8',
+);
 window.document.head.append(style);
 for (const name of [
   'window',
@@ -62,6 +66,8 @@ const { WritingCategoryTree } =
   await import('../components/writing-category-tree.tsx');
 const { migrateProjects } = await import('../lib/project-content.ts');
 const { AdminPanel } = await import('../components/admin-panel.tsx');
+const { ContentProvider } = await import('../components/content-provider.tsx');
+const { LifePageHeader } = await import('../components/life-page-header.tsx');
 const { AdminMarkdownEditor } =
   await import('../components/admin-markdown-editor.tsx');
 const { defaults } = await import('../lib/cms-defaults.ts');
@@ -119,6 +125,24 @@ try {
   };
   render(h(AdminPanel));
   await screen.findByRole('tab', { name: '文章管理' });
+  const adminNavigation = within(
+    screen.getByRole('navigation', { name: '后台栏目' }),
+  );
+  assert.ok(adminNavigation.getByRole('button', { name: '关于' }));
+  assert.equal(
+    adminNavigation.queryByRole('button', { name: '个人资料' }),
+    null,
+  );
+  const websiteGroup = adminNavigation
+    .getByText('网站', { selector: '.admin-nav-group-label' })
+    .closest('.admin-nav-group');
+  assert.ok(within(websiteGroup).getByRole('button', { name: /书签/ }));
+  assert.ok(within(websiteGroup).getByRole('button', { name: /友链/ }));
+  const lifeGroup = adminNavigation
+    .getByText('生活', { selector: '.admin-nav-group-label' })
+    .closest('.admin-nav-group');
+  assert.ok(within(lifeGroup).getByRole('button', { name: /音乐/ }));
+  assert.ok(within(lifeGroup).getByRole('button', { name: /电影/ }));
   assert.equal(
     within(screen.getByRole('navigation', { name: '后台栏目' })).queryByRole(
       'button',
@@ -198,6 +222,18 @@ try {
     }),
   );
   assert.ok(screen.getByRole('table'));
+  const storySearch = screen.getByRole('searchbox', { name: '搜索说说' });
+  const storyStatusFilter = screen.getByLabelText('按发布状态筛选说说');
+  assert.equal(storySearch.nextElementSibling, storyStatusFilter);
+  assert.equal(
+    window.getComputedStyle(storySearch.closest('.admin-story-toolbar'))
+      .display,
+    'grid',
+  );
+  await user.selectOptions(storyStatusFilter, 'draft');
+  assert.equal(screen.getAllByRole('row').length, 1);
+  assert.ok(screen.getByText('没有符合筛选条件的说说。'));
+  await user.selectOptions(storyStatusFilter, 'all');
   await user.click(
     screen.getAllByRole('button', { name: '编辑', exact: true })[0],
   );
@@ -263,10 +299,10 @@ try {
   );
   assert.equal(screen.queryByRole('button', { name: '评论与回复' }), null);
   await user.click(screen.getByRole('button', { name: '＋ 新增说说' }));
-  assert.equal(
-    screen.getByRole('checkbox', { name: '发布到前台' }).checked,
-    false,
-  );
+  assert.equal(screen.getByLabelText('发布状态').value, 'draft');
+  await user.selectOptions(screen.getByLabelText('发布状态'), 'published');
+  assert.equal(screen.getByLabelText('发布状态').value, 'published');
+  await user.selectOptions(screen.getByLabelText('发布状态'), 'draft');
   await user.type(screen.getByLabelText('文字'), '新建默认草稿');
   fireEvent.change(screen.getByLabelText('发布日期（北京时间）'), {
     target: { value: '2030-01-01T00:00:01' },
@@ -298,6 +334,51 @@ try {
   globalThis.fetch = realFetch;
   console.log(
     'PASS merged writing tabs retain drafts; project tags and frameless images; automatic AI generation on save',
+  );
+  const lifeHeaders = [
+    ['music', '音乐', '让声音留在日常里，也留一点空白给自己。'],
+    ['films', '电影', '电影散场以后，故事仍在心里继续。'],
+    ['podcasts', '播客', '给问题多一点时间，给不同声音一个座位。'],
+    ['travel', '旅行', '走得慢一点，沿途才会真正出现。'],
+    ['hobbies', '爱好', '不为擅长，只是愿意再次开始。'],
+    ['books', '书籍', '一本一本地读，一点一点地积累。'],
+  ];
+  render(
+    h(
+      ContentProvider,
+      { content: defaults },
+      h(
+        'div',
+        null,
+        ...lifeHeaders.map(([kind, title]) =>
+          h(LifePageHeader, {
+            key: kind,
+            kind,
+            title,
+            intro: `${title}页面简介`,
+          }),
+        ),
+      ),
+    ),
+  );
+  for (const [, title, copy] of lifeHeaders) {
+    const header = screen
+      .getByRole('heading', { name: title })
+      .closest('header');
+    assert.ok(
+      within(header)
+        .getByRole('complementary')
+        .textContent.replace(/\s+/g, '')
+        .includes(copy),
+    );
+  }
+  assert.match(
+    lifeCss,
+    /@media \(max-width: 700px\)[\s\S]*?\.life-page-heading-aside \{ display: none; \}/,
+  );
+  cleanup();
+  console.log(
+    'PASS shared life headers include per-page aside copy and hide the aside on mobile',
   );
   render(
     h(

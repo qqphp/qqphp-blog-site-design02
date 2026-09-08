@@ -56,6 +56,41 @@ const destinations: Partial<Record<Section, string>> = {
   hobbies: '/hobbies',
 };
 
+const sidebarSections: {
+  label?: string;
+  sections: Section[];
+}[] = [
+  {
+    sections: [
+      'aiSettings',
+      'pageSettings',
+      'copy',
+      'site',
+      'home',
+      'writing',
+      'projects',
+      'stories',
+      'profile',
+      'aiNotes',
+      'prompt',
+      'investing',
+    ],
+  },
+  { label: '网站', sections: ['bookmarks', 'friends'] },
+  {
+    label: '生活',
+    sections: [
+      'tracks',
+      'films',
+      'podcasts',
+      'travel',
+      'hobbies',
+      'books',
+      'booklists',
+    ],
+  },
+];
+
 export function AdminPanel() {
   const [ready, setReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -275,6 +310,31 @@ export function AdminPanel() {
   const record = list ? list[selected] : draft;
   const pageSection =
     section === 'pageSettings' || section === 'copy' ? section : null;
+  const renderSectionButton = (key: Section, child = false) => (
+    <button
+      type="button"
+      className={child ? 'admin-nav-child' : undefined}
+      disabled={busy}
+      key={key}
+      aria-current={
+        !media &&
+        (section === key ||
+          (key === 'writing' && writingGroup) ||
+          (key === 'stories' && storyGroup))
+          ? 'page'
+          : undefined
+      }
+      onClick={() => choose(key)}
+    >
+      {sectionLabels[key]}
+      {key === 'projects' && content && (
+        <small>{content.projects.items.length}</small>
+      )}
+      {Array.isArray(content?.[key]) && (
+        <small>{(content[key] as unknown[]).length}</small>
+      )}
+    </button>
+  );
   return (
     <main className="admin-shell">
       <aside className="admin-sidebar">
@@ -283,32 +343,20 @@ export function AdminPanel() {
         </Link>
         <p>内容与页面</p>
         <nav aria-label="后台栏目">
-          {(Object.keys(sectionLabels) as Section[])
-            .filter((key) => key !== 'categories' && key !== 'slides')
-            .map((key) => (
-              <button
-                type="button"
-                disabled={busy}
-                key={key}
-                aria-current={
-                  !media &&
-                  (section === key ||
-                    (key === 'writing' && writingGroup) ||
-                    (key === 'stories' && storyGroup))
-                    ? 'page'
-                    : undefined
-                }
-                onClick={() => choose(key)}
-              >
-                {sectionLabels[key]}
-                {key === 'projects' && content && (
-                  <small>{content.projects.items.length}</small>
-                )}
-                {Array.isArray(content?.[key]) && (
-                  <small>{(content[key] as unknown[]).length}</small>
-                )}
-              </button>
-            ))}
+          {sidebarSections.map((group, index) =>
+            group.label ? (
+              <div className="admin-nav-group" key={group.label}>
+                <span className="admin-nav-group-label">{group.label}</span>
+                <div>
+                  {group.sections.map((key) => renderSectionButton(key, true))}
+                </div>
+              </div>
+            ) : (
+              <div className="admin-nav-primary" key={index}>
+                {group.sections.map((key) => renderSectionButton(key))}
+              </div>
+            ),
+          )}
         </nav>
         <button
           type="button"
