@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Tabs } from '@base-ui/react/tabs';
 import { createArticleCover, type Article } from './admin-writing-editor';
+import { AdminDirectoryManager } from './admin-directory-manager';
+import { migrateDirectory } from '@/lib/directory-content';
 import { AdminProjectManager } from './admin-project-manager';
 import { createProjectImage } from './admin-project-images';
 import {
@@ -327,9 +329,8 @@ export function AdminPanel() {
       onClick={() => choose(key)}
     >
       {sectionLabels[key]}
-      {key === 'projects' && content && (
-        <small>{content.projects.items.length}</small>
-      )}
+      {(key === 'projects' || key === 'bookmarks' || key === 'friends') &&
+        content && <small>{content[key].items.length}</small>}
       {Array.isArray(content?.[key]) && (
         <small>{(content[key] as unknown[]).length}</small>
       )}
@@ -467,6 +468,11 @@ export function AdminPanel() {
                           value = Array.isArray(value)
                             ? migrateProjects(value)
                             : resolveProjects(value);
+                        if (
+                          (section === 'bookmarks' || section === 'friends') &&
+                          Array.isArray(value)
+                        )
+                          value = migrateDirectory(value);
                         if (section === 'stories' && Array.isArray(value))
                           value = migrateStories(value);
                         validateContent(section, value);
@@ -616,6 +622,13 @@ export function AdminPanel() {
                   <AdminProjectManager
                     value={draft as unknown as Content['projects']}
                     onWorking={setGenerating}
+                    onChange={(next) => setDraft(asJson(next))}
+                  />
+                ) : section === 'bookmarks' || section === 'friends' ? (
+                  <AdminDirectoryManager
+                    key={section}
+                    section={section}
+                    value={draft as unknown as Content['bookmarks']}
                     onChange={(next) => setDraft(asJson(next))}
                   />
                 ) : pageSection ? (

@@ -138,6 +138,26 @@ export function validateContent(key: Section, value: unknown) {
     )
       throw new Error('项目图片提示词须包含名称、副标题和摘要占位符');
   }
+  if (key === 'bookmarks' || key === 'friends') {
+    const document = value as typeof defaults.bookmarks;
+    const names = document.categories.map((item) => item.name.trim());
+    if (new Set(names).size !== names.length)
+      throw new Error('分类名称不能重复');
+    if (names.includes('全部'))
+      throw new Error('“全部”用于筛选，请使用其他分类名称');
+    for (const item of document.items) {
+      if (!document.categories.some((option) => option.id === item.categoryId))
+        throw new Error('请选择有效分类；删除分类前请调整关联条目（含草稿）');
+      if (key === 'bookmarks' || item.url) {
+        try {
+          const url = new URL(item.url);
+          if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
+        } catch {
+          throw new Error('请填写完整的 http(s) 网站地址');
+        }
+      }
+    }
+  }
   if (key === 'projects') {
     const document = value as typeof defaults.projects;
     for (const key of ['statuses', 'categories'] as const) {

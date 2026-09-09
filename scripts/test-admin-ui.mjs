@@ -656,6 +656,80 @@ try {
   console.log(
     'PASS article table filtering, editing, portalled date selection, return and publication action',
   );
+  const { AdminDirectoryManager } =
+    await import('../components/admin-directory-manager.tsx');
+  const { migrateDirectory } = await import('../lib/directory-content.ts');
+  const { validateContent } = await import('../lib/cms-validation.ts');
+  for (const [section, label] of [
+    ['bookmarks', '书签'],
+    ['friends', '友链'],
+  ]) {
+    const legacy = [
+      {
+        name: '旧条目',
+        category: '旧分类',
+        url: 'https://example.com',
+        description: '简介',
+        _published: false,
+      },
+    ];
+    const migrated = migrateDirectory(legacy);
+    let latest = migrated;
+    validateContent(section, migrated);
+    assert.equal(migrated.items[0]._published, false);
+    assert.deepEqual(migrateDirectory([]), { items: [], categories: [] });
+    const onChange = (next) => {
+      latest = next;
+      view.rerender(
+        h(AdminDirectoryManager, { section, value: latest, onChange }),
+      );
+    };
+    const view = render(
+      h(AdminDirectoryManager, { section, value: latest, onChange }),
+    );
+    assert.ok(screen.getByRole('table'));
+    await user.type(screen.getByLabelText(`搜索${label}`), '不存在');
+    assert.equal(screen.getAllByRole('row').length, 1);
+    await user.clear(screen.getByLabelText(`搜索${label}`));
+    await user.click(screen.getByRole('tab', { name: `${label}分类` }));
+    assert.equal(
+      screen.getByRole('button', { name: '删除旧分类' }).disabled,
+      true,
+    );
+    await user.clear(screen.getByLabelText(`${label}分类 1`));
+    await user.type(screen.getByLabelText(`${label}分类 1`), '新分类');
+    assert.equal(latest.items[0].category, '新分类');
+    await user.click(
+      screen.getByRole('button', { name: `＋ 新增${label}分类` }),
+    );
+    await user.type(screen.getByLabelText(`${label}分类 2`), '第二分类');
+    await user.click(
+      screen.getByRole('tab', { name: new RegExp(`${label}列表`) }),
+    );
+    await user.selectOptions(
+      screen.getByLabelText(`筛选${label}分类`),
+      latest.categories[1].id,
+    );
+    assert.equal(screen.getAllByRole('row').length, 1);
+    await user.click(screen.getByRole('button', { name: `＋ 新增${label}` }));
+    await user.type(screen.getByLabelText(`${label}名称`), '新条目');
+    await user.type(screen.getByLabelText('网站地址'), 'https://example.org');
+    await user.selectOptions(
+      screen.getByLabelText(`${label}分类`),
+      latest.categories[1].id,
+    );
+    await user.click(
+      screen.getByRole('button', { name: `← 返回${label}表格` }),
+    );
+    assert.ok(screen.getByRole('button', { name: '新条目' }));
+    await user.click(screen.getByRole('button', { name: '发布' }));
+    assert.equal(latest.items[1]._published, true);
+    validateContent(section, latest);
+    cleanup();
+  }
+  console.log(
+    'PASS bookmark and friend tables, search, category filters, rename, protected deletion, creation and publication',
+  );
 } finally {
   cleanup();
   await window.happyDOM.close();

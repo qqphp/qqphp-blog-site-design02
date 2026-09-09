@@ -1,3 +1,4 @@
+import { migrateDirectory, resolveDirectory } from './directory-content';
 import { env } from 'cloudflare:workers';
 import { defaults, type PublicContent, type Section } from './cms-defaults';
 import { publishedOnly } from './cms-validation';
@@ -64,6 +65,10 @@ export async function getDocuments() {
   content.projects = Array.isArray(content.projects)
     ? migrateProjects(content.projects)
     : resolveProjects(content.projects);
+  for (const key of ['bookmarks', 'friends'] as const)
+    content[key] = Array.isArray(content[key])
+      ? migrateDirectory(content[key])
+      : resolveDirectory(content[key]);
   content.stories = migrateStories(content.stories);
   return { content, revisions };
 }

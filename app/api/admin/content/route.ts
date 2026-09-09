@@ -1,3 +1,4 @@
+import { resolveDirectory } from '@/lib/directory-content';
 import {
   authenticated,
   json,
@@ -29,6 +30,8 @@ export async function PUT(request: Request) {
     )
       return json({ error: '栏目或版本无效' }, 400);
     validateContent(key, value);
+    if (key === 'bookmarks' || key === 'friends')
+      Object.assign(value, resolveDirectory(value));
     if (key === 'projects') Object.assign(value, resolveProjects(value));
     let guard: { key: Section; revision: number } | undefined;
     if (key === 'writing' || key === 'categories') {

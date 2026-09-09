@@ -1,3 +1,4 @@
+import { migrateDirectory } from './directory-content';
 import { writing, stories } from '../app/content';
 import { migrateProjects } from './project-content';
 import { showcaseProjects } from './project-showcase';
@@ -173,8 +174,8 @@ export const defaults = {
       entries: publish(section.entries),
     })),
   },
-  bookmarks: publish(bookmarks),
-  friends: publish(friends.map((item) => ({ ...item, url: item.url ?? '' }))),
+  bookmarks: migrateDirectory(bookmarks),
+  friends: migrateDirectory(friends),
   books: publish(books),
   booklists: publish(booklists),
   tracks: publish(tracks),

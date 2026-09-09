@@ -529,8 +529,46 @@ try {
   assert.equal(reread.content.writing.at(-1).body, draft.body);
   await save('writing', articles, 1, 409);
   await save('writing', [...articles, articles[0]], revisions.writing, 400);
+  for (const key of ['bookmarks', 'friends']) {
+    const directory = structuredClone(documents.content[key]);
+    const first = directory.items[0];
+    directory.categories.find(
+      (category) => category.id === first.categoryId,
+    ).name = `CMS_${key}_CATEGORY`;
+    directory.categories.push({
+      id: 'empty-category',
+      name: `CMS_${key}_EMPTY`,
+    });
+    first.name = `CMS_${key}_VISIBLE`;
+    directory.items[1].name = `CMS_${key}_HIDDEN`;
+    directory.items[1]._published = false;
+    await save(key, directory);
+    const saved = (await request('/api/admin/content')).json().content[key];
+    assert.equal(saved.items[0].category, `CMS_${key}_CATEGORY`);
+    const page = await request(`/${key}`, { auth: false });
+    check(page, 200);
+    assert.ok(page.text.includes(`CMS_${key}_CATEGORY`));
+    assert.ok(page.text.includes(`CMS_${key}_EMPTY`));
+    assert.ok(page.text.includes(`CMS_${key}_VISIBLE`));
+    assert.ok(!page.text.includes(`CMS_${key}_HIDDEN`));
+    const missingCategory = structuredClone(directory);
+    missingCategory.categories = [];
+    await save(key, missingCategory, revisions[key], 400);
+    const duplicateCategory = structuredClone(directory);
+    duplicateCategory.categories.push({
+      id: 'duplicate-name',
+      name: directory.categories[0].name,
+    });
+    await save(key, duplicateCategory, revisions[key], 400);
+    await save(key, { items: [], categories: [] });
+    check(await request(`/${key}`), 200);
+    await save(key, documents.content[key]);
+  }
+  console.log(
+    'PASS directory category rename, empty categories, draft privacy, invalid references and empty documents',
+  );
   const invalid = structuredClone(documents.content.bookmarks);
-  invalid[0].url = 'javascript:alert(1)';
+  invalid.items[0].url = 'javascript:alert(1)';
   await save('bookmarks', invalid, revisions.bookmarks, 400);
   await save(
     'writing',
@@ -596,7 +634,8 @@ try {
   await save('writing', []);
   for (const [key, value] of Object.entries(documents.content)) {
     if (Array.isArray(value)) await save(key, []);
-    else if (key === 'projects') await save(key, { ...value, items: [] });
+    else if (['projects', 'bookmarks', 'friends'].includes(key))
+      await save(key, { ...value, items: [] });
     else if (value.entries) await save(key, { ...value, entries: [] });
     else if (key === 'investing') await save(key, { ...value, sections: [] });
   }
