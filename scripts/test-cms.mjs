@@ -269,10 +269,35 @@ try {
   const aiSettings = {
     ...documents.content.aiSettings,
     coverPrompt: 'PRIVATE_AI_PROMPT {{title}} {{excerpt}} {{style}}',
+    filmCoverPrompt: 'PRIVATE_FILM_PROMPT {{title}} {{director}} {{style}}',
     projectImagePrompt:
       'PRIVATE_PROJECT_PROMPT {{title}} {{subtitle}} {{excerpt}} {{style}}',
   };
   await save('aiSettings', aiSettings);
+  await save(
+    'aiSettings',
+    { ...aiSettings, filmCoverPrompt: 'missing placeholders' },
+    revisions.aiSettings,
+    400,
+  );
+  check(
+    await request('/api/admin/ai', {
+      method: 'POST',
+      body: {
+        action: 'film-cover',
+        title: '电影',
+        excerpt: '简介',
+        director: '',
+      },
+    }),
+    400,
+  );
+  assert.ok(
+    !(await request('/films', { auth: false })).text.includes(
+      'PRIVATE_FILM_PROMPT',
+    ),
+  );
+
   assert.ok(
     !(await request('/', { auth: false })).text.includes(
       'PRIVATE_PROJECT_PROMPT',
@@ -312,6 +337,11 @@ try {
     readFileSync(legacySql, 'utf8') +
       " UPDATE cms_documents SET value = (SELECT json_group_array(json_set(json_remove(story.value, '$.topics'), '$.topic', json_extract(story.value, '$.topics[0]'), '$.reactions', '旧点赞', '$.replies', json_array('旧示例回复'))) FROM json_each(cms_documents.value) AS story) WHERE key = 'stories';",
   );
+  writeFileSync(
+    legacySql,
+    readFileSync(legacySql, 'utf8') +
+      " UPDATE cms_documents SET value = json_extract(value, '$.items') WHERE key = 'tracks';",
+  );
   const legacy = spawnSync(
     process.execPath,
     [
@@ -330,6 +360,14 @@ try {
     { encoding: 'utf8' },
   );
   assert.equal(legacy.status, 0, legacy.stderr || legacy.stdout);
+  const migratedMusic = (await request('/api/admin/content')).json().content
+    .tracks;
+  assert.deepEqual(migratedMusic.items, documents.content.tracks.items);
+  assert.deepEqual(migratedMusic.playlists, []);
+  await save('tracks', migratedMusic);
+  console.log(
+    'PASS legacy music array migration preserves track IDs, metadata and audio',
+  );
   const migratedStories = (await request('/api/admin/content')).json().content
     .stories;
   assert.deepEqual(
@@ -529,6 +567,172 @@ try {
   assert.equal(reread.content.writing.at(-1).body, draft.body);
   await save('writing', articles, 1, 409);
   await save('writing', [...articles, articles[0]], revisions.writing, 400);
+
+  const filmData = structuredClone(documents.content.films);
+  const podcastData = structuredClone(documents.content.podcasts);
+  Object.assign(podcastData.items[0], {
+    title: 'CMS_PODCAST_VISIBLE',
+    host: 'CMS_PODCAST_HOST',
+    description: 'CMS_PODCAST_DESCRIPTION',
+    audio: '/sample.mp3',
+    cover: '/notes-city.png',
+  });
+  Object.assign(podcastData.items[1], {
+    title: 'CMS_PODCAST_HIDDEN',
+    _published: false,
+  });
+  podcastData.categories.find(
+    (item) => item.id === podcastData.items[0].categoryId,
+  ).name = 'CMS_PODCAST_CATEGORY';
+  await save('podcasts', podcastData);
+  assert.deepEqual(
+    (await request('/api/admin/content')).json().content.podcasts,
+    podcastData,
+  );
+  const podcastPage = await request('/podcasts', { auth: false });
+  check(podcastPage, 200);
+  for (const text of [
+    'CMS_PODCAST_VISIBLE',
+    'CMS_PODCAST_HOST',
+    'CMS_PODCAST_DESCRIPTION',
+    'CMS_PODCAST_CATEGORY',
+    '/sample.mp3',
+  ])
+    assert.ok(podcastPage.text.includes(text));
+  assert.ok(!podcastPage.text.includes('CMS_PODCAST_HIDDEN'));
+  await save(
+    'podcasts',
+    { ...podcastData, categories: [] },
+    revisions.podcasts,
+    400,
+  );
+  await save(
+    'podcasts',
+    {
+      ...podcastData,
+      items: [{ ...podcastData.items[0], audio: 'javascript:alert(1)' }],
+    },
+    revisions.podcasts,
+    400,
+  );
+  for (const body of [
+    { action: 'podcast-cover', title: '节目', excerpt: '简介' },
+    { action: 'podcast-cover', title: '节目', host: '主播' },
+  ])
+    check(await request('/api/admin/ai', { method: 'POST', body }), 400);
+  await save('podcasts', { ...podcastData, items: [] });
+  assert.ok(
+    (await request('/podcasts', { auth: false })).text.includes(
+      '暂无发布的播客',
+    ),
+  );
+  console.log(
+    'PASS podcast save/read, category references, single audio URL, public fields, draft privacy, AI required inputs and empty state',
+  );
+  filmData.items[0].title = 'CMS_FILM_VISIBLE';
+  filmData.items[0].director = 'CMS_FILM_DIRECTOR';
+  filmData.items[0].country = '电影国家';
+  filmData.items[0].language = '电影语言';
+  filmData.items[1].title = 'CMS_FILM_HIDDEN';
+  filmData.items[1]._published = false;
+  filmData.categories.find(
+    (item) => item.id === filmData.items[0].categoryId,
+  ).name = 'CMS_FILM_CATEGORY';
+  await save('films', filmData);
+  assert.deepEqual(
+    (await request('/api/admin/content')).json().content.films,
+    filmData,
+  );
+  const filmPage = await request('/films', { auth: false });
+  check(filmPage, 200);
+  for (const text of [
+    'CMS_FILM_VISIBLE',
+    'CMS_FILM_DIRECTOR',
+    'CMS_FILM_CATEGORY',
+    '电影国家',
+    '电影语言',
+  ])
+    assert.ok(filmPage.text.includes(text));
+  assert.ok(!filmPage.text.includes('CMS_FILM_HIDDEN'));
+  const badFilm = structuredClone(filmData);
+  badFilm.items[0].categoryId = 'missing';
+  await save('films', badFilm, revisions.films, 400);
+  badFilm.items[0].categoryId = filmData.items[0].categoryId;
+  badFilm.categories.push({ ...badFilm.categories[0], id: 'duplicate' });
+  await save('films', badFilm, revisions.films, 400);
+  await save('films', { ...filmData, items: [], categories: [] });
+  check(await request('/films', { auth: false }), 200);
+  await save('films', filmData);
+  console.log(
+    'PASS film persistence, category rename/reference checks, draft privacy, public fields and empty films',
+  );
+  const musicData = structuredClone(documents.content.tracks);
+  musicData.items[0].title = 'CMS_MUSIC_VISIBLE';
+  musicData.items[1].title = 'CMS_MUSIC_HIDDEN';
+  musicData.items[1]._published = false;
+  musicData.playlists = [
+    {
+      id: 'test-mix',
+      title: 'CMS_PLAYLIST_VISIBLE',
+      description: '播放测试',
+      cover: '',
+      color: '#aabbcc',
+      coverMode: 'upload',
+      coverGeneratedFor: '',
+      songs: [{ title: 'CMS_INDEPENDENT_SONG', artist: '独立作者' }],
+      _published: true,
+    },
+    {
+      id: 'draft-mix',
+      title: 'CMS_PLAYLIST_HIDDEN',
+      description: '',
+      cover: '',
+      color: '#112233',
+      coverMode: 'upload',
+      coverGeneratedFor: '',
+      songs: [],
+      _published: false,
+    },
+  ];
+  await save('tracks', musicData);
+  const musicRead = (await request('/api/admin/content')).json().content.tracks;
+  assert.deepEqual(musicRead, musicData);
+  const musicPage = await request('/music', { auth: false });
+  check(musicPage, 200);
+  assert.ok(musicPage.text.includes('CMS_MUSIC_VISIBLE'));
+  assert.ok(musicPage.text.includes('CMS_PLAYLIST_VISIBLE'));
+  assert.ok(!musicPage.text.includes('CMS_MUSIC_HIDDEN'));
+  assert.ok(!musicPage.text.includes('CMS_PLAYLIST_HIDDEN'));
+  assert.ok(musicPage.text.includes('CMS_INDEPENDENT_SONG'));
+  const badMusic = structuredClone(musicData);
+  badMusic.items[0].moodId = 'missing-scene';
+  await save('tracks', badMusic, revisions.tracks, 400);
+  badMusic.items[0].moodId = musicData.items[0].moodId;
+  badMusic.scenes.push({ ...badMusic.scenes[0], id: 'duplicate-scene' });
+  await save('tracks', badMusic, revisions.tracks, 400);
+  badMusic.scenes.pop();
+  badMusic.playlists[0].songs[0].title = '';
+  await save('tracks', badMusic, revisions.tracks, 400);
+  const renamed = structuredClone(musicData);
+  renamed.scenes[0].name = 'CMS_RENAMED_SCENE';
+  await save('tracks', renamed);
+  const renamedRead = (await request('/api/admin/content')).json().content
+    .tracks;
+  assert.equal(renamedRead.items[0].mood, 'CMS_RENAMED_SCENE');
+  const independentMusic = { ...musicData, items: [] };
+  await save('tracks', independentMusic);
+  const independentRead = (await request('/api/admin/content')).json().content
+    .tracks;
+  assert.deepEqual(independentRead.playlists, musicData.playlists);
+  const staleMusicRevision = revisions.tracks;
+  await save('tracks', musicData);
+  await save('tracks', musicData, staleMusicRevision, 409);
+  await save('tracks', { items: [], playlists: [], scenes: [] });
+  check(await request('/music'), 200);
+  await save('tracks', musicData);
+  console.log(
+    'PASS music and playlist roundtrip, draft privacy, invalid references, stale revision and empty music',
+  );
   for (const key of ['bookmarks', 'friends']) {
     const directory = structuredClone(documents.content[key]);
     const first = directory.items[0];
@@ -625,6 +829,7 @@ try {
   server = startServer();
   await waitForServer();
   const persisted = (await request('/api/admin/content')).json();
+  assert.deepEqual(persisted.content.tracks, musicData);
   assert.equal(persisted.content.home.title, 'CMS_HOME_SENTINEL');
   assert.equal(persisted.content.writing.at(-1).body, draft.body);
   assert.equal((await fetch(base + media.url)).status, 200);
@@ -634,7 +839,9 @@ try {
   await save('writing', []);
   for (const [key, value] of Object.entries(documents.content)) {
     if (Array.isArray(value)) await save(key, []);
-    else if (['projects', 'bookmarks', 'friends'].includes(key))
+    else if (key === 'tracks')
+      await save(key, { items: [], playlists: [], scenes: [] });
+    else if (['projects', 'bookmarks', 'friends', 'films'].includes(key))
       await save(key, { ...value, items: [] });
     else if (value.entries) await save(key, { ...value, entries: [] });
     else if (key === 'investing') await save(key, { ...value, sections: [] });

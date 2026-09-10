@@ -1,0 +1,306 @@
+.cinema-program {
+  margin: 24px 0 40px;
+  color: var(--ink);
+}
+.cinema-program-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.cinema-program-heading > div > span {
+  color: var(--muted);
+  font:
+    10px ui-monospace,
+    monospace;
+  letter-spacing: 0.18em;
+}
+.cinema-program-heading h2 {
+  margin: 6px 0 0;
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+.cinema-heading-dot {
+  color: var(--lime);
+}
+.cinema-program-heading > p {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.cinema-program-heading strong {
+  font:
+    32px/1 Georgia,
+    serif;
+  color: var(--lime);
+}
+.cinema-program-heading > p > span {
+  max-width: 84px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.cinema-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-block: 1px solid var(--line);
+  padding: 10px 0;
+  margin-bottom: 22px;
+}
+.cinema-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cinema-categories button {
+  padding: 7px 11px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.cinema-categories button[aria-pressed='true'] {
+  color: var(--navy);
+  background: var(--lime);
+}
+.cinema-categories button:hover:not([aria-pressed='true']) {
+  border-color: var(--line);
+  color: var(--ink);
+}
+.cinema-categories small {
+  margin-left: 6px;
+  font:
+    10px ui-monospace,
+    monospace;
+}
+.cinema-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  padding: 8px 10px;
+  background: var(--navy);
+  border: 1px solid var(--line);
+}
+.cinema-search input {
+  background: transparent;
+  color: var(--ink);
+  width: 180px;
+  min-width: 0;
+  border: 0;
+  font: inherit;
+  font-size: 13px;
+}
+.cinema-search input::placeholder {
+  color: var(--muted);
+}
+.cinema-program-list {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 28px 18px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.cinema-program-list > li {
+  min-width: 0;
+  position: relative;
+  padding-top: 27px;
+  background: var(--navy);
+  border-bottom: 2px solid var(--line);
+}
+.cinema-program-image {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 9/16;
+  background: color-mix(in srgb, var(--ink) 8%, var(--navy));
+  color: var(--muted);
+  overflow: hidden;
+}
+.cinema-program-image img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+.cinema-program-list > li:hover .cinema-program-image img {
+  transform: scale(1.035);
+}
+.cinema-program-list > li:hover {
+  border-bottom-color: var(--lime);
+}
+.cinema-card-info {
+  padding: 12px 10px 14px;
+  border-inline: 1px solid var(--line);
+}
+.cinema-card-top {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row-reverse;
+  gap: 8px;
+  padding: 0 8px;
+  border-top: 1px solid var(--line);
+}
+.cinema-program-category {
+  color: var(--muted);
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cinema-program-number {
+  color: var(--lime);
+  font:
+    11px ui-monospace,
+    monospace;
+}
+.cinema-program-number::before {
+  content: 'NO. ';
+  font-size: 9px;
+}
+.cinema-card-info h3 {
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 600;
+  margin: 0 0 9px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.cinema-card-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 9px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.cinema-card-facts > div {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+}
+.cinema-card-facts > div:first-child {
+  flex-basis: 100%;
+}
+.cinema-card-facts dt {
+  font-size: 10px;
+}
+.cinema-card-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.cinema-pagination {
+  margin-top: 28px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.cinema-pagination > div {
+  display: flex;
+  gap: 8px;
+}
+.cinema-pagination button,
+.cinema-empty button {
+  background: var(--navy);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.cinema-pagination button:hover:not(:disabled),
+.cinema-empty button:hover {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+.cinema-pagination button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.cinema-empty {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--muted);
+}
+.cinema-empty h3 {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--ink);
+}
+.cinema-program button:focus-visible,
+.cinema-program input:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 4px;
+}
+@media (max-width: 1200px) {
+  .cinema-program-list {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 24px 16px;
+  }
+}
+@media (max-width: 1000px) {
+  .cinema-program-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .cinema-program-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px 14px;
+  }
+  .cinema-search {
+    width: 100%;
+  }
+  .cinema-search input {
+    width: 100%;
+  }
+}
+@media (max-width: 480px) {
+  .cinema-program-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 12px;
+  }
+  .cinema-program-heading h2 {
+    font-size: 23px;
+  }
+  .cinema-program-heading > p > span {
+    display: none;
+  }
+  .cinema-program-heading > div > span {
+    font-size: 9px;
+  }
+  .cinema-card-info {
+    padding-inline: 8px;
+  }
+  .cinema-pagination {
+    align-items: start;
+    flex-direction: column;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cinema-program-image img {
+    transition: none;
+  }
+  .cinema-program-list > li:hover .cinema-program-image img {
+    transform: none;
+  }
+}

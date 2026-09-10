@@ -1,3 +1,6 @@
+import { playlistCoverInput } from './music-content';
+import { podcastCoverInput } from './podcast-content';
+import { filmCoverInput } from './film-content';
 import { bindings, getDocuments } from './cms-server';
 import { readLimitedBody } from './admin-auth';
 import { validateProviderUrl } from './cms-validation';
@@ -61,15 +64,19 @@ export function buildCoverPrompt(
   excerpt: string,
   style: string,
   subtitle = '',
+  director = '',
+  host = '',
 ) {
   const values: Record<string, string> = {
     title: title.trim(),
     excerpt: excerpt.trim(),
     style,
     subtitle: subtitle.trim(),
+    director: director.trim(),
+    host: host.trim(),
   };
   return template.replace(
-    /\{\{(title|excerpt|style|subtitle)\}\}/g,
+    /\{\{(title|excerpt|style|subtitle|director|host)\}\}/g,
     (_, key: string) => values[key],
   );
 }
@@ -79,26 +86,50 @@ export async function generateCover(
   excerpt: string,
   projectSubtitle?: string,
   storyImage = false,
+  filmDirector?: string,
+  playlistCover = false,
+  podcastHost?: string,
 ) {
   const { content } = await getDocuments();
   const settings = content.aiSettings;
   const prompt = buildCoverPrompt(
-    storyImage
-      ? '为这条个人博客说说创作一张配图。话题：{{title}}。正文：{{excerpt}}。根据正文的情绪与场景构图，不添加文字、水印或虚构截图。'
-      : projectSubtitle === undefined
-        ? settings.coverPrompt
-        : settings.projectImagePrompt,
+    podcastHost !== undefined
+      ? settings.podcastCoverPrompt
+      : playlistCover
+        ? settings.playlistCoverPrompt
+        : filmDirector !== undefined
+          ? settings.filmCoverPrompt
+          : storyImage
+            ? '为这条个人博客说说创作一张配图。话题：{{title}}。正文：{{excerpt}}。根据正文的情绪与场景构图，不添加文字、水印或虚构截图。'
+            : projectSubtitle === undefined
+              ? settings.coverPrompt
+              : settings.projectImagePrompt,
     title,
     excerpt,
-    projectSubtitle === undefined
-      ? settings.coverStyle
-      : settings.projectImageStyle,
+    podcastHost !== undefined
+      ? settings.podcastCoverStyle
+      : playlistCover
+        ? settings.playlistCoverStyle
+        : filmDirector !== undefined
+          ? settings.filmCoverStyle
+          : projectSubtitle === undefined
+            ? settings.coverStyle
+            : settings.projectImageStyle,
     projectSubtitle,
+    filmDirector,
+    podcastHost,
   );
   const result = await providerRequest('images/generations', {
     model: settings.imageModel,
     prompt,
     n: 1,
+    ...(podcastHost !== undefined
+      ? { size: '1536x1024' }
+      : filmDirector !== undefined
+        ? { size: '864x1536' }
+        : playlistCover
+          ? { size: '1024x1024' }
+          : {}),
   });
   const first = result.data?.[0];
   let bytes: Uint8Array;
@@ -149,12 +180,21 @@ export async function generateCover(
   return {
     url: `/api/media/${key}`,
     generatedFor:
-      projectSubtitle === undefined
-        ? coverInput(title, excerpt)
-        : projectImageInput({
-            title,
-            subtitle: projectSubtitle,
-            description: excerpt,
-          }),
+      podcastHost !== undefined
+        ? podcastCoverInput({ title, description: excerpt, host: podcastHost })
+        : playlistCover
+          ? playlistCoverInput({ title, description: excerpt })
+          : filmDirector !== undefined
+            ? filmCoverInput({
+                title,
+                director: filmDirector,
+              })
+            : projectSubtitle === undefined
+              ? coverInput(title, excerpt)
+              : projectImageInput({
+                  title,
+                  subtitle: projectSubtitle,
+                  description: excerpt,
+                }),
   };
 }

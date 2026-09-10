@@ -30,6 +30,11 @@ const MusicContext = createContext<{
   playing: boolean;
   playTrack: (index: number) => void;
   toggle: () => void;
+  playQueue: (ids: string[], startId?: string, title?: string) => void;
+  skip: (direction: number) => void;
+  queueTitle: string;
+  time: number;
+  duration: number;
 } | null>(null);
 
 export function useMusic() {
@@ -39,10 +44,24 @@ export function useMusic() {
 }
 
 export function MusicProvider({ children }: { children: ReactNode }) {
-  const { tracks } = useContent();
+  const { tracks: music } = useContent();
+  const tracks = music.items;
   const audio = useRef<HTMLAudioElement>(null);
   const request = useRef(0);
-  const [index, setIndex] = useState(0);
+  const [trackId, setTrackId] = useState(tracks[0]?.id ?? '');
+  const index = Math.max(
+    0,
+    tracks.findIndex((track) => track.id === trackId),
+  );
+  const [queueIds, setQueueIds] = useState<string[] | null>(null);
+  const [queueTitle, setQueueTitle] = useState('我的音乐');
+  const queue =
+    queueIds === null
+      ? tracks
+      : queueIds.flatMap((id) => {
+          const track = tracks.find((item) => item.id === id);
+          return track ? [track] : [];
+        });
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(tracks[0]?.duration ?? 0);
@@ -71,26 +90,67 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     }
   }, [volume]);
 
-  const playTrack = useCallback(
-    (nextIndex: number) => {
-      const next = (nextIndex + tracks.length) % tracks.length;
+  const startTrack = useCallback(
+    (id: string) => {
+      const track = tracks.find((item) => item.id === id);
       const element = audio.current;
-      if (!element) return;
+      if (!track || !element) return;
       ++request.current;
       element.pause();
-      element.src = tracks[next].src;
+      element.src = track.src;
       element.load();
-      setIndex(next);
+      setTrackId(id);
       setTime(0);
-      setDuration(tracks[next].duration);
+      setDuration(track.duration);
       void start();
     },
     [start, tracks],
   );
 
+  const playTrack = useCallback(
+    (nextIndex: number) => {
+      if (!tracks.length) return;
+      setQueueIds(null);
+      setQueueTitle('我的音乐');
+      startTrack(tracks[(nextIndex + tracks.length) % tracks.length].id);
+    },
+    [tracks, startTrack],
+  );
+
+  const playQueue = useCallback(
+    (ids: string[], startId?: string, title = '我的音乐') => {
+      const valid = [...new Set(ids)].filter((id) =>
+        tracks.some((track) => track.id === id),
+      );
+      if (!valid.length) return;
+      setQueueIds(valid);
+      setQueueTitle(title);
+      startTrack(startId && valid.includes(startId) ? startId : valid[0]);
+    },
+    [tracks, startTrack],
+  );
+
+  const skip = useCallback(
+    (direction: number) => {
+      if (!queue.length) return;
+      const position = queue.findIndex(
+        (track) => track.id === tracks[index]?.id,
+      );
+      startTrack(
+        queue[(position + direction + queue.length) % queue.length].id,
+      );
+    },
+    [queue, tracks, index, startTrack],
+  );
+
   const toggle = useCallback(() => {
     const element = audio.current;
     if (!element) return;
+    if (!element.getAttribute('src') && tracks[index]) {
+      element.src = tracks[index].src;
+      element.load();
+      setDuration(tracks[index].duration);
+    }
     if (!element.paused) {
       ++request.current;
       element.pause();
@@ -98,20 +158,42 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     } else {
       void start();
     }
-  }, [start]);
+  }, [start, tracks, index]);
 
   const controls = useMemo(
-    () => ({ index, playing, playTrack, toggle }),
-    [index, playing, playTrack, toggle],
+    () => ({
+      index,
+      playing,
+      playTrack,
+      toggle,
+      playQueue,
+      skip,
+      queueTitle,
+      time,
+      duration,
+    }),
+    [
+      index,
+      playing,
+      playTrack,
+      toggle,
+      playQueue,
+      skip,
+      queueTitle,
+      time,
+      duration,
+    ],
   );
 
-  if (!tracks.length) return <MusicContext.Provider value={controls}>{children}</MusicContext.Provider>;
+  if (!tracks.length)
+    return (
+      <MusicContext.Provider value={controls}>{children}</MusicContext.Provider>
+    );
   return (
     <MusicContext.Provider value={controls}>
       {children}
       <audio
         ref={audio}
-        src={tracks[0].src}
         preload="none"
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
@@ -120,7 +202,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
           const length = audio.current?.duration;
           if (length && Number.isFinite(length)) setDuration(length);
         }}
-        onEnded={() => playTrack(index + 1)}
+        onEnded={() => skip(1)}
         onWaiting={() => setLoading(true)}
         onPlaying={() => setLoading(false)}
         onError={() => {
@@ -149,7 +231,9 @@ export function MusicProvider({ children }: { children: ReactNode }) {
             aria-label="当前歌单"
           >
             <div className="music-queue-heading">
-              <h2><CmsText page="音乐播放器" name="01 日常的背景音" /><small>{tracks.length} 首</small>
+              <h2>
+                {queueTitle}
+                <small>{queue.length} 首</small>
               </h2>
               <button
                 type="button"
@@ -160,12 +244,14 @@ export function MusicProvider({ children }: { children: ReactNode }) {
               </button>
             </div>
             <ol>
-              {tracks.map((track, i) => (
+              {queue.map((track, i) => (
                 <li key={track.id}>
                   <button
                     type="button"
-                    aria-current={i === index ? 'true' : undefined}
-                    onClick={() => playTrack(i)}
+                    aria-current={
+                      track.id === tracks[index]?.id ? 'true' : undefined
+                    }
+                    onClick={() => startTrack(track.id)}
                   >
                     <span>{String(i + 1).padStart(2, '0')}</span>
                     <span>
@@ -173,7 +259,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
                       <small>{track.mood}</small>
                     </span>
                     <span>
-                      {i === index && playing
+                      {track.id === tracks[index]?.id && playing
                         ? '播放中'
                         : formatTime(track.duration)}
                     </span>
@@ -181,7 +267,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
                 </li>
               ))}
             </ol>
-            <p><CmsText page="音乐播放器" name="02 原创合成示例 · 无第三方录音采样" /></p>
+            <p>{queueTitle} · 按列表顺序循环播放</p>
           </section>
         )}
         <div className="music-dock-main">
@@ -203,7 +289,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
                 ? '正在加载…'
                 : playing
                   ? '正在播放 · ' + tracks[index].mood
-                  : '轻触播放 · 合成示例'}
+                  : '轻触播放 · ' + tracks[index].artist}
             </small>
           </div>
           <div className="music-transport">
@@ -211,7 +297,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 aria-label="上一首"
-                onClick={() => playTrack(index - 1)}
+                onClick={() => skip(-1)}
               >
                 <SkipBack size={17} />
               </button>
@@ -225,11 +311,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
               {playing ? <Pause size={17} /> : <Play size={17} />}
             </button>
             {!collapsed && (
-              <button
-                type="button"
-                aria-label="下一首"
-                onClick={() => playTrack(index + 1)}
-              >
+              <button type="button" aria-label="下一首" onClick={() => skip(1)}>
                 <SkipForward size={17} />
               </button>
             )}
@@ -285,7 +367,9 @@ export function MusicProvider({ children }: { children: ReactNode }) {
                   }}
                 />
               </label>
-              <span><CmsText page="音乐播放器" name="03 顺序循环" /></span>
+              <span>
+                <CmsText page="音乐播放器" name="03 顺序循环" />
+              </span>
               <button
                 type="button"
                 aria-label="收起播放器"

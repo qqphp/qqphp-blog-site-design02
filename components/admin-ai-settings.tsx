@@ -52,6 +52,9 @@ export function AdminAiSettings({
         <Tabs.Tab value="models">模型配置</Tabs.Tab>
         <Tabs.Tab value="writing">写作配置</Tabs.Tab>
         <Tabs.Tab value="projects">项目配置</Tabs.Tab>
+        <Tabs.Tab value="music">音乐配置</Tabs.Tab>
+        <Tabs.Tab value="films">电影配置</Tabs.Tab>
+        <Tabs.Tab value="podcasts">播客配置</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="models">
         <div className="admin-ai-status">
@@ -199,6 +202,113 @@ export function AdminAiSettings({
             <small>
               {
                 '{{title}} = 项目名称；{{subtitle}} = 副标题；{{excerpt}} = 摘要；{{style}} = 图片风格。前三个占位符必须保留。'
+              }
+            </small>
+          </div>
+        </div>
+      </Tabs.Panel>
+      <Tabs.Panel value="music">
+        <h2>歌单封面生成</h2>
+        <p className="admin-help">
+          使用图片模型，根据歌单名称和简介生成 1:1 方形封面。请先保存配置。
+        </p>
+        <div className="admin-fields">
+          <div className="admin-field admin-wide">
+            <label htmlFor="playlist-cover-style">歌单封面风格</label>
+            <textarea
+              id="playlist-cover-style"
+              rows={3}
+              value={value.playlistCoverStyle}
+              onChange={(event) =>
+                onChange({ ...value, playlistCoverStyle: event.target.value })
+              }
+            />
+          </div>
+          <div className="admin-field admin-wide">
+            <label htmlFor="playlist-cover-prompt">歌单封面提示词</label>
+            <textarea
+              id="playlist-cover-prompt"
+              rows={9}
+              value={value.playlistCoverPrompt}
+              onChange={(event) =>
+                onChange({ ...value, playlistCoverPrompt: event.target.value })
+              }
+            />
+            <small>
+              {
+                '{{title}} = 歌单名称；{{excerpt}} = 歌单简介；{{style}} = 封面风格。名称和简介占位符必须保留。'
+              }
+            </small>
+          </div>
+        </div>
+      </Tabs.Panel>
+      <Tabs.Panel value="films">
+        <h2>电影封面生成</h2>
+        <p className="admin-help">
+          使用“模型配置”中的图片模型，根据电影名称和导演生成 9:16
+          竖版封面。请先保存配置。
+        </p>
+        <div className="admin-fields">
+          <div className="admin-field admin-wide">
+            <label htmlFor="film-cover-style">电影封面风格</label>
+            <textarea
+              id="film-cover-style"
+              rows={3}
+              value={value.filmCoverStyle}
+              onChange={(event) =>
+                onChange({ ...value, filmCoverStyle: event.target.value })
+              }
+            />
+          </div>
+          <div className="admin-field admin-wide">
+            <label htmlFor="film-cover-prompt">电影封面提示词</label>
+            <textarea
+              id="film-cover-prompt"
+              rows={9}
+              value={value.filmCoverPrompt}
+              onChange={(event) =>
+                onChange({ ...value, filmCoverPrompt: event.target.value })
+              }
+            />
+            <small>
+              {
+                '{{title}} = 电影名称；{{director}} = 导演；{{style}} = 封面风格。名称和导演占位符必须保留。'
+              }
+            </small>
+          </div>
+        </div>
+      </Tabs.Panel>
+      <Tabs.Panel value="podcasts">
+        <h2>播客封面生成</h2>
+        <p className="admin-help">
+          使用“模型配置”中的图片模型，根据播客标题、简介和主播生成 3:2
+          横版封面。请先保存配置。
+        </p>
+        <div className="admin-fields">
+          <div className="admin-field admin-wide">
+            <label htmlFor="podcast-cover-style">播客封面风格</label>
+            <textarea
+              id="podcast-cover-style"
+              rows={3}
+              value={value.podcastCoverStyle}
+              onChange={(event) =>
+                onChange({ ...value, podcastCoverStyle: event.target.value })
+              }
+            />
+          </div>
+          <div className="admin-field admin-wide">
+            <label htmlFor="podcast-cover-prompt">播客封面提示词</label>
+            <textarea
+              id="podcast-cover-prompt"
+              rows={9}
+              value={value.podcastCoverPrompt}
+              onChange={(event) =>
+                onChange({ ...value, podcastCoverPrompt: event.target.value })
+              }
+            />
+            <small>
+              {
+                '{{title}} = 播客名称；{{excerpt}} = 简介；{{host}} = 主播；{{style}} = 封面风格。标题、简介和主播占位符必须保留。'
               }
             </small>
           </div>

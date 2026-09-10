@@ -1,3 +1,6 @@
+import { migratePodcasts } from './podcast-content';
+import { migrateFilms } from './film-content';
+import { migrateMusic } from './music-content';
 import { migrateDirectory } from './directory-content';
 import { writing, stories } from '../app/content';
 import { migrateProjects } from './project-content';
@@ -17,6 +20,17 @@ const publish = <T extends object>(items: T[]) =>
   items.map((item) => ({ ...item, _published: true }));
 export const defaults = {
   aiSettings: {
+    playlistCoverStyle:
+      '音乐专辑封面风格，方形 1:1 构图，用克制的色彩和具象场景传达歌单情绪。',
+    playlistCoverPrompt:
+      '为歌单生成一张原创封面。歌单名称：{{title}}。歌单简介：{{excerpt}}。视觉风格：{{style}}。方形 1:1 构图，视觉焦点明确，不添加文字、标志或水印。',
+    podcastCoverStyle: '3:2 横版播客封面，编辑摄影与抽象拼贴，围绕节目主题构图，不添加水印或虚构人物肖像。',
+    podcastCoverPrompt: '为播客生成 3:2 横版封面。标题：{{title}}。简介：{{excerpt}}。主播：{{host}}。风格：{{style}}。用场景、物件和色彩传达节目的主题与谈话氛围，不添加文字。',
+    filmCoverStyle:
+      '电影海报摄影风格，竖向 9:16 构图，深色影调、细腻胶片颗粒、克制的光影和留白。',
+    filmCoverPrompt:
+      '根据以下电影信息创作一张原创电影封面，不冒充官方海报。电影名称：{{title}}。导演：{{director}}。视觉风格：{{style}}。提炼故事中的场景、物件和情绪，形成单一视觉焦点。竖向 9:16 构图，保留裁切余量，不添加文字、水印或标志。',
+
     projectImageStyle:
       '清晰的产品概念插画，简洁构图，突出项目核心用途，与博客视觉协调，横向构图。',
     projectImagePrompt:
@@ -178,12 +192,24 @@ export const defaults = {
   friends: migrateDirectory(friends),
   books: publish(books),
   booklists: publish(booklists),
-  tracks: publish(tracks),
-  films: { ...lifeContent.films, entries: publish(lifeContent.films.entries) },
-  podcasts: {
+  tracks: migrateMusic(tracks),
+  films: migrateFilms({
+    ...lifeContent.films,
+    entries: lifeContent.films.entries.map((item, index) => ({
+      ...item,
+      description: '虚构短片示例。' + item.description,
+      image: [
+        '/notes/city.png',
+        '/notes/paper-v2.png',
+        '/notes/coast.png',
+        '/notes/rain-v2.png',
+      ][index],
+    })),
+  }),
+  podcasts: migratePodcasts({
     ...lifeContent.podcasts,
     entries: publish(lifeContent.podcasts.entries),
-  },
+  }),
   travel: {
     ...lifeContent.travel,
     entries: publish(

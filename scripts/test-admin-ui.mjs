@@ -547,6 +547,10 @@ try {
   globalThis.fetch = async () => Response.json({ keyConfigured: true });
   function Settings() {
     const [value, set] = useState({
+      filmCoverStyle: '胶片',
+      filmCoverPrompt: '{{title}} {{director}}',
+      playlistCoverStyle: '唱片',
+      playlistCoverPrompt: '{{title}} {{excerpt}}',
       baseUrl: 'https://example.com/v1',
       textModel: 'text',
       imageModel: 'image',
@@ -564,6 +568,24 @@ try {
   assert.ok(screen.getByLabelText('API Base URL'));
   await user.click(screen.getByRole('tab', { name: '写作配置' }));
   assert.equal(screen.getByLabelText('文章封面风格').value, '纸艺 新风格');
+  await user.click(screen.getByRole('tab', { name: '电影配置' }));
+  await user.type(screen.getByLabelText('电影封面风格'), ' 黑白');
+  await user.click(screen.getByRole('tab', { name: '模型配置' }));
+  await user.click(screen.getByRole('tab', { name: '电影配置' }));
+  assert.equal(screen.getByLabelText('电影封面风格').value, '胶片 黑白');
+  const settingTabs = screen
+    .getAllByRole('tab')
+    .map((node) => node.textContent);
+  assert.equal(
+    settingTabs.indexOf('音乐配置'),
+    settingTabs.indexOf('项目配置') + 1,
+  );
+  await user.click(screen.getByRole('tab', { name: '音乐配置' }));
+  await user.type(screen.getByLabelText('歌单封面风格'), ' 复古');
+  await user.click(screen.getByRole('tab', { name: '电影配置' }));
+  await user.click(screen.getByRole('tab', { name: '音乐配置' }));
+  assert.equal(screen.getByLabelText('歌单封面风格').value, '唱片 复古');
+
   cleanup();
   globalThis.fetch = originalFetch;
   console.log('PASS settings tabs retain unsaved writing configuration');
@@ -729,6 +751,1057 @@ try {
   }
   console.log(
     'PASS bookmark and friend tables, search, category filters, rename, protected deletion, creation and publication',
+  );
+  const { AiNotebook } = await import('../components/ai-notebook.tsx');
+  const { aiSkills, aiRelays, aiPlans } =
+    await import('../lib/ai-resources.ts');
+  const aiView = render(
+    h(ContentProvider, { content: defaults }, h(AiNotebook)),
+  );
+  const aiNames = ['AI资讯', 'Skills 工具箱', '中转站', 'Token Plan'];
+  function activeRegion(name) {
+    assert.equal(screen.getAllByRole('tabpanel').length, 1);
+    assert.equal(
+      screen
+        .getByRole('tab', { name, exact: true })
+        .getAttribute('aria-selected'),
+      'true',
+    );
+    for (const other of aiNames.filter((item) => item !== name))
+      assert.equal(
+        screen.queryByRole('region', { name: other, exact: true }),
+        null,
+      );
+    return screen.getByRole('region', { name, exact: true });
+  }
+  async function switchAi(name) {
+    await user.click(screen.getByRole('tab', { name, exact: true }));
+    return activeRegion(name);
+  }
+  const aiNotesRegion = activeRegion('AI资讯');
+  assert.equal(
+    within(aiNotesRegion).getAllByRole('article').length,
+    defaults.aiNotes.length,
+  );
+  assert.equal(screen.queryByText('文字与思考'), null);
+  const firstNote = within(aiNotesRegion).getAllByRole('article')[0];
+  await user.click(within(firstNote).getByText('展开阅读'));
+  assert.equal(firstNote.querySelector('details').open, true);
+  await user.click(
+    screen.getByRole('button', { name: '用法笔记', exact: true }),
+  );
+  assert.equal(
+    within(aiNotesRegion).getAllByRole('article').length,
+    defaults.aiNotes.filter((note) => note.kind === '用法笔记').length,
+  );
+  await user.type(screen.getByLabelText('搜索AI资讯'), '没有这条资讯');
+  assert.equal(within(aiNotesRegion).queryAllByRole('article').length, 0);
+  const skillRegion = await switchAi('Skills 工具箱');
+  assert.equal(
+    screen.getByLabelText('搜索Skills 工具箱').value,
+    '',
+    'Switching sections clears previous search',
+  );
+  assert.equal(
+    within(skillRegion).getAllByRole('article').length,
+    aiSkills.length,
+  );
+  await user.type(
+    screen.getByLabelText('搜索Skills 工具箱'),
+    'frontend-design',
+  );
+  assert.equal(within(skillRegion).getAllByRole('article').length, 1);
+  const clipboardWrite = navigator.clipboard.writeText.bind(
+    navigator.clipboard,
+  );
+  let copiedText = '';
+  navigator.clipboard.writeText = async (text) => {
+    copiedText = text;
+  };
+  const firstSkill = within(skillRegion).getAllByRole('article')[0];
+  await user.click(within(firstSkill).getByText('怎么用'));
+  await user.click(
+    within(firstSkill).getByRole('button', {
+      name: `复制 ${aiSkills[0].name} 指令`,
+    }),
+  );
+  assert.equal(copiedText, aiSkills[0].prompt);
+  const relayRegion = await switchAi('中转站');
+  assert.equal(
+    within(relayRegion).getAllByRole('article').length,
+    aiRelays.length,
+  );
+  await user.type(screen.getByLabelText('搜索中转站'), 'OPENROUTER');
+  assert.equal(within(relayRegion).getAllByRole('article').length, 1);
+  assert.match(
+    document.querySelector('.ai-search-result').textContent,
+    /找到.*1.*条内容/,
+  );
+  const firstRelay = within(relayRegion).getAllByRole('article')[0];
+  await user.click(within(firstRelay).getByText('API 地址'));
+  await user.click(
+    within(firstRelay).getByRole('button', {
+      name: `复制 ${aiRelays[0].name} 地址`,
+    }),
+  );
+  assert.equal(copiedText, aiRelays[0].endpoint);
+  const planRegion = await switchAi('Token Plan');
+  assert.equal(
+    within(planRegion).getAllByRole('article').length,
+    aiPlans.length,
+  );
+  await user.click(
+    screen.getByRole('button', { name: 'API 按量', exact: true }),
+  );
+  assert.equal(within(planRegion).getAllByRole('article').length, 1);
+  await user.type(screen.getByLabelText('搜索Token Plan'), '没有这条资料');
+  assert.equal(within(planRegion).queryAllByRole('article').length, 0);
+  await user.click(screen.getByRole('button', { name: '清空 AI 搜索' }));
+  assert.equal(
+    within(planRegion).getAllByRole('article').length,
+    aiPlans.length,
+  );
+  // The hero shortcut must return to news even from another section.
+  await user.click(screen.getByRole('link', { name: '浏览AI资讯' }));
+  assert.equal(
+    within(activeRegion('AI资讯')).getAllByRole('article').length,
+    defaults.aiNotes.length,
+  );
+  await user.click(
+    screen.getByRole('button', { name: '复制提示词', exact: true }),
+  );
+  assert.equal(copiedText, defaults.prompt.text);
+  navigator.clipboard.writeText = async () => {
+    throw new Error('Clipboard denied');
+  };
+  await user.click(
+    screen.getByRole('button', { name: '复制提示词 · 已复制', exact: true }),
+  );
+  assert.ok(screen.getByText('复制失败，请展开内容手动复制。'));
+  navigator.clipboard.writeText = clipboardWrite;
+  await user.click(screen.getByRole('tab', { name: 'AI资讯', exact: true }));
+  await user.keyboard('{ArrowRight}');
+  assert.equal(
+    document.activeElement,
+    screen.getByRole('tab', { name: 'Skills 工具箱', exact: true }),
+  );
+  activeRegion('AI资讯');
+  await user.keyboard('{Enter}');
+  activeRegion('Skills 工具箱');
+  await user.keyboard('{End}{Enter}');
+  activeRegion('Token Plan');
+  await user.keyboard('{Home}{Enter}');
+  activeRegion('AI资讯');
+  aiView.rerender(
+    h(
+      ContentProvider,
+      { content: { ...defaults, aiNotes: [] } },
+      h(AiNotebook),
+    ),
+  );
+  assert.ok(screen.getByText('还没有公开资讯，新的发现会出现在这里。'));
+  assert.equal(
+    within(await switchAi('Skills 工具箱')).getAllByRole('article').length,
+    aiSkills.length,
+  );
+  cleanup();
+  console.log(
+    'PASS AI news default, exclusive sections, keyboard tabs, per-section search, hero return, copy and empty content',
+  );
+
+  const { AdminFilmManager } =
+    await import('../components/admin-film-manager.tsx');
+  const { AdminPodcastManager } =
+    await import('../components/admin-podcast-manager.tsx');
+  const { PodcastLibrary } = await import('../components/podcast-library.tsx');
+  const { podcastSample, podcastCoverInput, migratePodcasts } =
+    await import('../lib/podcast-content.ts');
+  const { validateContent: validatePodcast } =
+    await import('../lib/cms-validation.ts');
+  let podcasts = structuredClone(defaults.podcasts);
+  const podcastFetch = globalThis.fetch;
+  let podcastFail = false;
+  const podcastRequests = [];
+  globalThis.fetch = async (url, init) => {
+    if (String(url).startsWith('/api/admin/media'))
+      return Response.json({
+        url: init.body.type.startsWith('audio/')
+          ? '/api/media/clip.mp3'
+          : '/api/media/podcast.png',
+      });
+    assert.equal(url, '/api/admin/ai');
+    const body = JSON.parse(init.body);
+    podcastRequests.push(body);
+    return podcastFail
+      ? Response.json({ error: '播客生成失败' }, { status: 502 })
+      : Response.json({
+          url: '/api/media/podcast-ai.png',
+          generatedFor: podcastCoverInput({
+            title: body.title,
+            host: body.host,
+            description: body.excerpt,
+          }),
+        });
+  };
+  let podcastAdmin;
+  const changePodcasts = (next) => {
+    podcasts = next;
+    podcastAdmin.rerender(
+      h(AdminPodcastManager, {
+        value: podcasts,
+        onChange: changePodcasts,
+        onWorking: () => {},
+      }),
+    );
+  };
+  podcastAdmin = render(
+    h(AdminPodcastManager, {
+      value: podcasts,
+      onChange: changePodcasts,
+      onWorking: () => {},
+    }),
+  );
+  assert.ok(screen.getByRole('table'));
+  const countPodcasts = podcasts.items.length;
+  await user.click(screen.getByRole('button', { name: /新增播客$/ }));
+  await user.type(screen.getByLabelText('播客标题'), '新节目');
+  await user.type(screen.getByLabelText('主播'), '测试主播');
+  await user.type(screen.getByLabelText('简介'), '测试节目简介');
+  assert.equal(podcasts.items.length, countPodcasts);
+  assert.equal(screen.queryByLabelText('正文（Markdown）'), null);
+  await user.upload(
+    screen.getByLabelText('上传节选音频'),
+    new window.File(['audio'], 'clip.mp3', { type: 'audio/mpeg' }),
+  );
+  await waitFor(() =>
+    assert.ok(document.querySelector('audio[src="/api/media/clip.mp3"]')),
+  );
+  await user.upload(
+    screen.getByLabelText('上传播客封面'),
+    new window.File(['image'], 'cover.png', { type: 'image/png' }),
+  );
+  await waitFor(() => assert.ok(screen.getByAltText('播客封面预览')));
+  assert.equal(
+    screen.getByAltText('播客封面预览').getAttribute('width'),
+    '300',
+  );
+  assert.equal(
+    screen.getByAltText('播客封面预览').getAttribute('height'),
+    '200',
+  );
+  await user.click(screen.getByLabelText('AI 生成'));
+  podcastFail = true;
+  await user.click(screen.getByRole('button', { name: '生成播客封面' }));
+  await waitFor(() => assert.ok(screen.getByText(/播客生成失败/)));
+  assert.equal(
+    screen.getByAltText('播客封面预览').getAttribute('src'),
+    '/api/media/podcast.png',
+  );
+  podcastFail = false;
+  await user.click(screen.getByRole('button', { name: '生成播客封面' }));
+  await waitFor(() =>
+    assert.equal(
+      screen.getByAltText('播客封面预览').getAttribute('src'),
+      '/api/media/podcast-ai.png',
+    ),
+  );
+  const podcastCallsBeforeConfirm = podcastRequests.length;
+  await user.click(screen.getByRole('button', { name: '添加播客到列表' }));
+  await waitFor(() => assert.equal(podcasts.items.length, countPodcasts + 1));
+  assert.deepEqual(podcastRequests.at(-1), {
+    action: 'podcast-cover',
+    title: '新节目',
+    host: '测试主播',
+    excerpt: '测试节目简介',
+  });
+  assert.equal(podcasts.items.at(-1)._published, false);
+  assert.equal(podcastRequests.length, podcastCallsBeforeConfirm);
+  await user.click(screen.getByRole('button', { name: '新节目', exact: true }));
+  await user.type(screen.getByLabelText('主播'), '修改');
+  await user.click(screen.getByRole('button', { name: '确认修改' }));
+  assert.equal(podcasts.items.at(-1).host, '测试主播修改');
+  assert.equal(
+    podcastRequests.length,
+    podcastCallsBeforeConfirm,
+    'Editing podcast metadata must not regenerate',
+  );
+  assert.equal(podcasts.items.at(-1).cover, '/api/media/podcast-ai.png');
+  await user.click(screen.getByRole('button', { name: '新节目', exact: true }));
+  await user.click(screen.getByRole('button', { name: '移除封面' }));
+  await user.click(screen.getByRole('button', { name: '确认修改' }));
+  assert.equal(podcasts.items.at(-1).cover, '');
+  assert.equal(
+    podcastRequests.length,
+    podcastCallsBeforeConfirm,
+    'Missing podcast cover must not trigger generation',
+  );
+  validatePodcast('podcasts', podcasts);
+  await user.click(screen.getByRole('button', { name: '新节目', exact: true }));
+  await user.type(screen.getByLabelText('播客标题'), '放弃修改');
+  await user.click(screen.getByRole('button', { name: /返回播客列表/ }));
+  assert.equal(podcasts.items.at(-1).title, '新节目');
+  await user.click(screen.getByRole('tab', { name: /播客分类/ }));
+  assert.ok(
+    screen.getByRole('button', {
+      name: `删除播客分类 ${podcasts.categories[0].name}`,
+    }).disabled,
+  );
+  await user.clear(screen.getByLabelText('播客分类 1'));
+  await user.type(screen.getByLabelText('播客分类 1'), '深度对谈');
+  assert.equal(podcasts.categories[0].name, '深度对谈');
+  const orphanPodcasts = structuredClone(podcasts);
+  orphanPodcasts.categories = [];
+  assert.throws(
+    () => validatePodcast('podcasts', orphanPodcasts),
+    /有效播客分类/,
+  );
+  const legacyPodcast = migratePodcasts({
+    title: '播客',
+    intro: '',
+    entries: [
+      {
+        id: 'old',
+        title: '旧节目',
+        description: '旧简介',
+        category: '话题',
+        subtitle: '',
+        body: ['旧稿'],
+        _published: false,
+      },
+    ],
+  });
+  assert.equal(legacyPodcast.items[0].description, '旧简介');
+  assert.equal(legacyPodcast.items[0]._published, false);
+  assert.equal(legacyPodcast.categories[0].name, '话题');
+  cleanup();
+  globalThis.fetch = podcastFetch;
+  const publicPodcasts = {
+    ...podcasts,
+    items: Array.from({ length: 14 }, (_, index) => ({
+      ...podcastSample.items[0],
+      id: `p-${index}`,
+      title: `播客 ${index}`,
+      host: '主播',
+      description:
+        index === 0
+          ? '很长的节目简介，保留全部内容。\n'.repeat(200)
+          : '节目简介',
+      categoryId: podcasts.categories[0].id,
+      audio: `/clip-${index}.mp3`,
+    })),
+  };
+  render(
+    h(
+      ContentProvider,
+      { content: { ...defaults, podcasts: publicPodcasts } },
+      h(PodcastLibrary),
+    ),
+  );
+  assert.equal(document.querySelectorAll('.podcast-card').length, 12);
+  assert.equal(document.querySelector('.podcast-index'), null);
+  assert.equal(
+    document.querySelector('.podcast-card .podcast-description'),
+    null,
+  );
+  const descriptionTrigger = screen.getByRole('button', {
+    name: '查看播客 0简介',
+  });
+  await user.click(descriptionTrigger);
+  let descriptionDialog = await screen.findByRole('dialog');
+  assert.ok(within(descriptionDialog).getByRole('heading', { name: '播客 0' }));
+  assert.equal(
+    descriptionDialog.querySelector('.podcast-description').textContent,
+    publicPodcasts.items[0].description,
+  );
+  await user.keyboard('{Escape}');
+  await waitFor(() => assert.equal(screen.queryByRole('dialog'), null));
+  await waitFor(() => assert.equal(document.activeElement, descriptionTrigger));
+  await user.click(descriptionTrigger);
+  descriptionDialog = await screen.findByRole('dialog');
+  await user.click(
+    within(descriptionDialog).getByRole('button', { name: '关闭简介' }),
+  );
+  await waitFor(() => assert.equal(screen.queryByRole('dialog'), null));
+  const excerptAudios = document.querySelectorAll('audio');
+  let pausedOthers = 0;
+  excerptAudios.forEach((audio) => {
+    audio.pause = () => {
+      pausedOthers++;
+    };
+  });
+  fireEvent.play(excerptAudios[0]);
+  assert.equal(pausedOthers, 11);
+  fireEvent.error(excerptAudios[0]);
+  assert.ok(screen.getByText('音频暂时无法播放，请稍后重试。'));
+  await user.click(screen.getByRole('button', { name: '下一页' }));
+  assert.ok(screen.getByRole('heading', { name: '播客 12' }));
+  await user.type(screen.getByLabelText('搜索播客'), '播客 13');
+  assert.equal(document.querySelectorAll('.podcast-card').length, 1);
+  await user.click(
+    screen.getByRole('button', { name: podcasts.categories[1].name }),
+  );
+  assert.ok(screen.getByText('没有找到匹配的节目。'));
+  await user.click(screen.getByRole('button', { name: '清空筛选' }));
+  assert.equal(document.querySelectorAll('.podcast-card').length, 12);
+  cleanup();
+  console.log(
+    'PASS podcast table, staged edit/discard, category rename/protection, single audio upload, 3:2 upload/AI/failure, migration, search/pagination and exclusive excerpt playback/error',
+  );
+  const { FilmLibrary } = await import('../components/film-library.tsx');
+  const { filmSample, migrateFilms, filmCoverInput } =
+    await import('../lib/film-content.ts');
+  const { validateContent: validateFilm } =
+    await import('../lib/cms-validation.ts');
+  let films = structuredClone(defaults.films);
+  const filmRequests = [];
+  const savedFetch = globalThis.fetch;
+  let filmFailure = false;
+  globalThis.fetch = async (url, init) => {
+    if (url === '/api/admin/media')
+      return Response.json({ url: '/api/media/uploaded-film.png' });
+    if (url === '/api/admin/ai') {
+      const body = JSON.parse(init.body);
+      filmRequests.push(body);
+      return filmFailure
+        ? Response.json({ error: '电影封面模拟失败' }, { status: 502 })
+        : Response.json({
+            url: '/api/media/film-cover.png',
+            generatedFor: filmCoverInput({
+              title: body.title,
+              director: body.director,
+              description: body.excerpt,
+            }),
+          });
+    }
+    throw Error('Unexpected film test request');
+  };
+  const changeFilms = (next) => {
+    films = next;
+    filmAdmin.rerender(
+      h(AdminFilmManager, {
+        value: films,
+        onChange: changeFilms,
+        onWorking: () => {},
+      }),
+    );
+  };
+  const filmAdmin = render(
+    h(AdminFilmManager, {
+      value: films,
+      onChange: changeFilms,
+      onWorking: () => {},
+    }),
+  );
+  assert.equal(screen.getAllByRole('row').length, films.items.length + 1);
+  await user.click(screen.getByRole('button', { name: '＋ 新增电影' }));
+  assert.equal(screen.getByLabelText('电影标题').value, '');
+  assert.equal(screen.queryByLabelText('简介'), null);
+  assert.equal(
+    window.getComputedStyle(
+      document.querySelector('.admin-film-editor .admin-music-actions'),
+    ).marginTop,
+    '28px',
+  );
+  await user.click(screen.getByRole('button', { name: '← 返回电影列表' }));
+  assert.equal(films.items.length, defaults.films.items.length);
+  await user.click(screen.getByRole('button', { name: '＋ 新增电影' }));
+  for (const [label, text] of [
+    ['电影标题', '测试电影'],
+    ['导演', '测试导演'],
+    ['类型', '剧情'],
+    ['国家', '中国'],
+    ['语言', '汉语'],
+  ])
+    await user.type(screen.getByLabelText(label), text);
+  await user.upload(
+    screen.getByLabelText('上传电影封面'),
+    new window.File(['image'], 'poster.png', { type: 'image/png' }),
+  );
+  await waitFor(() =>
+    assert.ok(
+      screen
+        .getByAltText('电影封面预览')
+        .src.endsWith('/api/media/uploaded-film.png'),
+    ),
+  );
+  assert.equal(
+    window.getComputedStyle(
+      screen
+        .getByRole('button', { name: '移除封面' })
+        .closest('.admin-film-cover-actions'),
+    ).gap,
+    '12px',
+  );
+  await user.click(screen.getByRole('radio', { name: 'AI 生成' }));
+  filmFailure = true;
+  await user.click(screen.getByRole('button', { name: '生成电影封面' }));
+  await screen.findByText(/电影封面模拟失败/);
+  assert.ok(
+    screen
+      .getByAltText('电影封面预览')
+      .src.endsWith('/api/media/uploaded-film.png'),
+  );
+  filmFailure = false;
+  await user.click(screen.getByRole('button', { name: '生成电影封面' }));
+  await waitFor(() =>
+    assert.ok(
+      screen
+        .getByAltText('电影封面预览')
+        .src.endsWith('/api/media/film-cover.png'),
+    ),
+  );
+  const filmCallsBeforeConfirm = filmRequests.length;
+  await user.click(screen.getByRole('button', { name: '添加电影到列表' }));
+  await waitFor(() =>
+    assert.equal(films.items.at(-1).cover, '/api/media/film-cover.png'),
+  );
+  assert.deepEqual(filmRequests.at(-1), {
+    action: 'film-cover',
+    title: '测试电影',
+    director: '测试导演',
+  });
+  assert.equal(films.items.at(-1)._published, false);
+  assert.equal(filmRequests.length, filmCallsBeforeConfirm);
+  await user.click(screen.getByRole('tab', { name: /电影分类/ }));
+  assert.equal(
+    screen.getByRole('button', { name: '删除电影分类 推荐榜' }).disabled,
+    true,
+  );
+  fireEvent.change(screen.getByLabelText('电影分类 1'), {
+    target: { value: '值得重看' },
+  });
+  await user.click(screen.getByRole('button', { name: '＋ 新增电影分类' }));
+  fireEvent.change(
+    screen.getByRole('textbox', {
+      name: `电影分类 ${films.categories.length}`,
+      exact: true,
+    }),
+    { target: { value: '待看' } },
+  );
+  await user.click(screen.getByRole('button', { name: '删除电影分类 待看' }));
+  assert.ok(!films.categories.some((item) => item.name === '待看'));
+  await user.click(screen.getByRole('tab', { name: /电影管理/ }));
+  await user.selectOptions(
+    screen.getByLabelText('筛选电影分类'),
+    films.categories[0].id,
+  );
+  assert.equal(screen.getAllByRole('row').length, 2);
+  await user.type(screen.getByLabelText('搜索电影'), '不存在');
+  assert.equal(screen.getAllByRole('row').length, 1);
+  await user.clear(screen.getByLabelText('搜索电影'));
+  await user.click(
+    screen.getByRole('button', { name: '测试电影', exact: true }),
+  );
+  await user.type(screen.getByLabelText('导演'), '修改');
+  await user.click(screen.getByRole('button', { name: '确认修改' }));
+  await waitFor(() =>
+    assert.equal(films.items.at(-1).director, '测试导演修改'),
+  );
+  assert.equal(
+    filmRequests.length,
+    filmCallsBeforeConfirm,
+    'Editing film metadata must not regenerate',
+  );
+  assert.equal(films.items.at(-1).cover, '/api/media/film-cover.png');
+  await user.click(
+    screen.getByRole('button', { name: '测试电影', exact: true }),
+  );
+  await user.click(screen.getByRole('button', { name: '移除封面' }));
+  await user.click(screen.getByRole('button', { name: '确认修改' }));
+  assert.equal(films.items.at(-1).cover, '');
+  assert.equal(
+    filmRequests.length,
+    filmCallsBeforeConfirm,
+    'Missing film cover must not trigger generation',
+  );
+  validateFilm('films', films);
+  const legacyFilm = migrateFilms({
+    title: '电影',
+    intro: '旧简介',
+    entries: [
+      {
+        id: 'legacy',
+        title: '旧电影',
+        subtitle: '旧副标题',
+        category: '剧情',
+        description: '原简介',
+        body: ['原正文'],
+        _published: false,
+      },
+    ],
+  });
+  assert.equal('description' in legacyFilm.items[0], false);
+  assert.equal(legacyFilm.items[0]._published, false);
+  cleanup();
+  globalThis.fetch = savedFetch;
+  const manyFilms = {
+    ...films,
+    items: Array.from({ length: 25 }, (_, i) => ({
+      ...films.items.at(-1),
+      id: `film-${i}`,
+      cover: '/api/media/film-cover.png',
+      title: `影片 ${i}`,
+      description: '测试简介',
+      _published: true,
+    })),
+  };
+  render(
+    h(AdminFilmManager, {
+      value: manyFilms,
+      onChange: () => {},
+      onWorking: () => {},
+    }),
+  );
+  assert.equal(screen.getAllByRole('row').length, 21);
+  await user.click(screen.getByRole('button', { name: '下一页' }));
+  assert.ok(screen.getByRole('button', { name: '影片 20', exact: true }));
+  cleanup();
+
+  const filmFront = render(
+    h(
+      ContentProvider,
+      { content: { ...defaults, films: manyFilms } },
+      h(FilmLibrary),
+    ),
+  );
+  assert.equal(document.querySelectorAll('.cinema-program-image').length, 20);
+  assert.ok(screen.getByRole('button', { name: /值得重看/ }));
+  assert.ok(screen.getByRole('heading', { name: '影片 0' }));
+  const filmCard = screen
+    .getByRole('heading', { name: '影片 0' })
+    .closest('li');
+  assert.ok(
+    filmCard.querySelector('.cinema-program-image + .cinema-card-info'),
+  );
+  assert.equal(filmCard.querySelector('img').getAttribute('width'), '180');
+  assert.equal(filmCard.querySelector('img').getAttribute('height'), '320');
+
+  assert.equal(screen.queryByText('展开完整简介'), null);
+  assert.ok(screen.getAllByText('测试导演修改').length);
+  assert.ok(screen.getAllByText('剧情').length);
+  assert.ok(screen.getAllByText('中国').length);
+  assert.ok(screen.getAllByText('汉语').length);
+  await user.click(screen.getByRole('button', { name: '下一页' }));
+  assert.ok(screen.getByRole('heading', { name: '影片 20' }));
+  await user.type(screen.getByLabelText('搜索电影'), '影片 24');
+  assert.equal(document.querySelectorAll('.cinema-program-image').length, 1);
+  await user.click(screen.getByRole('button', { name: /劝退榜/ }));
+  assert.ok(screen.getByText('这一场，暂时没有影片。'));
+  await user.click(screen.getByRole('button', { name: '清空筛选' }));
+  filmFront.rerender(
+    h(
+      ContentProvider,
+      { content: { ...defaults, films: { ...films, items: [] } } },
+      h(FilmLibrary),
+    ),
+  );
+  assert.ok(screen.getByText('电影档案等待第一部影片。'));
+  cleanup();
+  console.log(
+    'PASS film table, manual fields, staged editing, image upload/AI/failure, managed categories, legacy migration and public archive search/pagination/empty states',
+  );
+
+  const { AdminMusicManager } =
+    await import('../components/admin-music-manager.tsx');
+  const { MusicLibrary } = await import('../components/music-library.tsx');
+  const { MusicProvider } = await import('../components/music-player.tsx');
+  const { musicSample, migrateMusic, publicMusic } =
+    await import('../lib/music-content.ts');
+  const { validateContent: validateMusicContent } =
+    await import('../lib/cms-validation.ts');
+  let musicDraft = structuredClone(defaults.tracks);
+  assert.deepEqual(migrateMusic(defaults.tracks.items), defaults.tracks);
+  const onMusicChange = (next) => {
+    musicDraft = next;
+    musicAdmin.rerender(
+      h(AdminMusicManager, { value: musicDraft, onChange: onMusicChange }),
+    );
+  };
+  const musicAdmin = render(
+    h(AdminMusicManager, { value: musicDraft, onChange: onMusicChange }),
+  );
+  assert.equal(screen.getAllByRole('row').length, musicDraft.items.length + 1);
+
+  const originalCount = musicDraft.items.length;
+  await user.click(screen.getByRole('button', { name: '＋ 新增音乐' }));
+  assert.equal(screen.getByLabelText('音乐名称').value, '');
+  assert.equal(screen.queryByRole('spinbutton'), null);
+  assert.equal(screen.queryByLabelText('音乐介绍'), null);
+  await user.type(screen.getByLabelText('音乐名称'), '放弃新增');
+  await user.click(screen.getByRole('button', { name: '← 返回音乐列表' }));
+  assert.equal(musicDraft.items.length, originalCount);
+  await user.click(screen.getByRole('button', { name: '＋ 新增音乐' }));
+  await user.type(screen.getByLabelText('音乐名称'), '新增测试音乐');
+  await user.type(screen.getByLabelText('音频地址'), '/audio/test.wav');
+  const confirmMusic = () =>
+    screen.getByRole('button', { name: '添加音乐到列表' });
+  assert.equal(confirmMusic().disabled, true);
+  const metadata = (seconds) => {
+    const audio = screen.getByLabelText('音频时长检测');
+    Object.defineProperty(audio, 'duration', {
+      value: seconds,
+      configurable: true,
+    });
+    fireEvent.loadedMetadata(audio);
+    return audio;
+  };
+  metadata(Infinity);
+  assert.equal(confirmMusic().disabled, true);
+  metadata(123.75);
+  assert.ok(screen.getByText('2:03'));
+  assert.equal(confirmMusic().disabled, false);
+  assert.ok(
+    screen
+      .getByLabelText('音频地址')
+      .closest('.admin-music-audio-row')
+      .contains(screen.getByLabelText('音频时长检测')),
+  );
+  assert.equal(
+    window.getComputedStyle(document.querySelector('.admin-music-actions'))
+      .marginTop,
+    '28px',
+  );
+  const assetOutput = screen
+    .getByLabelText('音频地址')
+    .closest('.admin-field')
+    .querySelector('.admin-asset output');
+  assert.equal(assetOutput.textContent, '');
+  assert.notEqual(window.getComputedStyle(assetOutput).minHeight, '48px');
+  assert.notEqual(window.getComputedStyle(assetOutput).paddingTop, '12px');
+  const durationOutput = document.querySelector(
+    '.admin-music-audio-row > .admin-field:last-child > output',
+  );
+  assert.equal(window.getComputedStyle(durationOutput).minHeight, '48px');
+  const oldProbe = screen.getByLabelText('音频时长检测');
+  fireEvent.change(screen.getByLabelText('音频地址'), {
+    target: { value: '/audio/new.wav' },
+  });
+  assert.equal(confirmMusic().disabled, true);
+  fireEvent.loadedMetadata(oldProbe);
+  assert.equal(confirmMusic().disabled, true);
+  fireEvent.error(screen.getByLabelText('音频时长检测'));
+  assert.ok(screen.getByText(/音频读取失败/));
+  assert.equal(confirmMusic().disabled, true);
+  metadata(91.5);
+  await user.click(confirmMusic());
+  assert.equal(musicDraft.items.length, originalCount + 1);
+  assert.equal(musicDraft.items.at(-1).duration, 91.5);
+  assert.equal(musicDraft.items.at(-1)._published, false);
+  await user.click(
+    screen.getByRole('button', { name: '新增测试音乐', exact: true }),
+  );
+  assert.equal(screen.getByRole('button', { name: '确认修改' }).disabled, true);
+  metadata(92);
+  await user.click(screen.getByRole('button', { name: '确认修改' }));
+  assert.equal(musicDraft.items.at(-1).duration, 92);
+  await user.click(screen.getByRole('tab', { name: /场景管理/ }));
+  assert.equal(
+    screen.getByRole('button', {
+      name: `删除场景 ${musicDraft.scenes[0].name}`,
+    }).disabled,
+    true,
+  );
+  fireEvent.change(screen.getByLabelText('场景 1'), {
+    target: { value: '专注写作' },
+  });
+  assert.equal(musicDraft.items[0].mood, '专注写作');
+  await user.click(screen.getByRole('button', { name: '＋ 新增场景' }));
+  fireEvent.change(screen.getByLabelText(`场景 ${musicDraft.scenes.length}`), {
+    target: { value: '睡前' },
+  });
+  const newSceneId = musicDraft.scenes.at(-1).id;
+  await user.click(screen.getByRole('tab', { name: /音乐管理/ }));
+  await user.click(
+    screen.getByRole('button', { name: '新增测试音乐', exact: true }),
+  );
+  await user.selectOptions(screen.getByLabelText('场景'), newSceneId);
+  metadata(92);
+  await user.click(screen.getByRole('button', { name: '确认修改' }));
+  assert.equal(musicDraft.items.at(-1).mood, '睡前');
+  await user.click(screen.getByRole('tab', { name: /歌单管理/ }));
+  await user.click(screen.getByRole('button', { name: '＋ 新增歌单' }));
+  assert.equal(screen.getByLabelText('歌单名称').value, '');
+  await user.click(screen.getByRole('button', { name: '← 返回歌单列表' }));
+  assert.equal(musicDraft.playlists.length, 0);
+  await user.click(screen.getByRole('button', { name: '＋ 新增歌单' }));
+  await user.type(screen.getByLabelText('歌单名称'), '夜间选集');
+  for (const [i, title] of ['独立曲目甲', '独立曲目乙'].entries()) {
+    await user.click(screen.getByRole('button', { name: '＋ 添加歌曲' }));
+    assert.equal(
+      screen.getByRole('button', { name: '添加歌单到列表' }).disabled,
+      true,
+    );
+    await user.type(screen.getByLabelText(`歌曲名称 ${i + 1}`), title);
+    await user.type(screen.getByLabelText(`歌手 ${i + 1}`), `作者${i + 1}`);
+  }
+  await user.click(screen.getByRole('checkbox', { name: /发布到前台/ }));
+  await user.click(screen.getByRole('button', { name: '添加歌单到列表' }));
+  assert.deepEqual(musicDraft.playlists[0].songs, [
+    { title: '独立曲目甲', artist: '作者1' },
+    { title: '独立曲目乙', artist: '作者2' },
+  ]);
+  await user.click(
+    screen.getByRole('button', { name: '夜间选集', exact: true }),
+  );
+  await user.click(screen.getByRole('button', { name: '上移歌曲 2' }));
+  assert.equal(screen.getByLabelText('歌曲名称 1').value, '独立曲目乙');
+  await user.click(screen.getByRole('button', { name: '移除歌曲 1' }));
+  await user.click(screen.getByRole('button', { name: '确认修改' }));
+  assert.equal(musicDraft.playlists[0].songs.length, 1);
+  validateMusicContent('tracks', musicDraft);
+  const legacy = {
+    items: defaults.tracks.items,
+    playlists: [
+      {
+        ...musicSample.playlists[0],
+        songs: undefined,
+        trackIds: [defaults.tracks.items[0].id],
+      },
+    ],
+  };
+  assert.deepEqual(migrateMusic(legacy).playlists[0].songs, [
+    {
+      title: defaults.tracks.items[0].title,
+      artist: defaults.tracks.items[0].artist,
+    },
+  ]);
+  const independent = structuredClone(musicDraft);
+  independent.items = [];
+  assert.deepEqual(
+    publicMusic(independent).playlists[0].songs,
+    musicDraft.playlists[0].songs,
+  );
+  cleanup();
+
+  let playlistDocument = structuredClone(musicDraft);
+  const playlistFetch = globalThis.fetch;
+  const playlistCalls = [];
+  let failPlaylist = false;
+  globalThis.fetch = async (url, init) => {
+    if (url === '/api/admin/media')
+      return Response.json({ url: '/api/media/playlist-upload.png' });
+    if (url === '/api/admin/ai') {
+      const body = JSON.parse(init.body);
+      playlistCalls.push(body);
+      return failPlaylist
+        ? Response.json({ error: '歌单生成模拟失败' }, { status: 502 })
+        : Response.json({
+            url: '/api/media/playlist-ai.png',
+            generatedFor: JSON.stringify([body.title, body.excerpt, '1:1']),
+          });
+    }
+    throw Error('Unexpected playlist request');
+  };
+  const updatePlaylistDocument = (next) => {
+    playlistDocument = next;
+    playlistManager.rerender(
+      h(AdminMusicManager, {
+        value: playlistDocument,
+        onChange: updatePlaylistDocument,
+      }),
+    );
+  };
+  const playlistManager = render(
+    h(AdminMusicManager, {
+      value: playlistDocument,
+      onChange: updatePlaylistDocument,
+    }),
+  );
+  await user.click(screen.getByRole('tab', { name: /歌单管理/ }));
+  await user.click(
+    screen.getByRole('button', { name: '夜间选集', exact: true }),
+  );
+  await user.type(screen.getByLabelText('歌单简介'), '安静的夜间音乐');
+  await user.upload(
+    screen.getByLabelText('上传歌单封面'),
+    new window.File(['image'], 'playlist.png', { type: 'image/png' }),
+  );
+  await waitFor(() =>
+    assert.ok(
+      screen
+        .getByAltText('歌单封面预览')
+        .src.endsWith('/api/media/playlist-upload.png'),
+    ),
+  );
+  await user.click(screen.getByRole('radio', { name: 'AI 生成' }));
+  failPlaylist = true;
+  await user.click(screen.getByRole('button', { name: '生成歌单封面' }));
+  await screen.findByText(/歌单生成模拟失败/);
+  assert.ok(
+    screen
+      .getByAltText('歌单封面预览')
+      .src.endsWith('/api/media/playlist-upload.png'),
+  );
+  failPlaylist = false;
+  await user.click(screen.getByRole('button', { name: '确认修改' }));
+  await waitFor(() =>
+    assert.equal(
+      playlistDocument.playlists[0].cover,
+      '/api/media/playlist-ai.png',
+    ),
+  );
+  assert.deepEqual(playlistCalls.at(-1), {
+    action: 'playlist-cover',
+    title: '夜间选集',
+    excerpt: '安静的夜间音乐',
+  });
+  validateMusicContent('tracks', playlistDocument);
+  await user.click(screen.getByRole('button', { name: '＋ 新增歌单' }));
+  await user.type(screen.getByLabelText('歌单名称'), '全新 AI 歌单');
+  await user.type(screen.getByLabelText('歌单简介'), '雨天听的歌');
+  await user.click(screen.getByRole('radio', { name: 'AI 生成' }));
+  assert.equal(
+    window.getComputedStyle(document.querySelector('.admin-music-actions'))
+      .marginTop,
+    '28px',
+  );
+  await user.click(screen.getByRole('button', { name: '添加歌单到列表' }));
+  await waitFor(() =>
+    assert.equal(playlistDocument.playlists.at(-1).title, '全新 AI 歌单'),
+  );
+  assert.equal(
+    playlistDocument.playlists.at(-1).cover,
+    '/api/media/playlist-ai.png',
+  );
+  assert.equal(playlistCalls.at(-1).excerpt, '雨天听的歌');
+  const oldMusic = migrateMusic([
+    { ...defaults.tracks.items[0], note: 'OBSOLETE_MUSIC_NOTE' },
+  ]);
+  assert.equal(JSON.stringify(oldMusic).includes('OBSOLETE_MUSIC_NOTE'), false);
+
+  cleanup();
+  globalThis.fetch = playlistFetch;
+  const manyMusic = {
+    scenes: defaults.tracks.scenes,
+    items: Array.from({ length: 61 }, (_, index) => ({
+      ...defaults.tracks.items[index % 3],
+      id: `track-${index}`,
+      title: `音乐 ${index}`,
+    })),
+    playlists: Array.from({ length: 25 }, (_, index) => ({
+      ...musicSample.playlists[0],
+      id: `mix-${index}`,
+      title: `歌单 ${index}`,
+      songs: [
+        { title: '独立歌曲 2', artist: '作者 2' },
+        { title: '独立歌曲 0', artist: '作者 0' },
+      ],
+      _published: true,
+    })),
+  };
+  render(h(AdminMusicManager, { value: manyMusic, onChange: () => {} }));
+  assert.equal(screen.getAllByRole('row').length, 21);
+  await user.click(screen.getByRole('button', { name: '下一页', exact: true }));
+  assert.ok(screen.getByRole('button', { name: '音乐 20', exact: true }));
+  cleanup();
+  const privacyFixture = structuredClone(manyMusic);
+  privacyFixture.items[2]._published = false;
+  privacyFixture.playlists[1]._published = false;
+  const publicFixture = publicMusic(privacyFixture);
+  assert.ok(!publicFixture.items.some((item) => item.id === 'track-2'));
+  assert.deepEqual(
+    publicFixture.playlists[0].songs,
+    manyMusic.playlists[0].songs,
+  );
+  assert.ok(!publicFixture.playlists.some((item) => item.id === 'mix-1'));
+  console.log(
+    'PASS staged music and playlists, automatic duration/error/stale metadata, managed scenes, independent songs, legacy migration and public filtering',
+  );
+  const audioProto = window.HTMLMediaElement.prototype;
+  const audioMethods = Object.getOwnPropertyDescriptors(audioProto);
+  audioProto.play = async function () {
+    Object.defineProperty(this, 'paused', { value: false, configurable: true });
+    this.dispatchEvent(new window.Event('play'));
+  };
+  audioProto.pause = function () {
+    Object.defineProperty(this, 'paused', { value: true, configurable: true });
+    this.dispatchEvent(new window.Event('pause'));
+  };
+  audioProto.load = function () {};
+  const musicFrontend = (value) =>
+    h(
+      ContentProvider,
+      { content: { ...defaults, tracks: value } },
+      h(MusicProvider, {}, h(MusicLibrary)),
+    );
+  const musicFront = render(musicFrontend(manyMusic));
+  assert.equal(
+    document.querySelector('audio').getAttribute('src'),
+    null,
+    'Do not preload or auto-play audio',
+  );
+  await user.click(screen.getByRole('button', { name: '播放台播放' }));
+  assert.ok(
+    document.querySelector('audio').src.endsWith(manyMusic.items[0].src),
+  );
+  await user.click(screen.getByRole('button', { name: '播放台暂停' }));
+  assert.equal(document.querySelectorAll('.music-track-row').length, 25);
+  await user.click(screen.getByRole('button', { name: '下一页', exact: true }));
+  assert.ok(screen.getByRole('button', { name: '音乐 25', exact: true }));
+  await user.type(screen.getByLabelText('搜索我的音乐'), '音乐 60');
+  assert.equal(document.querySelectorAll('.music-track-row').length, 1);
+  await user.click(screen.getByRole('tab', { name: /我的歌单/ }));
+  assert.equal(document.querySelectorAll('.music-playlist-card').length, 12);
+  await user.click(screen.getByRole('button', { name: '下一页', exact: true }));
+  assert.ok(
+    screen.getByRole('button', { name: '打开歌单 歌单 12', exact: true }),
+  );
+  await user.type(screen.getByLabelText('搜索我的歌单'), '歌单 0');
+  await user.click(
+    screen.getByRole('button', { name: '打开歌单 歌单 0', exact: true }),
+  );
+  const songTable = screen.getByRole('table', { name: '歌单曲目列表' });
+  assert.deepEqual(
+    within(songTable)
+      .getAllByRole('columnheader')
+      .map((node) => node.textContent),
+    ['序号', '曲目', '作者'],
+  );
+  assert.deepEqual(
+    [...songTable.querySelectorAll('tbody tr')].map((row) => row.textContent),
+    ['01独立歌曲 2作者 2', '02独立歌曲 0作者 0'],
+  );
+  assert.equal(within(songTable).queryByRole('button'), null);
+  assert.equal(
+    screen.queryByRole('button', { name: /播放当前列表|播放歌单/ }),
+    null,
+  );
+  assert.equal(screen.queryByLabelText('音乐场景筛选'), null);
+  await user.type(screen.getByLabelText('搜索歌单曲目'), '独立歌曲 0');
+  assert.equal(songTable.querySelectorAll('tbody tr').length, 1);
+  assert.ok(songTable.textContent.includes('02'));
+  await user.click(screen.getByRole('tab', { name: /我的音乐/ }));
+  assert.equal(screen.queryByText('音乐介绍'), null);
+  assert.equal(screen.queryByText('听歌笔记'), null);
+  await user.selectOptions(
+    screen.getByLabelText('音乐场景筛选'),
+    manyMusic.scenes[0].name,
+  );
+  await user.click(screen.getByRole('button', { name: /播放当前列表/ }));
+  const element = document.querySelector('audio');
+  assert.ok(element.src.endsWith(manyMusic.items[0].src));
+  await user.click(screen.getByRole('button', { name: '下一首', exact: true }));
+  assert.ok(screen.getByRole('button', { name: '暂停 音乐 3', exact: true }));
+  fireEvent.ended(element);
+  await waitFor(() =>
+    assert.ok(screen.getByRole('button', { name: '暂停 音乐 6', exact: true })),
+  );
+  await user.click(screen.getByRole('button', { name: '上一首', exact: true }));
+  assert.ok(screen.getByRole('button', { name: '暂停 音乐 3', exact: true }));
+  await user.click(screen.getByRole('button', { name: '播放台暂停' }));
+  fireEvent.error(element);
+  assert.ok(screen.getByRole('alert'));
+  await user.selectOptions(screen.getByLabelText('音乐场景筛选'), '');
+  musicFront.rerender(musicFrontend({ items: [], playlists: [], scenes: [] }));
+  assert.ok(screen.getByText('音乐库还在等待第一首歌'));
+  assert.equal(document.querySelector('audio'), null);
+  await user.click(screen.getByRole('tab', { name: /我的歌单/ }));
+  assert.ok(screen.getByText('留一个位置，给下一张歌单。'));
+  cleanup();
+  for (const method of ['play', 'pause', 'load'])
+    Object.defineProperty(audioProto, method, audioMethods[method]);
+  console.log(
+    'PASS music library pagination/search, playlist details, queue ordering/looping, persistent playback, pause/error and empty states',
   );
 } finally {
   cleanup();

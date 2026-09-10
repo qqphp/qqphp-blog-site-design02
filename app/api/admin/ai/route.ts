@@ -19,6 +19,8 @@ export async function POST(request: Request) {
     title?: string;
     excerpt?: string;
     subtitle?: string;
+    director?: string;
+    host?: string;
   };
   try {
     body = JSON.parse(
@@ -29,31 +31,60 @@ export async function POST(request: Request) {
   }
   if (
     !body ||
-    !['models', 'test', 'cover', 'project-cover', 'story-image'].includes(
-      body.action || '',
-    )
+    ![
+      'models',
+      'test',
+      'cover',
+      'project-cover',
+      'story-image',
+      'film-cover',
+      'playlist-cover',
+      'podcast-cover',
+    ].includes(body.action || '')
   )
     return json({ error: '操作无效' }, 400);
+  const isImage = [
+    'cover',
+    'project-cover',
+    'story-image',
+    'film-cover',
+    'playlist-cover',
+    'podcast-cover',
+  ].includes(body.action || '');
   if (
-    (body.action === 'cover' ||
-      body.action === 'project-cover' ||
-      body.action === 'story-image') &&
+    isImage &&
     (typeof body.title !== 'string' ||
       !body.title.trim() ||
-      body.title.length > 500 ||
-      typeof body.excerpt !== 'string' ||
+      body.title.length > 500)
+  )
+    return json({ error: '请填写标题（最多 500 字）' }, 400);
+  if (
+    isImage &&
+    body.action !== 'film-cover' &&
+    (typeof body.excerpt !== 'string' ||
       !body.excerpt.trim() ||
       body.excerpt.length > 5000)
   )
-    return json(
-      { error: '请先填写标题和摘要（标题最多 500 字，摘要最多 5000 字）。' },
-      400,
-    );
+    return json({ error: '请填写简介或摘要（最多 5000 字）' }, 400);
   if (
     body.action === 'project-cover' &&
     (typeof body.subtitle !== 'string' || body.subtitle.length > 1000)
   )
     return json({ error: '副标题格式无效或超过 1000 字' }, 400);
+  if (
+    body.action === 'film-cover' &&
+    (typeof body.director !== 'string' ||
+      !body.director.trim() ||
+      body.director.length > 1000)
+  )
+    return json({ error: '请填写导演（最多 1000 字）' }, 400);
+  if (
+    body.action === 'podcast-cover' &&
+    (typeof body.host !== 'string' ||
+      !body.host.trim() ||
+      body.host.length > 1000)
+  )
+    return json({ error: '请填写主播（最多 1000 字）' }, 400);
   try {
     if (body.action === 'models') {
       const result = await providerRequest('models');
@@ -78,9 +109,12 @@ export async function POST(request: Request) {
     return json(
       await generateCover(
         body.title!,
-        body.excerpt!,
+        body.action === 'film-cover' ? '' : body.excerpt!,
         body.action === 'project-cover' ? body.subtitle : undefined,
         body.action === 'story-image',
+        body.action === 'film-cover' ? body.director : undefined,
+        body.action === 'playlist-cover',
+        body.action === 'podcast-cover' ? body.host : undefined,
       ),
     );
   } catch (error) {

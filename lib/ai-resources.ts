@@ -1,0 +1,117 @@
+// Frontend collection. Official references checked on this date; no personal testing is implied.
+export const aiResourceDate = '2026-09-09';
+
+export const aiSkills = [
+  {
+    id: 'frontend-design',
+    name: 'frontend-design',
+    title: '让界面有自己的性格',
+    category: '界面设计',
+    description: '把视觉方向、排版和组件细节放进同一次前端创作。',
+    scenario: '准备做一个新页面，或想摆脱千篇一律的默认组件时。',
+    input: '页面目标、内容、参考风格与技术约束',
+    output: '可运行的前端界面',
+    note: '先给出真实内容和边界，再用实际页面检查布局。',
+    href: 'https://github.com/anthropics/skills/tree/main/skills/frontend-design',
+    prompt:
+      '请使用 frontend-design skill，为我的项目设计并实现一个页面。先阅读项目约定，再根据我提供的页面目标、真实内容和视觉参考确定方向；沿用现有技术栈，完成后检查桌面和移动端布局。',
+  },
+  {
+    id: 'webapp-testing',
+    name: 'webapp-testing',
+    title: '走一遍真实的使用路径',
+    category: '测试验证',
+    description: '用浏览器检查本地应用，把交互结果变成可复查的证据。',
+    scenario: '表单、菜单或页面流程刚改完，需要确认它真的能用时。',
+    input: '本地地址、待验证流程与预期结果',
+    output: '交互检查、截图与问题记录',
+    note: '测试数据与真实数据分开，明确哪些操作允许执行。',
+    href: 'https://github.com/anthropics/skills/tree/main/skills/webapp-testing',
+    prompt:
+      '请使用 webapp-testing skill，检查我提供的本地应用和操作流程。先确认测试地址及测试数据，逐步验证预期结果，记录复现步骤与证据；未执行的检查请明确标注。',
+  },
+  {
+    id: 'skill-creator',
+    name: 'skill-creator',
+    title: '把重复的方法留成 Skill',
+    category: '工作流',
+    description: '把一套常用做法整理为可重复使用、可继续改进的技能。',
+    scenario: '同一类任务反复解释，希望把方法稳定地复用时。',
+    input: '任务边界、操作步骤与成功示例',
+    output: '技能说明与验证思路',
+    note: '从一个明确任务开始，用真实案例检查触发和输出。',
+    href: 'https://github.com/anthropics/skills/tree/main/skills/skill-creator',
+    prompt:
+      '请使用 skill-creator skill，把我提供的重复任务整理成一个技能。先明确适用场景、输入、输出和边界，再编写技能说明，并用代表性案例验证；缺少的材料请指出。',
+  },
+];
+
+export const aiRelays = [
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    mark: 'OR',
+    category: '模型聚合',
+    description: '通过统一接口访问不同供应商的模型，集中管理调用入口。',
+    features: ['统一 API', '模型路由', '备用模型'],
+    focus: '想在同一项目里尝试不同模型',
+    endpoint: 'https://openrouter.ai/api/v1',
+    href: 'https://openrouter.ai/docs/quickstart',
+  },
+  {
+    id: 'vercel-gateway',
+    name: 'Vercel AI Gateway',
+    mark: 'VG',
+    category: '应用网关',
+    description: '连接多家模型服务，集中观察应用调用、用量与费用。',
+    features: ['AI SDK', '失败重试', '用量追踪'],
+    focus: '给 AI 应用整理模型接入层',
+    endpoint: 'https://ai-gateway.vercel.sh/v1',
+    href: 'https://vercel.com/docs/ai-gateway',
+  },
+];
+
+export const aiPlans = [
+  {
+    id: 'claude-pro',
+    provider: 'ANTHROPIC',
+    name: 'Claude Pro',
+    kind: '开发订阅',
+    price: '$20',
+    unit: '/ 月',
+    description: '对话、写作与 Claude Code 集中在一份订阅里。',
+    allowance: '按平台使用限额',
+    billing: '月付订阅',
+    scope: 'Claude 与 Claude Code',
+    note: '包含使用限制，不能换算成固定数量的 API Token。',
+    href: 'https://claude.com/pricing',
+  },
+  {
+    id: 'cursor-pro',
+    provider: 'CURSOR',
+    name: 'Cursor Pro',
+    kind: '开发订阅',
+    price: '$20',
+    unit: '/ 月',
+    description: '以编辑器为中心，把 Agent 接进日常开发过程。',
+    allowance: '包含模型用量，受限额约束',
+    billing: '月付，可另按用量计费',
+    scope: 'Cursor 内的模型与 Agent',
+    note: '额度用尽后的按量使用另行计费，具体规则见官方。',
+    href: 'https://cursor.com/pricing',
+  },
+  {
+    id: 'openrouter-usage',
+    provider: 'OPENROUTER',
+    name: 'API Credits',
+    kind: 'API 按量',
+    price: '按用量',
+    unit: '计费',
+    description: '按调用选择模型，适合把费用归到具体任务中。',
+    allowance: '随模型输入、输出用量变化',
+    billing: '美元余额制',
+    scope: '应用与 API 调用',
+    note: '各模型单价不同；充值费用与余额规则见官方说明。',
+    href: 'https://openrouter.ai/docs/faq',
+  },
+];

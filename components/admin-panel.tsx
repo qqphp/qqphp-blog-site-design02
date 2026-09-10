@@ -1,4 +1,10 @@
 'use client';
+import { AdminPodcastManager } from './admin-podcast-manager';
+import { migratePodcasts } from '@/lib/podcast-content';
+import { AdminFilmManager } from './admin-film-manager';
+import { migrateFilms } from '@/lib/film-content';
+import { AdminMusicManager } from './admin-music-manager';
+import { migrateMusic } from '@/lib/music-content';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Tabs } from '@base-ui/react/tabs';
@@ -329,7 +335,11 @@ export function AdminPanel() {
       onClick={() => choose(key)}
     >
       {sectionLabels[key]}
-      {(key === 'projects' || key === 'bookmarks' || key === 'friends') &&
+      {(key === 'projects' ||
+        key === 'bookmarks' ||
+        key === 'friends' ||
+        key === 'tracks' ||
+        key === 'films' || key === 'podcasts') &&
         content && <small>{content[key].items.length}</small>}
       {Array.isArray(content?.[key]) && (
         <small>{(content[key] as unknown[]).length}</small>
@@ -473,6 +483,15 @@ export function AdminPanel() {
                           Array.isArray(value)
                         )
                           value = migrateDirectory(value);
+                        if (section === 'podcasts') value = asJson(migratePodcasts(value as unknown as Content['podcasts']));
+                        if (section === 'films')
+                          value = asJson(
+                            migrateFilms(value as unknown as Content['films']),
+                          );
+                        if (section === 'tracks')
+                          value = migrateMusic(
+                            value as unknown as Content['tracks'],
+                          ) as unknown as Json;
                         if (section === 'stories' && Array.isArray(value))
                           value = migrateStories(value);
                         validateContent(section, value);
@@ -622,6 +641,20 @@ export function AdminPanel() {
                   <AdminProjectManager
                     value={draft as unknown as Content['projects']}
                     onWorking={setGenerating}
+                    onChange={(next) => setDraft(asJson(next))}
+                  />
+                ) : section === 'podcasts' ? (
+                  <AdminPodcastManager value={draft as unknown as Content['podcasts']} onChange={(next) => setDraft(asJson(next))} onWorking={setGenerating} />
+                ) : section === 'films' ? (
+                  <AdminFilmManager
+                    value={draft as unknown as Content['films']}
+                    onChange={(next) => setDraft(asJson(next))}
+                    onWorking={setGenerating}
+                  />
+                ) : section === 'tracks' ? (
+                  <AdminMusicManager
+                    onWorking={setGenerating}
+                    value={draft as unknown as Content['tracks']}
                     onChange={(next) => setDraft(asJson(next))}
                   />
                 ) : section === 'bookmarks' || section === 'friends' ? (

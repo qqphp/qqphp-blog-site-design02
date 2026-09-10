@@ -1453,3 +1453,51 @@ body:has(.admin-login) .music-dock {
   background: transparent;
   padding: 0 3px;
 }
+.admin-music-picker { border-top: 1px solid var(--line); padding-top: 20px; }
+.admin-music-picker > input { width: 100%; }
+.admin-music-selected { list-style: none; padding: 0; max-height: 320px; overflow: auto; }
+.admin-music-selected li { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.admin-music-choices { display: grid; gap: 5px; max-height: 320px; overflow: auto; margin-top: 12px; }
+.admin-music-choices label { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px; }
+.admin-music-choices small { color: var(--muted); }
+.admin-music-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; padding: 20px 0; }
+.admin-music-pagination span { margin-right: auto; font-size: .875rem; }
+
+.admin-music-selected li > input { flex:1; min-width:0; width:100%; }
+@media(max-width:600px) { .admin-music-selected li { flex-wrap:wrap; } .admin-music-selected li > input { flex-basis:35%; } }
+
+.admin-film-editor { border:0; margin:0; padding:0; min-width:0; }
+.admin-film-cover { display:grid; grid-template-columns:160px minmax(0,1fr); gap:24px; padding:20px 0; border-top:1px solid var(--admin-line); }
+.admin-film-poster { aspect-ratio:9/16; background:#ecece8; display:grid; place-items:center; }
+.admin-film-poster img { width:100%; height:100%; object-fit:cover; }
+@media(max-width:600px) { .admin-film-cover { grid-template-columns:1fr; } .admin-film-poster { max-width:180px; } }
+
+.admin-music-editor { border:0; padding:0; min-width:0; }
+.admin-music-audio-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; align-items:start; }
+.admin-music-audio-row > .admin-field { grid-column:auto; }
+.admin-music-audio-row > .admin-field:last-child { display:flex; flex-direction:column; gap:12px; }
+.admin-music-actions { display:flex; align-items:center; gap:20px; margin-top:28px; padding-top:20px; border-top:1px solid #d7ddd7; }
+.admin-playlist-cover { display:grid; grid-template-columns:160px minmax(0,1fr); gap:24px; padding:20px 0; border-top:1px solid #d7ddd7; }
+.admin-playlist-cover-image { aspect-ratio:1; background:#ecece8; display:grid; place-items:center; }
+.admin-playlist-cover-image img { width:100%; height:100%; object-fit:cover; }
+.admin-playlist-cover output { display:block; margin-top:12px; }
+
+@media(max-width:600px) { .admin-music-audio-row,.admin-playlist-cover { grid-template-columns:1fr; } .admin-playlist-cover-image { max-width:180px; } }
+
+.admin-music-audio-row > .admin-field:last-child > span { font-weight:600; }
+.admin-music-audio-row > .admin-field:last-child > output { display:block; min-height:48px; padding:12px 14px; border:1px solid #d7ddd7; background:#f7f9f4; }
+
+.admin-film-cover-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:12px; }
+.admin-film-cover-actions > div { flex-basis:100%; }
+
+.admin-podcast-editor { border:0; margin:0; padding:0; min-width:0; }
+.admin-podcast-cover { display:grid; grid-template-columns:240px minmax(0,1fr); gap:24px; align-items:start; }
+.admin-podcast-poster { aspect-ratio:3/2; background:#eef3e9; display:grid; place-items:center; color:#718174; }
+.admin-podcast-poster img { width:100%; height:100%; object-fit:cover; }
+.admin-podcast-cover-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:12px; }
+.admin-podcast-cover-actions > .admin-help { flex-basis:100%; order:1; margin:0; }
+.admin-podcast-audio > .admin-file-button { justify-self:start; width:fit-content; }
+.admin-podcast-audio-preview { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-top:12px; max-width:480px; }
+.admin-podcast-audio-preview audio { width:320px; max-width:100%; height:40px; margin:0; }
+.admin-podcast-audio-preview button { flex-shrink:0; }
+@media(max-width:700px) { .admin-podcast-cover { grid-template-columns:1fr; } .admin-podcast-poster { max-width:300px; width:100%; } }

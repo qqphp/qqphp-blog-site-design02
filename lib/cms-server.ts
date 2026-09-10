@@ -1,3 +1,6 @@
+import { migratePodcasts } from './podcast-content';
+import { migrateFilms } from './film-content';
+import { migrateMusic, publicMusic } from './music-content';
 import { migrateDirectory, resolveDirectory } from './directory-content';
 import { env } from 'cloudflare:workers';
 import { defaults, type PublicContent, type Section } from './cms-defaults';
@@ -31,6 +34,15 @@ export async function getDocuments() {
   }
   // Existing saved articles predate category IDs and cover generation settings.
   content.aiSettings = { ...defaults.aiSettings, ...content.aiSettings };
+  if (content.aiSettings.filmCoverPrompt.includes('{{excerpt}}'))
+    content.aiSettings.filmCoverPrompt = defaults.aiSettings.filmCoverPrompt;
+  for (const field of ['filmCoverStyle', 'filmCoverPrompt'] as const) {
+    content.aiSettings[field] = content.aiSettings[field]
+      .replaceAll('16:9', '9:16')
+      .replaceAll('2:3', '9:16')
+      .replaceAll('横向', '竖向')
+      .replaceAll('横版', '竖版');
+  }
   if (!results.some((row) => row.key === 'categories')) {
     const names = new Set([
       ...content.categories.map((item) => item.name),
@@ -70,12 +82,16 @@ export async function getDocuments() {
       ? migrateDirectory(content[key])
       : resolveDirectory(content[key]);
   content.stories = migrateStories(content.stories);
+  content.tracks = migrateMusic(content.tracks);
+  content.films = migrateFilms(content.films);
+  content.podcasts = migratePodcasts(content.podcasts);
   return { content, revisions };
 }
 
 export async function getPublicContent(): Promise<PublicContent> {
   const { content } = await getDocuments();
   const { aiSettings: _privateSettings, ...publicContent } = content;
+  publicContent.tracks = publicMusic(publicContent.tracks);
   return publishedOnly(publicContent) as PublicContent;
 }
 

@@ -1,3 +1,6 @@
+import { podcastSample, type PodcastDocument } from './podcast-content';
+import { filmSample, type FilmDocument } from './film-content';
+import { musicSample, type MusicDocument } from './music-content';
 import { defaults, type Section } from './cms-defaults';
 import { storyDate } from './story-content';
 
@@ -56,7 +59,7 @@ export function validateContent(key: Section, value: unknown) {
         if (['id', 'slug'].includes(field) && !/^[a-zA-Z0-9_-]+$/.test(input))
           fail('请使用英文、数字、短横线或下划线');
         if (
-          /^(url|href|src|cover|image|publicAccountQr|serviceUrl|footerUrl)$/i.test(
+          /^(url|href|src|audio|cover|image|publicAccountQr|serviceUrl|footerUrl)$/i.test(
             field,
           ) &&
           input
@@ -77,7 +80,11 @@ export function validateContent(key: Section, value: unknown) {
         }
         if (
           (['src', 'image'].includes(field) ||
-            (field === 'cover' && key !== 'writing')) &&
+            (field === 'cover' &&
+              key !== 'writing' &&
+              key !== 'tracks' &&
+              key !== 'films' &&
+              key !== 'podcasts')) &&
           !input.trim()
         )
           fail('请填写图片或音频地址');
@@ -99,7 +106,63 @@ export function validateContent(key: Section, value: unknown) {
         fail('必须大于 0');
     }
   };
-  walk(value, defaults[key], key);
+  walk(
+    value,
+    key === 'tracks'
+      ? musicSample
+      : key === 'films'
+        ? filmSample
+        : key === 'podcasts'
+          ? podcastSample
+          : defaults[key],
+    key,
+  );
+  if (key === 'podcasts') {
+    const document = value as PodcastDocument;
+    const names = document.categories.map((item) => item.name.trim());
+    if (new Set(names).size !== names.length || names.includes('全部'))
+      throw new Error('播客分类不能重复或命名为全部');
+    for (const item of document.items) {
+      if (
+        !document.categories.some((category) => category.id === item.categoryId)
+      )
+        throw new Error('请选择有效播客分类；删除前需调整关联播客');
+      if (!['upload', 'ai'].includes(item.coverMode))
+        throw new Error('请选择播客封面来源');
+      if (item.cover.startsWith('#') || item.audio.startsWith('#'))
+        throw new Error('请使用有效的封面或音频地址');
+    }
+  }
+  if (key === 'films') {
+    const document = value as FilmDocument;
+    const names = document.categories.map((item) => item.name.trim());
+    if (new Set(names).size !== names.length || names.includes('全部'))
+      throw new Error('电影分类不能重复或命名为全部');
+    for (const film of document.items) {
+      if (film.cover.startsWith('#'))
+        throw new Error('请使用有效的电影封面地址');
+      if (!document.categories.some((item) => item.id === film.categoryId))
+        throw new Error('请选择有效电影分类；删除前需调整关联电影');
+      if (!['upload', 'ai'].includes(film.coverMode))
+        throw new Error('请选择电影封面来源');
+    }
+  }
+  if (key === 'tracks') {
+    const document = value as MusicDocument;
+    const names = document.scenes.map((scene) => scene.name.trim());
+    if (new Set(names).size !== names.length)
+      throw new Error('场景名称不能重复');
+    for (const list of document.playlists)
+      if (!['upload', 'ai'].includes(list.coverMode))
+        throw new Error('请选择歌单封面来源');
+    for (const track of document.items) {
+      const scene = document.scenes.find((scene) => scene.id === track.moodId);
+      if (!scene) throw new Error('请选择有效场景；删除场景前请调整关联音乐');
+      track.mood = scene.name;
+    }
+    for (const track of document.items)
+      if (track.src.startsWith('#')) throw new Error('请填写可播放的音频地址');
+  }
   if (key === 'stories')
     for (const item of value as typeof defaults.stories) {
       if (item._published && !item.text.trim())
@@ -120,6 +183,13 @@ export function validateContent(key: Section, value: unknown) {
     }
   if (key === 'aiSettings') {
     const settings = value as typeof defaults.aiSettings;
+    if (
+      !['title', 'excerpt', 'host'].every((key) =>
+        settings.podcastCoverPrompt.includes('{{' + key + '}}'),
+      )
+    )
+      throw new Error('播客封面提示词须包含标题、简介和主播占位符');
+
     validateProviderUrl(settings.baseUrl);
     if (!settings.textModel.trim() || !settings.imageModel.trim())
       throw new Error('请填写模型名称');
@@ -131,6 +201,19 @@ export function validateContent(key: Section, value: unknown) {
   }
   if (key === 'aiSettings') {
     const settings = value as typeof defaults.aiSettings;
+    if (
+      !['title', 'director'].every((key) =>
+        settings.filmCoverPrompt.includes('{{' + key + '}}'),
+      ) ||
+      settings.filmCoverPrompt.includes('{{excerpt}}')
+    )
+      throw new Error('电影封面提示词须包含名称和导演，不使用简介');
+    if (
+      !['title', 'excerpt'].every((key) =>
+        settings.playlistCoverPrompt.includes('{{' + key + '}}'),
+      )
+    )
+      throw new Error('歌单封面提示词须包含名称和简介');
     if (
       !['title', 'subtitle', 'excerpt'].every((key) =>
         settings.projectImagePrompt.includes('{{' + key + '}}'),
