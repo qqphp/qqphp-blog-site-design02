@@ -183,6 +183,31 @@ try {
   }
   for (const [key, value] of Object.entries(documents.content))
     await save(key, value);
+  const copy = structuredClone(documents.content.copy);
+  assert.equal('说说封面' in copy, false);
+  for (const [page, removed] of Object.entries({
+    说说页: ['04', '07', '09', '10'],
+    项目页: ['17', '18', '20', '16', '15', '19', '11', '09'],
+  }))
+    assert.equal(Object.keys(copy[page]).some(key => removed.includes(key.slice(0, 2))), false);
+  assert.equal('08 开发阿雷' in copy.说说页, false);
+  copy.说说页['08 发布名称'] = 'PUBLISHER_COPY_SENTINEL';
+  await save('copy', copy);
+  assert.equal((await request('/api/admin/content')).json().content.copy.说说页['08 发布名称'], 'PUBLISHER_COPY_SENTINEL');
+  const copyNotes = (await request('/notes', { auth: false })).text;
+  assert.match(copyNotes, /PUBLISHER_COPY_SENTINEL/);
+  assert.doesNotMatch(copyNotes, /01 \/ AI 生成/);
+  const coverCaptions = copyNotes.match(/class="story-cover-caption"[^>]*>[\s\S]*?<\/p>/g) ?? [];
+  assert.ok(coverCaptions.length > 0);
+  assert.ok(coverCaptions.every(caption => !caption.includes('/ AI 生成')));
+  assert.doesNotMatch(copyNotes, /04 个话题|08 开发阿雷|09 ◌ 评论暂未开放|10 示例回复：/);
+  const copyProjects = (await request('/projects', { auth: false })).text;
+  assert.doesNotMatch(copyProjects, /09 这里的项目文案和视觉为概念示例。真实|11 概念示例 ·|17 DESIGN NOTES|19 WORKING PROCESS/);
+  const invalidCopy = structuredClone(copy);
+  invalidCopy.说说页['04 个话题'] = '不可恢复';
+  await save('copy', invalidCopy, revisions.copy, 400);
+  await save('copy', documents.content.copy);
+  console.log('PASS trimmed copy API, publisher save/read/render and retired field rejection');
   const story = documents.content.stories[0];
   for (const path of ['/api/comments', '/api/admin/comments']) {
     check(await request(path, { auth: false }), 404);

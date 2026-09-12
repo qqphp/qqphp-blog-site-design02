@@ -77,8 +77,8 @@ const copyPages: PageGroup[] = [
   {
     name: '说说页',
     href: '/notes',
-    description: '个人介绍、封面与图库',
-    keys: ['说说页', '说说封面', '说说图库'],
+    description: '个人介绍与图库',
+    keys: ['说说页', '说说图库'],
   },
   {
     name: 'AI 手记',

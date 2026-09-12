@@ -62,8 +62,6 @@ export default function StoriesPage() {
           <strong>{yearlyStories.length}</strong>
           <span>
             <CmsText page="说说页" name="03 条说说 ·" />
-            {new Set(yearlyStories.flatMap((story) => story.topics)).size}{' '}
-            <CmsText page="说说页" name="04 个话题" />
           </span>
           <div className="calendar-head">
             <button
@@ -120,7 +118,7 @@ export default function StoriesPage() {
               <div className="post-body">
                 <header>
                   <b>
-                    <CmsText page="说说页" name="08 开发阿雷" />
+                    <CmsText page="说说页" name="08 发布名称" />
                   </b>
                   <time dateTime={story.date}>
                     {story.date.slice(0, 10).replaceAll('-', '.')}{' '}

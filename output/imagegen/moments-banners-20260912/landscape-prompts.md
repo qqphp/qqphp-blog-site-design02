@@ -1,0 +1,16 @@
+# Landscape banner edits
+
+Tool: built-in image_gen. References: original three portrait artworks.
+
+## 1
+
+Edit the reference artwork into a NEW LANDSCAPE 16:9 banner, target 2048x1152 pixels. Keep the oil painting medium and sunset river valley theme. Recompose as a wide panoramic painting: distant hills, sunset glow and a winding reflective river form a concentrated horizontal landscape band around y=60%. Upper area is a spacious softly painted pale sky with very few clouds; bottom area transitions into quiet soft low-detail painterly water and muted terrain. Preserve expressive paint texture, but avoid foreground flowers or rocks competing with the central subject. Critical intended use: CSS object-fit: cover; object-position: center 60%. Make the main visual content occupy a horizontal band approximately y=38% to 75%, strongest focus at y=60%. Keep top 30% and bottom 20% quiet and spacious. Preserve reference visual identity while fully recomposing for landscape. This must be an actual wide image, not a portrait placed inside a frame. Full bleed artwork, no UI, no added captions, no logos or watermarks.
+
+## 2
+
+Edit the reference artwork into a NEW LANDSCAPE 16:9 banner, target 2048x1152 pixels. Keep the abstract flowing translucent pigment style and warm orange, cream, blue and teal palette. Recompose the flowing organic color shapes into one elegant horizontally spreading ribbon centered around y=60%. Leave the upper and lower areas predominantly airy cream/off-white negative space with subtle paper texture and very soft color diffusion. Avoid filling the entire canvas with dense shapes. No realistic subjects. Critical intended use: CSS object-fit: cover; object-position: center 60%. Make the main visual content occupy a horizontal band approximately y=38% to 75%, strongest focus at y=60%. Keep top 30% and bottom 20% quiet and spacious. Preserve reference visual identity while fully recomposing for landscape. This must be an actual wide image, not a portrait placed inside a frame. Full bleed artwork, no UI, no added captions, no logos or watermarks.
+
+## 3
+
+Edit the reference artwork into a NEW LANDSCAPE 16:9 banner, target 2048x1152 pixels. Keep the editorial photographic torn-paper multi-city collage style featuring Shanghai, Paris, New York and Tokyo. Arrange the four cities side-by-side with artfully overlapping architectural silhouettes in one coherent horizontal collage band around y=60%, all key landmarks grouped toward the middle of the width. Skyline tips should stay within the middle 55% of image height. Upper and lower areas are broad warm off-white lightly textured paper negative space, with subtle torn edges connecting to the central collage. Avoid a 2x2 grid, avoid tall foreground objects, avoid text. Critical intended use: CSS object-fit: cover; object-position: center 60%. Make the main visual content occupy a horizontal band approximately y=38% to 75%, strongest focus at y=60%. Keep top 30% and bottom 20% quiet and spacious. Preserve reference visual identity while fully recomposing for landscape. This must be an actual wide image, not a portrait placed inside a frame. Full bleed artwork, no UI, no added captions, no logos or watermarks.
+

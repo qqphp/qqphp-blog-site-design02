@@ -1,5 +1,4 @@
 'use client';
-import { CmsText } from '@/components/cms-text';
 
 import { useContent } from '@/components/content-provider';
 
@@ -36,6 +35,6 @@ export function StoryCover() {
   return <section className="story-cover story-cover-carousel" aria-label="说说封面轮播" aria-roledescription="轮播" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
     {slides.map((slide, i) => <div key={slide.src} className={`story-cover-slide${i === index ? ' is-active' : ''}`} aria-hidden={i !== index}><Image src={slide.src} alt={slide.alt} width={slide.width} height={slide.height} style={{ objectPosition: slide.position }} sizes="(max-width: 1420px) 100vw, 1420px" priority={i === 0} /></div>)}
     <div className="story-cover-controls">{slides.map((slide, i) => <button type="button" key={slide.src} aria-label={`切换到${slide.title}`} aria-pressed={i === index} onClick={() => select(i)}><i /></button>)}</div>
-    <p className="story-cover-caption" aria-live={focused ? 'polite' : 'off'}>{slides[index].title}<CmsText page="说说封面" name="01 / AI 生成" /></p>
+    <p className="story-cover-caption" aria-live={focused ? 'polite' : 'off'}>{slides[index].title}</p>
   </section>;
 }

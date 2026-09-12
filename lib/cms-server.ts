@@ -11,6 +11,7 @@ import { publishedOnly } from './cms-validation';
 import { migrateProjects, resolveProjects } from './project-content';
 import { categoryId, stripArticleExtras } from './article-categories';
 import { migrateStories } from './story-content';
+import { migratePageCopy } from './page-copy';
 
 export function bindings() {
   return env as unknown as {
@@ -36,6 +37,7 @@ export async function getDocuments() {
     }
   }
   // Existing saved articles predate category IDs and cover generation settings.
+  content.copy = migratePageCopy(content.copy);
   content.aiSettings = { ...defaults.aiSettings, ...content.aiSettings };
   const { travelCover: _oldTravelCover, ...pageSettings } = content.pageSettings as typeof content.pageSettings & { travelCover?: unknown };
   content.pageSettings = pageSettings;

@@ -113,14 +113,13 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
           <div className="folio-note">
             <span className="folio-eyebrow"><CmsText page="项目页" name="06 ABOUT THIS INDEX" /></span>
             <h3><CmsText page="项目页" name="07 不只陈列结果，" /><br /><CmsText page="项目页" name="08 也留下思考。" /></h3>
-            <p><CmsText page="项目页" name="09 这里的项目文案和视觉为概念示例。真实" /></p>
           </div>
         </aside>
         <article className="folio-detail">
           <header className="folio-detail-header">
             <div className="folio-section-label">
               <span>项目档案</span>
-              <span><CmsText page="项目页" name="11 概念示例 ·" />{active.year}</span>
+              <span>{active.year}</span>
             </div>
             <div className="folio-title">
               <h2>{active.title}</h2>
