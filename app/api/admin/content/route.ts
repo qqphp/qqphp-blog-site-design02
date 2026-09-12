@@ -9,6 +9,8 @@ import { resolveProjects } from '@/lib/project-content';
 import { getDocuments, saveDocument } from '@/lib/cms-server';
 import { isSection, validateContent } from '@/lib/cms-validation';
 import type { Content, Section } from '@/lib/cms-defaults';
+import { deletedRecordImageKeys, referencedImageKeys } from '@/lib/cms-media';
+import { deleteLocalMedia } from '@/lib/local-media';
 
 export async function GET(request: Request) {
   if (!(await authenticated(request))) return json({ error: '请先登录' }, 401);
@@ -30,12 +32,12 @@ export async function PUT(request: Request) {
     )
       return json({ error: '栏目或版本无效' }, 400);
     validateContent(key, value);
+    const current = await getDocuments();
     if (key === 'bookmarks' || key === 'friends')
       Object.assign(value, resolveDirectory(value));
     if (key === 'projects') Object.assign(value, resolveProjects(value));
     let guard: { key: Section; revision: number } | undefined;
     if (key === 'writing' || key === 'categories') {
-      const current = await getDocuments();
       const categories: Content['categories'] =
         key === 'categories' ? value : current.content.categories;
       const articles: Content['writing'] =
@@ -73,7 +75,23 @@ export async function PUT(request: Request) {
         },
         409,
       );
-    return json({ revision: revision + 1 });
+    const candidates = deletedRecordImageKeys(key, current.content[key], value);
+    const remaining = referencedImageKeys({
+      ...current.content,
+      [key]: value,
+    } as Content);
+    const removedMedia: string[] = [];
+    const failedMedia: string[] = [];
+    for (const mediaKey of candidates) {
+      if (remaining.has(mediaKey)) continue;
+      try {
+        await deleteLocalMedia(mediaKey);
+        removedMedia.push(mediaKey);
+      } catch {
+        failedMedia.push(mediaKey);
+      }
+    }
+    return json({ revision: revision + 1, removedMedia, failedMedia });
   } catch (error) {
     return json(
       { error: error instanceof Error ? error.message : '保存失败' },

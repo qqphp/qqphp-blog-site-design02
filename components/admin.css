@@ -349,39 +349,39 @@
 .admin-table-scroll {
   overflow-x: auto;
 }
-:is(.admin-writing-table table, .admin-project-table) {
+.admin-data-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
   font-size: 14px;
 }
-:is(.admin-writing-table table, .admin-project-table) caption {
+.admin-data-table caption {
   text-align: left;
   font-size: 12px;
   color: #718174;
   padding-bottom: 12px;
 }
-:is(.admin-writing-table table, .admin-project-table) th {
+.admin-data-table th {
   color: #657569;
   font-size: 13px;
   font-weight: 500;
   background: #f5f7f1;
   white-space: nowrap;
 }
-:is(.admin-writing-table table, .admin-project-table) th,
-:is(.admin-writing-table table, .admin-project-table) td {
+.admin-data-table th,
+.admin-data-table td {
   border-bottom: 1px solid #e4e9e0;
   padding: 16px 12px;
   vertical-align: middle;
 }
-:is(.admin-writing-table table, .admin-project-table) tbody tr:hover {
+.admin-data-table tbody tr:hover {
   background: #fafbf7;
 }
-:is(.admin-writing-table table, .admin-project-table) td:first-child {
+.admin-data-table td:first-child {
   min-width: 210px;
   width: 35%;
 }
-:is(.admin-writing-table table, .admin-project-table) td:nth-child(2) {
+.admin-data-table td:nth-child(2) {
   min-width: 130px;
 }
 .admin-shell .admin-table-title {
@@ -392,7 +392,7 @@
   font-size: 15px;
   font-weight: 600;
 }
-:is(.admin-writing-table table, .admin-project-table) td > small {
+.admin-data-table td > small {
   display: block;
   margin-top: 4px;
   color: #879186;
@@ -1029,70 +1029,20 @@
   display: grid;
   grid-template-columns: 230px minmax(0, 1fr);
 }
-.admin-story-toolbar,
 .admin-story-image-actions {
   display: flex;
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
 }
-.admin-story-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(120px, 160px) max-content;
-  margin-bottom: 20px;
-}
-.admin-story-toolbar input {
-  width: 100%;
-  min-width: 0;
-}
-.admin-story-toolbar select {
-  width: 100%;
-  min-width: 120px;
-}
-.admin-story-toolbar button {
-  white-space: nowrap;
-}
 .admin-story-tab-help {
   margin: 0 26px;
   color: #68786c;
   font-size: 13px;
 }
-.admin-story-table {
-  overflow-x: auto;
-}
-.admin-story-table table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-.admin-story-table th,
-.admin-story-table td {
-  padding: 14px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--admin-line);
-}
-.admin-story-table th {
-  background: #f2f5ee;
-  white-space: nowrap;
-}
-.admin-story-table td:first-child {
-  min-width: 200px;
-  max-width: 380px;
-  overflow-wrap: anywhere;
-}
-.admin-story-table time {
+.admin-data-table time {
   white-space: nowrap;
   font-size: 12px;
-}
-.admin-story-table td > small {
-  display: block;
-  margin-top: 6px;
-  color: #718074;
-}
-.admin-story-table .admin-row-actions {
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  min-width: 180px;
 }
 .admin-story-editor {
   display: grid;
@@ -1460,8 +1410,8 @@ body:has(.admin-login) .music-dock {
 .admin-music-choices { display: grid; gap: 5px; max-height: 320px; overflow: auto; margin-top: 12px; }
 .admin-music-choices label { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px; }
 .admin-music-choices small { color: var(--muted); }
-.admin-music-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; padding: 20px 0; }
-.admin-music-pagination span { margin-right: auto; font-size: .875rem; }
+.admin-table-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; padding: 20px 0; }
+.admin-table-pagination span { margin-right: auto; font-size: .875rem; }
 
 .admin-music-selected li > input { flex:1; min-width:0; width:100%; }
 @media(max-width:600px) { .admin-music-selected li { flex-wrap:wrap; } .admin-music-selected li > input { flex-basis:35%; } }

@@ -9,6 +9,7 @@ import {
 import { AdminCollectionCategories } from './admin-collection-categories';
 import { AdminCollectionCover } from './admin-collection-cover';
 import { AdminTravelAlbum } from './admin-travel-album';
+import { AdminTablePagination, pageRows } from './admin-data-table';
 import './admin-collections.css';
 export function AdminActivityManager({
   section,
@@ -37,8 +38,7 @@ export function AdminActivityManager({
         .toLowerCase()
         .includes(query.trim().toLowerCase()),
   );
-  const pages = Math.max(1, Math.ceil(filtered.length / 20));
-  const current = Math.min(page, pages);
+  const paginated = pageRows(filtered, page);
   return (
     <Tabs.Root
       className="admin-project-manager collection-manager"
@@ -213,7 +213,7 @@ export function AdminActivityManager({
               </button>
             </div>
             <div className="admin-table-scroll">
-              <table className="admin-project-table">
+              <table className="admin-data-table">
                 <caption>{filtered.length} 项，保存栏目后生效</caption>
                 <thead>
                   <tr>
@@ -225,9 +225,7 @@ export function AdminActivityManager({
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered
-                    .slice((current - 1) * 20, current * 20)
-                    .map((item) => (
+                  {paginated.rows.map((item) => (
                       <tr key={item.id}>
                         <td>
                           <button
@@ -250,7 +248,13 @@ export function AdminActivityManager({
                             {item.description || '—'}
                           </span>
                         </td>
-                        <td>{item._published ? '已发布' : '草稿'}</td>
+                        <td>
+                          <span
+                            className={`admin-status-badge ${item._published ? 'published' : ''}`}
+                          >
+                            {item._published ? '已发布' : '草稿'}
+                          </span>
+                        </td>
                         <td>
                           <div className="admin-row-actions">
                             <button
@@ -325,25 +329,11 @@ export function AdminActivityManager({
                 <p className="admin-empty">暂无匹配内容。</p>
               )}
             </div>
-            <div className="admin-music-pagination">
-              <span>
-                第 {current} / {pages} 页
-              </span>
-              <button
-                type="button"
-                disabled={current <= 1}
-                onClick={() => setPage(current - 1)}
-              >
-                上一页
-              </button>
-              <button
-                type="button"
-                disabled={current >= pages}
-                onClick={() => setPage(current + 1)}
-              >
-                下一页
-              </button>
-            </div>
+            <AdminTablePagination
+              page={paginated.current}
+              total={filtered.length}
+              onChange={setPage}
+            />
           </>
         )}
       </Tabs.Panel>

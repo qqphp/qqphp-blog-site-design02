@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { Tabs } from '@base-ui/react/tabs';
 import { type Film, type FilmDocument, filmSample } from '@/lib/film-content';
 import { api, upload } from './admin-fields';
+import { AdminTablePagination, pageRows } from './admin-data-table';
 
 export async function createFilmCover(film: Film): Promise<Film> {
   const result = await api<{ url: string; generatedFor: string }>(
@@ -46,8 +47,7 @@ export function AdminFilmManager({
         .toLowerCase()
         .includes(query.trim().toLowerCase()),
   );
-  const pages = Math.max(1, Math.ceil(filtered.length / 20));
-  const currentPage = Math.min(page, pages);
+  const paginated = pageRows(filtered, page);
   function working(next: boolean) {
     setBusy(next);
     onWorking(next);
@@ -314,7 +314,7 @@ export function AdminFilmManager({
               </button>
             </div>
             <div className="admin-table-scroll">
-              <table className="admin-project-table">
+              <table className="admin-data-table">
                 <caption>
                   共 {value.items.length} 部电影，筛选结果 {filtered.length}{' '}
                   部；保存栏目后生效。
@@ -336,9 +336,7 @@ export function AdminFilmManager({
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered
-                    .slice((currentPage - 1) * 20, currentPage * 20)
-                    .map((film) => (
+                  {paginated.rows.map((film) => (
                       <tr key={film.id}>
                         <td>
                           <button
@@ -365,7 +363,13 @@ export function AdminFilmManager({
                             )?.name
                           }
                         </td>
-                        <td>{film._published ? '已发布' : '草稿'}</td>
+                        <td>
+                          <span
+                            className={`admin-status-badge ${film._published ? 'published' : ''}`}
+                          >
+                            {film._published ? '已发布' : '草稿'}
+                          </span>
+                        </td>
                         <td aria-label={`${film.title}操作`}>
                           <div className="admin-row-actions">
                             <button
@@ -449,25 +453,11 @@ export function AdminFilmManager({
                 </p>
               )}
             </div>
-            <div className="admin-music-pagination">
-              <span>
-                第 {currentPage} / {pages} 页
-              </span>
-              <button
-                type="button"
-                disabled={currentPage <= 1}
-                onClick={() => setPage(currentPage - 1)}
-              >
-                上一页
-              </button>
-              <button
-                type="button"
-                disabled={currentPage >= pages}
-                onClick={() => setPage(currentPage + 1)}
-              >
-                下一页
-              </button>
-            </div>
+            <AdminTablePagination
+              page={paginated.current}
+              total={filtered.length}
+              onChange={setPage}
+            />
           </>
         )}
       </Tabs.Panel>

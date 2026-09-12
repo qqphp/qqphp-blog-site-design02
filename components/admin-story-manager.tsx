@@ -9,6 +9,7 @@ import {
 } from '@/lib/story-content';
 import { AdminTags } from './admin-tags';
 import { api, upload } from './admin-fields';
+import { AdminTablePagination, pageRows } from './admin-data-table';
 
 export function AdminStoryManager({
   stories,
@@ -22,6 +23,7 @@ export function AdminStoryManager({
   const [editing, setEditing] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
+  const [page, setPage] = useState(1);
   const [message, setMessage] = useState('');
   const story = stories.find((item) => item.id === editing);
   const filtered = newestStoriesFirst(stories).filter(
@@ -31,6 +33,7 @@ export function AdminStoryManager({
         .toLocaleLowerCase()
         .includes(query.trim().toLocaleLowerCase()),
   );
+  const paginated = pageRows(filtered, page);
   function update(change: Partial<Story>) {
     onChange(
       stories.map((item) =>
@@ -209,18 +212,24 @@ export function AdminStoryManager({
     );
   return (
     <div className="admin-form">
-      <div className="admin-story-toolbar">
+      <div className="admin-table-toolbar">
         <input
           type="search"
           aria-label="搜索说说"
           placeholder="搜索文字或话题"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setPage(1);
+          }}
         />
         <select
           aria-label="按发布状态筛选说说"
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="all">全部状态</option>
           <option value="draft">草稿</option>
@@ -244,29 +253,41 @@ export function AdminStoryManager({
           ＋ 新增说说
         </button>
       </div>
-      <div className="admin-story-table">
-        <table>
+      <div className="admin-table-scroll">
+        <table className="admin-data-table">
           <thead>
             <tr>
-              <th>文字</th>
-              <th>话题</th>
-              <th>发布日期</th>
-              <th>状态</th>
-              <th>操作</th>
+              <th scope="col">文字</th>
+              <th scope="col">话题</th>
+              <th scope="col">发布日期</th>
+              <th scope="col">状态</th>
+              <th scope="col">操作</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((item) => (
+            {paginated.rows.map((item) => (
               <tr key={item.id}>
                 <td>
-                  {item.text || '未填写文字'}
+                  <button
+                    type="button"
+                    className="admin-table-title"
+                    onClick={() => setEditing(item.id)}
+                  >
+                    {item.text || '未填写文字'}
+                  </button>
                   <small>{item.images.length} 张图片</small>
                 </td>
                 <td>{item.topics.join(' / ') || '—'}</td>
                 <td>
                   <time>{item.date.slice(0, 19).replace('T', ' ')}</time>
                 </td>
-                <td>{item._published ? '已发布' : '草稿'}</td>
+                <td>
+                  <span
+                    className={`admin-status-badge ${item._published ? 'published' : ''}`}
+                  >
+                    {item._published ? '已发布' : '草稿'}
+                  </span>
+                </td>
                 <td aria-label="说说操作">
                   <div className="admin-row-actions">
                     <button type="button" onClick={() => setEditing(item.id)}>
@@ -312,6 +333,11 @@ export function AdminStoryManager({
           </p>
         )}
       </div>
+      <AdminTablePagination
+        page={paginated.current}
+        total={filtered.length}
+        onChange={setPage}
+      />
     </div>
   );
 }

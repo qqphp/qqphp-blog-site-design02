@@ -237,7 +237,10 @@ export function AdminPanel() {
           }
         savedDraft = asJson(projects);
       }
-      const result = await api('/api/admin/content', {
+      const result = await api<{
+        revision: number;
+        failedMedia?: string[];
+      }>('/api/admin/content', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -252,7 +255,11 @@ export function AdminPanel() {
       }));
       setRevisions((previous) => ({ ...previous, [section]: result.revision }));
       setDraft(savedDraft);
-      setMessage('已保存。刷新前台页面即可查看已发布内容。');
+      setMessage(
+        result.failedMedia?.length
+          ? `内容已保存，但有 ${result.failedMedia.length} 张关联图片删除失败，请重启开发服务后重试。`
+          : '已保存。刷新前台页面即可查看已发布内容。',
+      );
     } catch (error) {
       setMessage(String(error));
     } finally {

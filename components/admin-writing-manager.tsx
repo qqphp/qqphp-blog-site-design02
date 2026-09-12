@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import type { Content } from '@/lib/cms-defaults';
 import { categoryBranch, categoryRows } from '@/lib/article-categories';
 import { AdminWritingEditor, type Article } from './admin-writing-editor';
+import { AdminTablePagination, pageRows } from './admin-data-table';
 
 export function AdminWritingManager({
   articles,
@@ -22,6 +23,7 @@ export function AdminWritingManager({
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
   const [category, setCategory] = useState('');
+  const [page, setPage] = useState(1);
   const index = editing !== null && articles[editing] ? editing : -1;
   const rows = categoryRows(categories);
   const paths = new Map(rows.map((row) => [row.category.id, row.path]));
@@ -40,6 +42,7 @@ export function AdminWritingManager({
         (Date.parse(b.date.replaceAll('.', '-')) || 0) -
         (Date.parse(a.date.replaceAll('.', '-')) || 0),
     );
+  const paginated = pageRows(filtered, page);
   function add() {
     const article: Article = {
       slug: `article-${crypto.randomUUID().slice(0, 8)}`,
@@ -85,12 +88,18 @@ export function AdminWritingManager({
           aria-label="搜索文章"
           placeholder="搜索标题、摘要或分类"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setPage(1);
+          }}
         />
         <select
           aria-label="按分类筛选文章"
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={(e) => {
+            setCategory(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="">全部分类</option>
           {rows.map((row) => (
@@ -102,7 +111,10 @@ export function AdminWritingManager({
         <select
           aria-label="按发布状态筛选文章"
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setPage(1);
+          }}
         >
           <option value="all">全部状态</option>
           <option value="draft">草稿</option>
@@ -113,7 +125,7 @@ export function AdminWritingManager({
         </button>
       </div>
       <div className="admin-table-scroll">
-        <table>
+        <table className="admin-data-table">
           <caption>
             共 {articles.length} 篇文章，当前显示 {filtered.length}{' '}
             篇。发布与删除操作保存栏目后生效。
@@ -128,7 +140,7 @@ export function AdminWritingManager({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((article) => {
+            {paginated.rows.map((article) => {
               return (
                 <tr key={article.slug}>
                   <td>
@@ -201,6 +213,11 @@ export function AdminWritingManager({
           </p>
         )}
       </div>
+      <AdminTablePagination
+        page={paginated.current}
+        total={filtered.length}
+        onChange={setPage}
+      />
     </section>
   );
 }

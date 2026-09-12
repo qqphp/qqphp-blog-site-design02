@@ -8,6 +8,7 @@ import {
   podcastSample,
 } from '@/lib/podcast-content';
 import { api, upload } from './admin-fields';
+import { AdminTablePagination, pageRows } from './admin-data-table';
 
 export async function createPodcastCover(podcast: Podcast): Promise<Podcast> {
   const result = await api<{ url: string; generatedFor: string }>(
@@ -55,8 +56,7 @@ export function AdminPodcastManager({
         .toLowerCase()
         .includes(query.trim().toLowerCase()),
   );
-  const pages = Math.max(1, Math.ceil(filtered.length / 20));
-  const currentPage = Math.min(page, pages);
+  const paginated = pageRows(filtered, page);
   function working(next: boolean) {
     setBusy(next);
     onWorking(next);
@@ -378,7 +378,7 @@ export function AdminPodcastManager({
               </button>
             </div>
             <div className="admin-table-scroll">
-              <table className="admin-project-table">
+              <table className="admin-data-table">
                 <caption>
                   共 {value.items.length} 档播客，筛选结果 {filtered.length}{' '}
                   档；保存栏目后生效。
@@ -400,9 +400,7 @@ export function AdminPodcastManager({
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered
-                    .slice((currentPage - 1) * 20, currentPage * 20)
-                    .map((podcast) => (
+                  {paginated.rows.map((podcast) => (
                       <tr key={podcast.id}>
                         <td>
                           <button
@@ -425,7 +423,13 @@ export function AdminPodcastManager({
                             )?.name
                           }
                         </td>
-                        <td>{podcast._published ? '已发布' : '草稿'}</td>
+                        <td>
+                          <span
+                            className={`admin-status-badge ${podcast._published ? 'published' : ''}`}
+                          >
+                            {podcast._published ? '已发布' : '草稿'}
+                          </span>
+                        </td>
                         <td aria-label={`${podcast.title}操作`}>
                           <div className="admin-row-actions">
                             <button
@@ -510,25 +514,11 @@ export function AdminPodcastManager({
                 </p>
               )}
             </div>
-            <div className="admin-music-pagination">
-              <span>
-                第 {currentPage} / {pages} 页
-              </span>
-              <button
-                type="button"
-                disabled={currentPage <= 1}
-                onClick={() => setPage(currentPage - 1)}
-              >
-                上一页
-              </button>
-              <button
-                type="button"
-                disabled={currentPage >= pages}
-                onClick={() => setPage(currentPage + 1)}
-              >
-                下一页
-              </button>
-            </div>
+            <AdminTablePagination
+              page={paginated.current}
+              total={filtered.length}
+              onChange={setPage}
+            />
           </>
         )}
       </Tabs.Panel>

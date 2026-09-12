@@ -71,6 +71,8 @@ const { ContentProvider } = await import('../components/content-provider.tsx');
 const { LifePageHeader } = await import('../components/life-page-header.tsx');
 const { AdminMarkdownEditor } =
   await import('../components/admin-markdown-editor.tsx');
+const { ADMIN_PAGE_SIZE, pageRows } =
+  await import('../components/admin-data-table.tsx');
 const { defaults } = await import('../lib/cms-defaults.ts');
 const user = userEvent.setup({ document: window.document });
 const categories = [
@@ -227,9 +229,9 @@ try {
   const storyStatusFilter = screen.getByLabelText('按发布状态筛选说说');
   assert.equal(storySearch.nextElementSibling, storyStatusFilter);
   assert.equal(
-    window.getComputedStyle(storySearch.closest('.admin-story-toolbar'))
+    window.getComputedStyle(storySearch.closest('.admin-table-toolbar'))
       .display,
-    'grid',
+    'flex',
   );
   await user.selectOptions(storyStatusFilter, 'draft');
   assert.equal(screen.getAllByRole('row').length, 1);
@@ -617,6 +619,34 @@ try {
   console.log(
     'PASS hierarchical category selection, child creation and deletion/parent restrictions',
   );
+
+  assert.equal(ADMIN_PAGE_SIZE, 10);
+  assert.equal(pageRows(Array.from({ length: 11 }), 1).rows.length, 10);
+  assert.equal(pageRows(Array.from({ length: 11 }), 2).rows.length, 1);
+  function PaginatedWriting() {
+    const [value, set] = useState(
+      Array.from({ length: 11 }, (_, index) => ({
+        ...article,
+        slug: `page-${index + 1}`,
+        title: `分页文章 ${index + 1}`,
+      })),
+    );
+    return h(AdminWritingManager, {
+      articles: value,
+      categories,
+      onChange: set,
+      onWorking: () => {},
+      busy: false,
+    });
+  }
+  render(h(PaginatedWriting));
+  assert.equal(screen.getAllByRole('row').length, 11);
+  assert.match(screen.getByRole('navigation', { name: '表格分页' }).textContent, /每页 10 条/);
+  assert.ok(document.querySelector('table.admin-data-table'));
+  await user.click(screen.getByRole('button', { name: '下一页' }));
+  assert.equal(screen.getAllByRole('row').length, 2);
+  cleanup();
+  console.log('PASS shared admin table style and default 10-row pagination');
 
   function Writing() {
     const [value, set] = useState([
@@ -1458,9 +1488,9 @@ try {
       onWorking: () => {},
     }),
   );
-  assert.equal(screen.getAllByRole('row').length, 21);
+  assert.equal(screen.getAllByRole('row').length, 11);
   await user.click(screen.getByRole('button', { name: '下一页' }));
-  assert.ok(screen.getByRole('button', { name: '影片 20', exact: true }));
+  assert.ok(screen.getByRole('button', { name: '影片 10', exact: true }));
   cleanup();
 
   const filmFront = render(
@@ -1796,9 +1826,9 @@ try {
     })),
   };
   render(h(AdminMusicManager, { value: manyMusic, onChange: () => {} }));
-  assert.equal(screen.getAllByRole('row').length, 21);
+  assert.equal(screen.getAllByRole('row').length, 11);
   await user.click(screen.getByRole('button', { name: '下一页', exact: true }));
-  assert.ok(screen.getByRole('button', { name: '音乐 20', exact: true }));
+  assert.ok(screen.getByRole('button', { name: '音乐 10', exact: true }));
   cleanup();
   const privacyFixture = structuredClone(manyMusic);
   privacyFixture.items[2]._published = false;

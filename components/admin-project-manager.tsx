@@ -11,6 +11,7 @@ import {
 import { AdminMarkdownEditor } from './admin-markdown-editor';
 import { AdminProjectImages } from './admin-project-images';
 import { AdminTags } from './admin-tags';
+import { AdminTablePagination, pageRows } from './admin-data-table';
 
 export function AdminProjectManager({
   value,
@@ -25,6 +26,7 @@ export function AdminProjectManager({
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
   const [category, setCategory] = useState('');
+  const [page, setPage] = useState(1);
   const data = resolveProjects(value);
   const current = editing === null ? undefined : data.items[editing];
   const filtered = data.items
@@ -39,6 +41,7 @@ export function AdminProjectManager({
     .sort(
       (a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0),
     );
+  const paginated = pageRows(filtered, page);
   const changeItems = (items: Project[]) => onChange({ ...value, items });
   const edit = (updates: Partial<Project>) =>
     changeItems(
@@ -224,12 +227,18 @@ export function AdminProjectManager({
                 aria-label="搜索项目"
                 placeholder="搜索项目名称或摘要"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
               />
               <select
                 aria-label="筛选项目状态"
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  setPage(1);
+                }}
               >
                 <option value="">全部项目状态</option>
                 {data.statuses.map((option) => (
@@ -241,7 +250,10 @@ export function AdminProjectManager({
               <select
                 aria-label="筛选项目分类"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  setPage(1);
+                }}
               >
                 <option value="">全部项目分类</option>
                 {data.categories.map((option) => (
@@ -255,7 +267,7 @@ export function AdminProjectManager({
               </button>
             </div>
             <div className="admin-table-scroll">
-              <table className="admin-project-table">
+              <table className="admin-data-table">
                 <caption>
                   共 {data.items.length} 个项目，当前显示 {filtered.length}{' '}
                   个。所有修改保存栏目后生效。
@@ -271,7 +283,7 @@ export function AdminProjectManager({
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((item) => {
+                  {paginated.rows.map((item) => {
                     const index = data.items.indexOf(item);
                     return (
                       <tr key={item.id}>
@@ -355,6 +367,11 @@ export function AdminProjectManager({
                 </p>
               )}
             </div>
+            <AdminTablePagination
+              page={paginated.current}
+              total={filtered.length}
+              onChange={setPage}
+            />
           </>
         )}
       </Tabs.Panel>

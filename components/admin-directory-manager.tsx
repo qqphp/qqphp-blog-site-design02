@@ -7,6 +7,7 @@ import {
   type DirectoryItem,
 } from '@/lib/directory-content';
 import { AdminTags } from './admin-tags';
+import { AdminTablePagination, pageRows } from './admin-data-table';
 
 export function AdminDirectoryManager({
   section,
@@ -21,6 +22,7 @@ export function AdminDirectoryManager({
   const [editing, setEditing] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
+  const [page, setPage] = useState(1);
   const data = resolveDirectory(value);
   const current = data.items.find((item) => item.id === editing);
   const change = (next: DirectoryDocument) => onChange(resolveDirectory(next));
@@ -39,6 +41,7 @@ export function AdminDirectoryManager({
         .toLowerCase()
         .includes(query.trim().toLowerCase()),
   );
+  const paginated = pageRows(filtered, page);
   return (
     <Tabs.Root defaultValue="items" className="admin-project-manager">
       <Tabs.List className="admin-settings-tabs" aria-label={`${label}管理`}>
@@ -148,12 +151,18 @@ export function AdminDirectoryManager({
                 aria-label={`搜索${label}`}
                 placeholder="搜索名称、网址或简介"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
               />
               <select
                 aria-label={`筛选${label}分类`}
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  setPage(1);
+                }}
               >
                 <option value="">全部{label}分类</option>
                 {data.categories.map((option) => (
@@ -185,7 +194,7 @@ export function AdminDirectoryManager({
               </button>
             </div>
             <div className="admin-table-scroll">
-              <table className="admin-project-table">
+              <table className="admin-data-table">
                 <caption>
                   共 {data.items.length} 个{label}，当前显示 {filtered.length}{' '}
                   个。所有修改保存栏目后生效。
@@ -206,7 +215,7 @@ export function AdminDirectoryManager({
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((item) => {
+                  {paginated.rows.map((item) => {
                     const index = data.items.indexOf(item);
                     return (
                       <tr key={item.id}>
@@ -305,6 +314,11 @@ export function AdminDirectoryManager({
                 </p>
               )}
             </div>
+            <AdminTablePagination
+              page={paginated.current}
+              total={filtered.length}
+              onChange={setPage}
+            />
           </>
         )}
       </Tabs.Panel>

@@ -6,6 +6,7 @@ import {
   readdir,
   rename,
   stat,
+  unlink,
   writeFile,
 } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -171,6 +172,22 @@ export async function startLocalMediaStorage() {
           }),
         );
         response.writeHead(201).end();
+        return;
+      }
+      if (request.method === 'DELETE') {
+        let found = false;
+        for (const target of [
+          path,
+          resolve(metadataDirectory, `${key}.json`),
+        ]) {
+          try {
+            await unlink(target);
+            found = true;
+          } catch (error) {
+            if (error?.code !== 'ENOENT') throw error;
+          }
+        }
+        response.writeHead(found ? 204 : 404).end();
         return;
       }
       if (request.method === 'GET') {

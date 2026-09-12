@@ -9,6 +9,7 @@ import {
 } from '@/lib/book-content';
 import { AdminCollectionCategories } from './admin-collection-categories';
 import { AdminCollectionCover } from './admin-collection-cover';
+import { AdminTablePagination, pageRows } from './admin-data-table';
 import './admin-collections.css';
 export function AdminBookManager({
   value,
@@ -40,9 +41,9 @@ export function AdminBookManager({
       .toLowerCase()
       .includes(query.trim().toLowerCase()),
   );
-  const rows = tab === 'lists' ? filteredLists : filteredBooks;
-  const pages = Math.max(1, Math.ceil(rows.length / 20));
-  const current = Math.min(page, pages);
+  const paginatedBooks = pageRows(filteredBooks, page);
+  const paginatedLists = pageRows(filteredLists, page);
+  const pagination = tab === 'lists' ? paginatedLists : paginatedBooks;
   return (
     <Tabs.Root
       className="admin-project-manager collection-manager"
@@ -209,7 +210,7 @@ export function AdminBookManager({
               </button>
             </div>
             <div className="admin-table-scroll">
-              <table className="admin-project-table">
+              <table className="admin-data-table">
                 <caption>{filteredBooks.length} 本书籍，保存栏目后生效</caption>
                 <thead>
                   <tr>
@@ -223,9 +224,7 @@ export function AdminBookManager({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredBooks
-                    .slice((current - 1) * 20, current * 20)
-                    .map((item) => (
+                  {paginatedBooks.rows.map((item) => (
                       <tr key={item.id}>
                         <td>
                           <button
@@ -244,7 +243,13 @@ export function AdminBookManager({
                             )?.name
                           }
                         </td>
-                        <td>{item._published ? '已发布' : '草稿'}</td>
+                        <td>
+                          <span
+                            className={`admin-status-badge ${item._published ? 'published' : ''}`}
+                          >
+                            {item._published ? '已发布' : '草稿'}
+                          </span>
+                        </td>
                         <td aria-label={`${item.title}操作`}>
                           <div className="admin-row-actions">
                             <button
@@ -490,7 +495,7 @@ export function AdminBookManager({
               </button>
             </div>
             <div className="admin-table-scroll">
-              <table className="admin-project-table">
+              <table className="admin-data-table">
                 <caption>{filteredLists.length} 个主题书单</caption>
                 <thead>
                   <tr>
@@ -504,9 +509,7 @@ export function AdminBookManager({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLists
-                    .slice((current - 1) * 20, current * 20)
-                    .map((item) => (
+                  {paginatedLists.rows.map((item) => (
                       <tr key={item.id}>
                         <td>{item.title}</td>
                         <td>
@@ -515,7 +518,13 @@ export function AdminBookManager({
                           </span>
                         </td>
                         <td>{item.entries.length}</td>
-                        <td>{item._published ? '已发布' : '草稿'}</td>
+                        <td>
+                          <span
+                            className={`admin-status-badge ${item._published ? 'published' : ''}`}
+                          >
+                            {item._published ? '已发布' : '草稿'}
+                          </span>
+                        </td>
                         <td aria-label={`${item.title}操作`}>
                           <div className="admin-row-actions">
                             <button
@@ -579,25 +588,11 @@ export function AdminBookManager({
         )}
       </Tabs.Panel>
       {tab !== 'categories' && !(tab === 'items' ? book : list) && (
-        <div className="admin-music-pagination">
-          <span>
-            第 {current} / {pages} 页
-          </span>
-          <button
-            type="button"
-            disabled={current <= 1}
-            onClick={() => setPage(current - 1)}
-          >
-            上一页
-          </button>
-          <button
-            type="button"
-            disabled={current >= pages}
-            onClick={() => setPage(current + 1)}
-          >
-            下一页
-          </button>
-        </div>
+        <AdminTablePagination
+          page={pagination.current}
+          total={tab === 'lists' ? filteredLists.length : filteredBooks.length}
+          onChange={setPage}
+        />
       )}
     </Tabs.Root>
   );

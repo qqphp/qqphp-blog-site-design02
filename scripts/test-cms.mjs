@@ -931,6 +931,107 @@ try {
   console.log(
     'PASS database, session and uploaded file persistence after server restart',
   );
+  async function verifyDeletedRecordImageCleanup(key, label, attach, remove) {
+    const upload = await fetch(base + '/api/admin/media', {
+      method: 'POST',
+      headers: {
+        Origin: base,
+        Cookie: cookie,
+        'X-File-Name': encodeURIComponent(`${label}.png`),
+      },
+      body: bytes,
+    });
+    assert.equal(upload.status, 200);
+    const uploadedMedia = await upload.json();
+    const keyName = uploadedMedia.url.split('/').at(-1);
+    const latest = (await request('/api/admin/content')).json().content[key];
+    const withImage = attach(structuredClone(latest), uploadedMedia.url);
+    await save(key, withImage);
+    assert.equal(existsSync(resolve(mediaDirectory, keyName)), true);
+    const saved = await save(key, remove(structuredClone(withImage)));
+    assert.deepEqual(saved.json().removedMedia, [keyName]);
+    assert.deepEqual(saved.json().failedMedia, []);
+    assert.equal(existsSync(resolve(mediaDirectory, keyName)), false);
+    assert.equal(
+      existsSync(resolve(mediaDirectory, '.metadata', `${keyName}.json`)),
+      false,
+    );
+  }
+  await verifyDeletedRecordImageCleanup(
+    'writing',
+    '文章封面',
+    (value, url) => {
+      value[0].cover = url;
+      return value;
+    },
+    (value) => value.slice(1),
+  );
+  await verifyDeletedRecordImageCleanup(
+    'projects',
+    '项目图片',
+    (value, url) => {
+      value.items[0].images[0].src = url;
+      return value;
+    },
+    (value) => ({ ...value, items: value.items.slice(1) }),
+  );
+  await verifyDeletedRecordImageCleanup(
+    'stories',
+    '说说图片',
+    (value, url) => {
+      value[0].images = [{ src: url, alt: '待删除图片' }];
+      return value;
+    },
+    (value) => value.slice(1),
+  );
+  await verifyDeletedRecordImageCleanup(
+    'tracks',
+    '歌单封面',
+    (value, url) => {
+      value.playlists[0].cover = url;
+      return value;
+    },
+    (value) => ({ ...value, playlists: value.playlists.slice(1) }),
+  );
+  for (const [key, label] of [
+    ['films', '电影封面'],
+    ['podcasts', '播客封面'],
+    ['travel', '旅行封面'],
+    ['hobbies', '爱好封面'],
+  ])
+    await verifyDeletedRecordImageCleanup(
+      key,
+      label,
+      (value, url) => {
+        value.items[0] ??= structuredClone(documents.content[key].items[0]);
+        value.items[0].cover = url;
+        return value;
+      },
+      (value) => ({ ...value, items: value.items.slice(1) }),
+    );
+  await verifyDeletedRecordImageCleanup(
+    'books',
+    '书籍封面',
+    (value, url) => {
+      value.items[0] ??= structuredClone(documents.content.books.items[0]);
+      value.items[0].cover = url;
+      return value;
+    },
+    (value) => ({ ...value, items: value.items.slice(1) }),
+  );
+  await verifyDeletedRecordImageCleanup(
+    'books',
+    '书单封面',
+    (value, url) => {
+      value.lists[0] ??= structuredClone(documents.content.books.lists[0]);
+      value.lists[0].cover = url;
+      return value;
+    },
+    (value) => ({ ...value, lists: value.lists.slice(1) }),
+  );
+  console.log(
+    'PASS deleted writing, project, story, music, film, podcast, travel, hobby, book and booklist records remove local images and metadata',
+  );
   await save('writing', []);
   for (const [key, value] of Object.entries(documents.content)) {
     if (Array.isArray(value)) await save(key, []);

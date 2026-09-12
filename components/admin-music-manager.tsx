@@ -15,6 +15,7 @@ import {
 } from '@/lib/music-content';
 import { formatTime } from '@/lib/music';
 import { Field } from './admin-fields';
+import { AdminTablePagination, pageRows } from './admin-data-table';
 
 export function AdminMusicManager({
   value,
@@ -53,8 +54,7 @@ export function AdminMusicManager({
         .toLowerCase()
         .includes(query.trim().toLowerCase()),
   );
-  const pages = Math.max(1, Math.ceil(filtered.length / 20));
-  const currentPage = Math.min(page, pages);
+  const paginated = pageRows(filtered, page);
   const editTrack = (id: string, patch: Partial<MusicTrack>) => {
     if (track?.id === id) {
       setDraft((current) =>
@@ -521,23 +521,21 @@ export function AdminMusicManager({
               </button>
             </div>
             <div className="admin-table-scroll">
-              <table className="admin-project-table">
+              <table className="admin-data-table">
                 <caption>
                   共 {records.length} 条{label}，筛选结果 {filtered.length} 条。
                 </caption>
                 <thead>
                   <tr>
-                    <th>{label}名称</th>
-                    <th>{isTracks ? '作者 / 场景' : '歌曲数量'}</th>
-                    <th>{isTracks ? '时长' : '简介'}</th>
-                    <th>发布状态</th>
-                    <th>操作</th>
+                    <th scope="col">{label}名称</th>
+                    <th scope="col">{isTracks ? '作者 / 场景' : '歌曲数量'}</th>
+                    <th scope="col">{isTracks ? '时长' : '简介'}</th>
+                    <th scope="col">发布状态</th>
+                    <th scope="col">操作</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered
-                    .slice((currentPage - 1) * 20, currentPage * 20)
-                    .map((item) => {
+                  {paginated.rows.map((item) => {
                       const index = records.findIndex(
                         (record) => record.id === item.id,
                       );
@@ -651,25 +649,11 @@ export function AdminMusicManager({
                 </p>
               )}
             </div>
-            <div className="admin-music-pagination">
-              <span>
-                第 {currentPage} / {pages} 页 · 每页 20 条
-              </span>
-              <button
-                type="button"
-                disabled={currentPage <= 1}
-                onClick={() => setPage(currentPage - 1)}
-              >
-                上一页
-              </button>
-              <button
-                type="button"
-                disabled={currentPage >= pages}
-                onClick={() => setPage(currentPage + 1)}
-              >
-                下一页
-              </button>
-            </div>
+            <AdminTablePagination
+              page={paginated.current}
+              total={filtered.length}
+              onChange={setPage}
+            />
           </>
         )}
       </Tabs.Panel>

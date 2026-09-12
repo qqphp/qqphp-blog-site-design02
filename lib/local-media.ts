@@ -55,6 +55,14 @@ export async function saveLocalMedia(
   if (!response.ok) throw new Error('保存文件到本地素材库失败。');
 }
 
+export async function deleteLocalMedia(key: string) {
+  const response = await mediaRequest(`/media/${encodeURIComponent(key)}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok && response.status !== 404)
+    throw new Error('从本地素材库删除文件失败。');
+}
+
 export function readLocalMedia(key: string, requestHeaders: Headers) {
   const headers = new Headers();
   for (const name of ['range', 'if-none-match']) {
