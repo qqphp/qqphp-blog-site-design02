@@ -8,6 +8,8 @@ import {
   cpSync,
   symlinkSync,
   existsSync,
+  rmSync,
+  rmdirSync,
 } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -97,6 +99,7 @@ function stopServer() {
 }
 let server = startServer();
 let cookie = '';
+let passed = false;
 async function request(
   path,
   { method = 'GET', body, auth = true, origin = base, headers = {} } = {},
@@ -977,7 +980,20 @@ try {
   );
   console.log('PASS logout and durable login throttling');
   console.log('CMS integration checks passed. User content was not modified.');
+  passed = true;
 } finally {
   writeFileSync(resolve(state, 'server.log'), log);
   stopServer();
+  if (passed) {
+    rmSync(checkout, { recursive: true, force: true });
+    rmSync(state, { recursive: true, force: true });
+    try {
+      rmdirSync(resolve('work'));
+    } catch (error) {
+      if (!['ENOENT', 'ENOTEMPTY'].includes(error.code))
+        console.warn(`Could not remove empty work directory: ${error.message}`);
+    }
+  } else {
+    console.error(`Failed test artifacts kept in ${checkout} and ${state}`);
+  }
 }
