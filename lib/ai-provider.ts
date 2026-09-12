@@ -134,6 +134,10 @@ export async function generateCover(
     model: settings.imageModel,
     prompt,
     n: 1,
+    output_format: settings.imageOutputFormat,
+    ...(settings.imageOutputFormat !== 'png'
+      ? { output_compression: settings.imageCompression }
+      : {}),
     ...(collection
       ? { size: collection.kind === 'book' ? '1024x1536' : '1536x1024' }
       : podcastHost !== undefined

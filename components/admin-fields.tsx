@@ -136,8 +136,45 @@ export async function api<T = ApiData>(
   if (!response.ok) throw new Error(data.error || '请求失败，请重试');
   return data as unknown as T;
 }
+
+async function compressImage(file: File) {
+  if (
+    !file.type.startsWith('image/') ||
+    typeof createImageBitmap !== 'function'
+  )
+    return file;
+  const bitmap = await createImageBitmap(file);
+  try {
+    const maxDimension = 2400;
+    const scale = Math.min(
+      1,
+      maxDimension / Math.max(bitmap.width, bitmap.height),
+    );
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('无法处理图片，请更换浏览器后重试');
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (result) =>
+          result ? resolve(result) : reject(new Error('图片压缩失败')),
+        'image/webp',
+        0.82,
+      );
+    });
+    return new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), {
+      type: 'image/webp',
+      lastModified: file.lastModified,
+    });
+  } finally {
+    bitmap.close?.();
+  }
+}
 export async function upload(file: File) {
   if (file.size > 20 * 1024 * 1024) throw new Error('文件不能超过 20 MB');
+  file = await compressImage(file);
   return api('/api/admin/media', {
     method: 'POST',
     headers: { 'X-File-Name': encodeURIComponent(file.name) },
