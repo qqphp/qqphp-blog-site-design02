@@ -1,0 +1,94 @@
+.writing-archive .archive-main {
+  min-width: 0;
+}
+.writing-archive .archive-toolbar {
+  padding: 24px 0 24px 32px;
+  gap: 16px;
+}
+.writing-list-item {
+  display: grid;
+  grid-template-columns: minmax(160px, 32%) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding: 28px 0 28px 32px;
+  border-bottom: 1px solid var(--line);
+}
+.writing-list-cover {
+  display: block;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+}
+.writing-list-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .writing-list-cover img {
+    transition: transform 400ms ease;
+  }
+  .writing-list-cover:hover img {
+    transform: scale(1.04);
+  }
+}
+.writing-list-content {
+  min-width: 0;
+}
+.writing-list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.6;
+}
+.writing-list-meta span {
+  color: var(--lime);
+}
+.writing-list-meta time {
+  font-variant-numeric: tabular-nums;
+}
+.writing-list-item h2 {
+  margin: 9px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.writing-list-item h2 a:hover {
+  color: var(--lime);
+}
+.writing-list-excerpt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.8;
+}
+.writing-list-item a:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 4px;
+}
+@media (max-width: 900px) {
+  .writing-archive .archive-toolbar,
+  .writing-list-item {
+    padding-left: 0;
+  }
+}
+@media (max-width: 600px) {
+  .writing-list-item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding-block: 24px;
+  }
+  .writing-list-item h2 {
+    font-size: 1.125rem;
+  }
+}

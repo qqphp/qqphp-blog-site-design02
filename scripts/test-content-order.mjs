@@ -187,6 +187,31 @@ try {
   console.log(
     'PASS descending dates, unchanged source order, correct edit targets, new/stable project creation time, legacy timestamps and removed article fields',
   );
+  const publicArticles = ['2024.12.31', '2026.09.11', '2025.01.01'].map(
+    (date, index) => ({
+      ...defaults.writing[0],
+      slug: `public-${index}`,
+      title: `排序验证 ${index}`,
+      date,
+    }),
+  );
+  const sourceOrder = structuredClone(publicArticles);
+  render(h(ContentProvider, {
+    content: { ...defaults, writing: publicArticles },
+  }, h(WritingPage)));
+  const publicTitles = () => Array.from(
+    document.querySelectorAll('.writing-list-item h2'),
+    (element) => element.textContent,
+  );
+  assert.deepEqual(publicTitles(), ['排序验证 1', '排序验证 2', '排序验证 0']);
+  assert.deepEqual(publicArticles, sourceOrder);
+  await user.type(screen.getByRole('textbox', { name: '搜索文章' }), '排序验证');
+  assert.deepEqual(publicTitles(), ['排序验证 1', '排序验证 2', '排序验证 0']);
+  await user.clear(screen.getByRole('textbox', { name: '搜索文章' }));
+  await user.type(screen.getByRole('textbox', { name: '搜索文章' }), '无匹配文章');
+  assert.deepEqual(publicTitles(), []);
+  assert.ok(screen.getByText('没有找到匹配的文章，换个关键词试试。'));
+  console.log('PASS public writing publication order, search order, empty results and unchanged source data');
 } finally {
   cleanup();
   window.happyDOM.abort();

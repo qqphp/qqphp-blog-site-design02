@@ -73,11 +73,6 @@ const sidebarSections: {
 }[] = [
   {
     sections: [
-      'aiSettings',
-      'pageSettings',
-      'copy',
-      'site',
-      'home',
       'writing',
       'projects',
       'stories',
@@ -98,6 +93,10 @@ const sidebarSections: {
       'hobbies',
       'books',
     ],
+  },
+  {
+    label: '设置',
+    sections: ['aiSettings', 'pageSettings', 'copy', 'site', 'home'],
   },
 ];
 

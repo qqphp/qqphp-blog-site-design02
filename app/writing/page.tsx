@@ -11,6 +11,7 @@ import { useState } from 'react';
 
 import { PageIntro, SiteFooter, SiteHeader } from '@/components/site-chrome';
 import { Input } from '@/components/ui/input';
+import '@/components/writing-archive.css';
 
 export default function WritingPage() {
   const { writing, categories } = useContent();
@@ -24,6 +25,10 @@ export default function WritingPage() {
       `${item.title} ${item.excerpt} ${item.category}`
         .toLocaleLowerCase()
         .includes(query.trim().toLocaleLowerCase()),
+  ).sort(
+    (a, b) =>
+      (Date.parse(b.date.replaceAll('.', '-')) || 0) -
+      (Date.parse(a.date.replaceAll('.', '-')) || 0),
   );
   return (
     <main className="site-shell">
@@ -79,32 +84,34 @@ export default function WritingPage() {
             </span>
           </div>
           {filtered.map((entry) => (
-            <article className="archive-item cover-item" key={entry.title}>
-              <Image
-                src={entry.cover}
-                width={320}
-                height={320}
-                alt=""
-                className="article-cover"
-              />
-              <div>
-                <p className="entry-meta">
-                  {entry.category}
-                </p>
-                <h2>
-                  <Link href={`/writing/${entry.slug}`}>{entry.title}</Link>
-                </h2>
-                <p>{entry.excerpt}</p>
-                <div className="tag-row">
-                  <time>{entry.date}</time>
-                </div>
-              </div>
+            <article className="writing-list-item" key={entry.slug}>
               <Link
+                className="writing-list-cover"
                 href={`/writing/${entry.slug}`}
                 aria-label={`阅读：${entry.title}`}
               >
-                ↗
+                {entry.cover && (
+                  <Image
+                    src={entry.cover}
+                    width={600}
+                    height={400}
+                    sizes="(max-width: 600px) calc(100vw - 50px), 240px"
+                    alt=""
+                  />
+                )}
               </Link>
+              <div className="writing-list-content">
+                <div className="writing-list-meta">
+                  <span>{entry.category}</span>
+                  <time dateTime={entry.date.replaceAll('.', '-')}>
+                    {entry.date}
+                  </time>
+                </div>
+                <h2>
+                  <Link href={`/writing/${entry.slug}`}>{entry.title}</Link>
+                </h2>
+                <p className="writing-list-excerpt">{entry.excerpt}</p>
+              </div>
             </article>
           ))}
           {filtered.length === 0 && (
