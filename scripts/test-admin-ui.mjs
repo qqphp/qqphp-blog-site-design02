@@ -19,6 +19,7 @@ for (const name of [
   'window',
   'document',
   'navigator',
+  'localStorage',
   'HTMLElement',
   'HTMLInputElement',
   'HTMLTextAreaElement',
@@ -911,6 +912,111 @@ try {
 
   const { AdminFilmManager } =
     await import('../components/admin-film-manager.tsx');
+  const { AdminActivityManager } = await import('../components/admin-activity-manager.tsx');
+  const { AdminBookManager } = await import('../components/admin-book-manager.tsx');
+  const { AdminCollectionCover } = await import('../components/admin-collection-cover.tsx');
+  const { AdminTravelAlbum } = await import('../components/admin-travel-album.tsx');
+  const collectionFetch = globalThis.fetch;
+  const coverCalls = []; let coverFails = false; let uploadCount = 0;
+  globalThis.fetch = async (url, init) => {
+    if (url === '/api/admin/ai') {
+      coverCalls.push(JSON.parse(init.body));
+      return coverFails ? Response.json({ error: '模拟失败' }, { status: 502 }) : Response.json({ url: '/api/media/collection.png' });
+    }
+    if (url === '/api/admin/media') return Response.json({ url: `/api/media/album-${++uploadCount}.png` });
+    throw new Error('Unexpected collection request');
+  };
+  for (const kind of ['travel', 'hobby', 'book', 'booklist']) {
+    let cover = '/old.png'; let coverView;
+    const props = () => ({ kind, title: '封面标题', description: '封面简介', author: '', value: cover, onWorking: () => {}, onChange: next => { cover = next; coverView.rerender(h(AdminCollectionCover, props())); } });
+    coverView = render(h(AdminCollectionCover, props()));
+    const count = coverCalls.length;
+    coverView.rerender(h(AdminCollectionCover, { ...props(), title: '修改标题' }));
+    assert.equal(coverCalls.length, count, 'Changing content must not generate');
+    await user.click(screen.getByRole('button', { name: 'AI 生成封面' }));
+    await waitFor(() => assert.equal(cover, '/api/media/collection.png'));
+    assert.equal(coverCalls.at(-1).action, `${kind}-cover`);
+    assert.equal(coverCalls.at(-1).title, '修改标题');
+    coverFails = true;
+    await user.click(screen.getByRole('button', { name: 'AI 生成封面' }));
+    await waitFor(() => assert.match(screen.getByRole('status').textContent, /原封面已保留/));
+    assert.equal(cover, '/api/media/collection.png'); coverFails = false; cleanup();
+  }
+  let album = []; let albumView;
+  const albumProps = () => ({ value: album, onWorking: () => {}, onChange: next => { album = next; albumView.rerender(h(AdminTravelAlbum, albumProps())); } });
+  albumView = render(h(AdminTravelAlbum, albumProps()));
+  await user.upload(screen.getByLabelText('上传相册图片'), [new window.File(['image'], 'a.png', { type: 'image/png' }), new window.File(['image'], 'b.png', { type: 'image/png' })]);
+  await waitFor(() => assert.equal(album.length, 2));
+  await user.click(screen.getByRole('button', { name: '后移图片 1' }));
+  assert.deepEqual(album, ['/api/media/album-2.png', '/api/media/album-1.png']);
+  await user.click(screen.getByRole('button', { name: '移除图片 1' }));
+  assert.deepEqual(album, ['/api/media/album-1.png']); cleanup();
+  globalThis.fetch = collectionFetch;
+  console.log('PASS explicit collection AI generation/failure retention and multi-image album upload/order/removal');
+  const { ActivityLibrary } = await import('../components/activity-library.tsx');
+  const { Bookshelf } = await import('../components/bookshelf.tsx');
+  const { migrateActivities } = await import('../lib/activity-content.ts');
+  const { migrateBooks } = await import('../lib/book-content.ts');
+  const { validateContent: validateCollections } = await import('../lib/cms-validation.ts');
+  const collectionStyle = document.createElement('style');
+  collectionStyle.textContent = readFileSync(new URL('../components/admin-collections.css', import.meta.url), 'utf8'); document.head.append(collectionStyle);
+  for (const section of ['travel', 'hobbies']) {
+    let data = structuredClone(defaults[section]); const label = section === 'travel' ? '旅行' : '爱好'; let view;
+    const update = next => { data = next; view.rerender(h(AdminActivityManager, { section, value: data, onChange: update, onWorking: () => {} })); };
+    view = render(h(AdminActivityManager, { section, value: data, onChange: update, onWorking: () => {} }));
+    assert.ok(screen.getByRole('table'));
+    await user.click(screen.getByRole('button', { name: `新增${label}` }));
+    await user.type(screen.getByLabelText(`${label}标题`), '新记录');
+    await user.type(screen.getByLabelText('简介'), '测试简介');
+    await user.type(screen.getByLabelText(section === 'travel' ? '旅行记录' : '内容与步骤'), '正文第一段\n\n正文第二段');
+    assert.equal(getComputedStyle(document.querySelector('.collection-editor')).borderTopWidth, '0px');
+    assert.equal(getComputedStyle(document.querySelector('.collection-cover-actions')).gap, '12px');
+    await user.click(screen.getByRole('button', { name: '确认添加' }));
+    assert.equal(data.items.at(-1)._published, false);
+    validateCollections(section, data);
+    await user.click(screen.getByRole('button', { name: '新记录', exact: true }));
+    await user.type(screen.getByLabelText(`${label}标题`), '不保存');
+    await user.click(screen.getByRole('button', { name: `返回${label}列表` }));
+    assert.equal(data.items.at(-1).title, '新记录');
+    await user.click(screen.getByRole('tab', { name: `${label}分类` }));
+    assert.ok(screen.getByRole('button', { name: `删除分类 ${data.categories[0].name}` }).disabled);
+    await user.clear(screen.getByLabelText(`${label}分类 1`)); await user.type(screen.getByLabelText(`${label}分类 1`), '改名分类');
+    cleanup();
+    if (section === 'travel') data.items.at(-1).album = ['/api/media/album-1.png'];
+    render(h(ContentProvider, { content: { ...defaults, [section]: data } }, h(ActivityLibrary, { section })));
+    assert.ok(screen.getByRole('button', { name: '改名分类' }));
+    await user.type(screen.getByLabelText(`搜索${label}`), '新记录');
+    assert.equal(document.querySelectorAll('.activity-card').length, 1);
+    await user.click(screen.getByRole('button', { name: '阅读新记录' }));
+    const dialog = await screen.findByRole('dialog'); assert.ok(dialog.querySelector('.activity-full-text').textContent.startsWith('正文第一段\n\n正文第二段'));
+    if (section === 'travel') assert.ok(within(dialog).getByRole('img', { name: '新记录 · 风景 1' }));
+    await user.click(within(dialog).getByRole('button', { name: '关闭内容' })); cleanup();
+  }
+  const legacyActivity = migrateActivities({ title: '旅行', intro: '', entries: [{ id: 'legacy', title: '旧记录', category: '城市', subtitle: '旧副标题', description: '旧简介', body: ['第一段', '第二段'], _published: false }] });
+  assert.equal(legacyActivity.items[0].body, '第一段\n\n第二段'); assert.equal(legacyActivity.items[0]._published, false);
+  const legacyBooks = migrateBooks([{ id: 'old', title: '旧书', author: '作者', category: '文学', status: '读过', color: '#123456', note: '旧笔记', _published: false }], [{ id: 'old-list', title: '旧书单', description: '简介', label: '旧标签', ids: ['old'], _published: false }]);
+  assert.equal(legacyBooks.items[0].note, '旧笔记'); assert.deepEqual(legacyBooks.lists[0].entries, [{ title: '旧书', author: '作者' }]); assert.equal(legacyBooks.lists[0]._published, false);
+  let bookDoc = structuredClone(defaults.books); let bookView;
+  const updateBooks = next => { bookDoc = next; bookView.rerender(h(AdminBookManager, { value: bookDoc, onChange: updateBooks, onWorking: () => {} })); };
+  bookView = render(h(AdminBookManager, { value: bookDoc, onChange: updateBooks, onWorking: () => {} }));
+  await user.click(screen.getByRole('button', { name: '新增书籍' })); await user.type(screen.getByLabelText('书名'), '新书'); await user.type(screen.getByLabelText('作者'), '作者'); await user.click(screen.getByRole('button', { name: '确认添加' }));
+  assert.ok(!('status' in bookDoc.items.at(-1))); assert.equal(screen.queryByLabelText('阅读状态'), null); assert.equal(bookDoc.items.at(-1)._published, false);
+  await user.click(screen.getByRole('tab', { name: '主题书单' })); await user.click(screen.getByRole('button', { name: '新增主题书单' })); await user.type(screen.getByLabelText('书单名称'), '我的书单');
+  await user.click(screen.getByRole('button', { name: '添加一行书籍' })); await user.type(screen.getByLabelText('书名 1'), '独立书目'); await user.type(screen.getByLabelText('作者 1'), '独立作者');
+  await user.click(screen.getByRole('button', { name: '添加一行书籍' }));
+  assert.ok(screen.getByRole('button', { name: '确认书单' }).disabled);
+  await user.click(screen.getByRole('button', { name: '移除书目 2' }));
+  await user.click(screen.getByRole('button', { name: '确认书单' }));
+  assert.deepEqual(bookDoc.lists.at(-1).entries, [{ title: '独立书目', author: '独立作者' }]); validateCollections('books', bookDoc);
+  validateCollections('books', { ...bookDoc, items: [] });
+  await user.click(screen.getByRole('tab', { name: '书籍列表' })); const newBookRow = screen.getByRole('button', { name: '新书', exact: true }).closest('tr'); assert.equal(within(newBookRow).getByRole('button', { name: '删除' }).disabled, false);
+  cleanup();
+  render(h(ContentProvider, { content: { ...defaults, books: { ...bookDoc, items: [] } } }, h(Bookshelf)));
+  await user.click(screen.getByRole('button', { name: /^主题书单/ }));
+  await user.type(screen.getByLabelText('搜索主题书单'), '独立作者');
+  await user.click(screen.getByRole('button', { name: '打开书单：我的书单' }));
+  const listDialog = await screen.findByRole('dialog'); assert.ok(within(listDialog).getByRole('heading', { name: '独立书目' })); assert.ok(within(listDialog).getByText('独立作者')); cleanup();
+  console.log('PASS independent booklist rows, validation, book deletion, migration, author search and public booklist details without library records');
   const { AdminPodcastManager } =
     await import('../components/admin-podcast-manager.tsx');
   const { PodcastLibrary } = await import('../components/podcast-library.tsx');

@@ -29,12 +29,11 @@ export default async function ArticlePage({
           <Link className="article-category" href="/writing">
             <span>← 返回写作</span>
             <b>{article.category}</b>
-            <em>{article.label}</em>
           </Link>
           <h1>{article.title}</h1>
           <p className="article-lead">{article.excerpt}</p>
           <div className="article-meta">
-            {site.name} · {article.date} · {article.meta}
+            {site.name} · {article.date}
           </div>
           <div className="markdown-body">
             <ReactMarkdown

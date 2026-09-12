@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     subtitle?: string;
     director?: string;
     host?: string;
+    author?: string;
   };
   try {
     body = JSON.parse(
@@ -40,6 +41,10 @@ export async function POST(request: Request) {
       'film-cover',
       'playlist-cover',
       'podcast-cover',
+      'travel-cover',
+      'hobby-cover',
+      'book-cover',
+      'booklist-cover',
     ].includes(body.action || '')
   )
     return json({ error: '操作无效' }, 400);
@@ -50,6 +55,10 @@ export async function POST(request: Request) {
     'film-cover',
     'playlist-cover',
     'podcast-cover',
+    'travel-cover',
+    'hobby-cover',
+    'book-cover',
+    'booklist-cover',
   ].includes(body.action || '');
   if (
     isImage &&
@@ -61,6 +70,7 @@ export async function POST(request: Request) {
   if (
     isImage &&
     body.action !== 'film-cover' &&
+    body.action !== 'book-cover' &&
     (typeof body.excerpt !== 'string' ||
       !body.excerpt.trim() ||
       body.excerpt.length > 5000)
@@ -85,6 +95,12 @@ export async function POST(request: Request) {
       body.host.length > 1000)
   )
     return json({ error: '请填写主播（最多 1000 字）' }, 400);
+  if (
+    body.action === 'book-cover' &&
+    body.author !== undefined &&
+    (typeof body.author !== 'string' || body.author.length > 1000)
+  )
+    return json({ error: '作者格式无效或超过 1000 字' }, 400);
   try {
     if (body.action === 'models') {
       const result = await providerRequest('models');
@@ -109,12 +125,23 @@ export async function POST(request: Request) {
     return json(
       await generateCover(
         body.title!,
-        body.action === 'film-cover' ? '' : body.excerpt!,
+        body.action === 'film-cover' || body.action === 'book-cover'
+          ? ''
+          : body.excerpt!,
         body.action === 'project-cover' ? body.subtitle : undefined,
         body.action === 'story-image',
         body.action === 'film-cover' ? body.director : undefined,
         body.action === 'playlist-cover',
         body.action === 'podcast-cover' ? body.host : undefined,
+        body.action === 'travel-cover'
+          ? { kind: 'travel' }
+          : body.action === 'hobby-cover'
+            ? { kind: 'hobby' }
+            : body.action === 'booklist-cover'
+              ? { kind: 'booklist' }
+              : body.action === 'book-cover'
+                ? { kind: 'book', author: body.author }
+                : undefined,
       ),
     );
   } catch (error) {

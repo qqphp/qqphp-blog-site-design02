@@ -1,4 +1,8 @@
 'use client';
+import { AdminActivityManager } from './admin-activity-manager';
+import { AdminBookManager } from './admin-book-manager';
+import { migrateActivities } from '@/lib/activity-content';
+import { migrateBooks } from '@/lib/book-content';
 import { AdminPodcastManager } from './admin-podcast-manager';
 import { migratePodcasts } from '@/lib/podcast-content';
 import { AdminFilmManager } from './admin-film-manager';
@@ -23,7 +27,7 @@ import { AdminStoryManager } from './admin-story-manager';
 import { migrateStories } from '@/lib/story-content';
 import { AdminCategoryManager } from './admin-category-manager';
 import { AdminAiSettings } from './admin-ai-settings';
-import { coverInput } from '@/lib/article-categories';
+import { coverInput, stripArticleExtras } from '@/lib/article-categories';
 import {
   defaults,
   sectionLabels,
@@ -56,7 +60,6 @@ const destinations: Partial<Record<Section, string>> = {
   bookmarks: '/bookmarks',
   friends: '/friends',
   books: '/books',
-  booklists: '/books',
   tracks: '/music',
   films: '/films',
   podcasts: '/podcasts',
@@ -94,7 +97,6 @@ const sidebarSections: {
       'travel',
       'hobbies',
       'books',
-      'booklists',
     ],
   },
 ];
@@ -339,7 +341,7 @@ export function AdminPanel() {
         key === 'bookmarks' ||
         key === 'friends' ||
         key === 'tracks' ||
-        key === 'films' || key === 'podcasts') &&
+        key === 'films' || key === 'podcasts' || key === 'travel' || key === 'hobbies' || key === 'books') &&
         content && <small>{content[key].items.length}</small>}
       {Array.isArray(content?.[key]) && (
         <small>{(content[key] as unknown[]).length}</small>
@@ -474,6 +476,8 @@ export function AdminPanel() {
                             : data;
                         const { validateContent } =
                           await import('@/lib/cms-validation');
+                        if (section === 'writing' && Array.isArray(value))
+                          value = value.map(article => stripArticleExtras(article as object)) as Json;
                         if (section === 'projects')
                           value = Array.isArray(value)
                             ? migrateProjects(value)
@@ -483,6 +487,8 @@ export function AdminPanel() {
                           Array.isArray(value)
                         )
                           value = migrateDirectory(value);
+                        if (section === 'travel' || section === 'hobbies') value = asJson(migrateActivities(value as unknown as Content['travel']));
+                        if (section === 'books') value = asJson(migrateBooks(value as unknown as Content['books']));
                         if (section === 'podcasts') value = asJson(migratePodcasts(value as unknown as Content['podcasts']));
                         if (section === 'films')
                           value = asJson(
@@ -643,6 +649,10 @@ export function AdminPanel() {
                     onWorking={setGenerating}
                     onChange={(next) => setDraft(asJson(next))}
                   />
+                ) : section === 'travel' || section === 'hobbies' ? (
+                  <AdminActivityManager key={section} section={section} value={draft as unknown as Content['travel']} onChange={next => setDraft(asJson(next))} onWorking={setGenerating} />
+                ) : section === 'books' ? (
+                  <AdminBookManager value={draft as unknown as Content['books']} onChange={next => setDraft(asJson(next))} onWorking={setGenerating} />
                 ) : section === 'podcasts' ? (
                   <AdminPodcastManager value={draft as unknown as Content['podcasts']} onChange={(next) => setDraft(asJson(next))} onWorking={setGenerating} />
                 ) : section === 'films' ? (

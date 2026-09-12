@@ -45,8 +45,8 @@ const settingsPages: PageGroup[] = [
   {
     name: '旅行页',
     href: '/travel',
-    description: '栏目介绍与重点配图',
-    keys: ['travel', 'travelCover'],
+    description: '栏目介绍',
+    keys: ['travel'],
   },
   {
     name: '爱好页',

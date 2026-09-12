@@ -2,7 +2,7 @@ import { pathToFileURL } from 'node:url';
 import { resolve as resolvePath } from 'node:path';
 
 export async function resolve(specifier, context, next) {
-  if (specifier === 'next/image' || specifier === 'next/link')
+  if (specifier === 'next/image' || specifier === 'next/link' || specifier === 'next/navigation')
     return {
       url: pathToFileURL(
         resolvePath(

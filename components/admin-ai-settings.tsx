@@ -55,6 +55,10 @@ export function AdminAiSettings({
         <Tabs.Tab value="music">音乐配置</Tabs.Tab>
         <Tabs.Tab value="films">电影配置</Tabs.Tab>
         <Tabs.Tab value="podcasts">播客配置</Tabs.Tab>
+        <Tabs.Tab value="travel">旅行配置</Tabs.Tab>
+        <Tabs.Tab value="hobby">爱好配置</Tabs.Tab>
+        <Tabs.Tab value="book">书籍配置</Tabs.Tab>
+        <Tabs.Tab value="booklist">书单配置</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="models">
         <div className="admin-ai-status">
@@ -314,6 +318,56 @@ export function AdminAiSettings({
           </div>
         </div>
       </Tabs.Panel>
+      {(['travel', 'hobby', 'book', 'booklist'] as const).map((kind) => {
+        const label = {
+          travel: '旅行',
+          hobby: '爱好',
+          book: '书籍',
+          booklist: '书单',
+        }[kind];
+        return (
+          <Tabs.Panel value={kind} key={kind}>
+            <div className="admin-fields">
+              <div className="admin-field admin-wide">
+                <label htmlFor={`${kind}-cover-style`}>{label}封面风格</label>
+                <textarea
+                  id={`${kind}-cover-style`}
+                  rows={3}
+                  value={value[`${kind}CoverStyle`]}
+                  onChange={(event) =>
+                    onChange({
+                      ...value,
+                      [`${kind}CoverStyle`]: event.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="admin-field admin-wide">
+                <label htmlFor={`${kind}-cover-prompt`}>
+                  {label}封面提示词
+                </label>
+                <textarea
+                  id={`${kind}-cover-prompt`}
+                  rows={4}
+                  value={value[`${kind}CoverPrompt`]}
+                  onChange={(event) =>
+                    onChange({
+                      ...value,
+                      [`${kind}CoverPrompt`]: event.target.value,
+                    })
+                  }
+                />
+                <small>
+                  {kind === 'book'
+                    ? '{{title}} = 书名；{{author}} = 可选作者；{{style}} = 风格。'
+                    : '{{title}} = 标题；{{excerpt}} = 简介；{{style}} = 风格。'}
+                  保存配置后，点击编辑页面的生成封面按钮生效。
+                </small>
+              </div>
+            </div>
+          </Tabs.Panel>
+        );
+      })}
     </Tabs.Root>
   );
 }

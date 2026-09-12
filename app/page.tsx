@@ -38,7 +38,7 @@ export default async function Home() {
               key={entry.title}
             >
               <span className="entry-meta">
-                {entry.label} · {entry.date.slice(5)}
+                {entry.date.slice(5)}
               </span>
               <div>
                 <h2>{entry.title}</h2>

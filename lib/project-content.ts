@@ -26,6 +26,7 @@ export type Project = {
   category: string;
   categoryId: string;
   year: string;
+  createdAt: string;
   role: string;
   description: string;
   body: string;
@@ -40,9 +41,9 @@ export type ProjectDocument = {
 };
 type LegacyProject = Omit<
   Project,
-  'statusId' | 'categoryId' | 'body' | '_published' | 'images'
+  'statusId' | 'categoryId' | 'body' | '_published' | 'images' | 'createdAt'
 > &
-  Partial<Pick<Project, 'body' | '_published'>> & {
+  Partial<Pick<Project, 'body' | '_published' | 'createdAt'>> & {
     images: { src: string; label: string; alt: string }[];
   };
 export function migrateProjects(items: LegacyProject[]): ProjectDocument {
@@ -62,6 +63,7 @@ export function migrateProjects(items: LegacyProject[]): ProjectDocument {
       category: item.category,
       categoryId: categoryId(item.category),
       year: item.year,
+      createdAt: item.createdAt ?? '',
       role: item.role,
       description: item.description,
       body: item.body ?? '',
@@ -80,6 +82,7 @@ export function resolveProjects(document: ProjectDocument): ProjectDocument {
     ...document,
     items: document.items.map((item) => ({
       ...item,
+      createdAt: item.createdAt ?? '',
       images: item.images.map((image) => ({
         ...image,
         mode: image.mode ?? 'upload',

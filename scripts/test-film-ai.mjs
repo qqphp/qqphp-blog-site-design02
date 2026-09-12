@@ -101,6 +101,21 @@ try {
   );
   assert.equal(stored.length, 3, 'Failure must not write or replace image');
   assert.equal(requests.length, 4, 'No automatic retries');
+  fail = false;
+  for (const kind of ['travel', 'hobby', 'book', 'booklist']) {
+    const result = await generateCover('测试标题', kind === 'book' ? '' : '测试简介', undefined, false, undefined, false, undefined, { kind, author: '测试作者' });
+    const request = requests.at(-1);
+    assert.equal(request.size, kind === 'book' ? '1024x1536' : '1536x1024');
+    assert.ok(request.prompt.includes('测试标题'));
+    assert.ok(request.prompt.includes(kind === 'book' ? '测试作者' : '测试简介'));
+    assert.ok(request.prompt.includes(settings[`${kind}CoverStyle`]));
+    assert.ok(!request.prompt.includes('{{'));
+    assert.match(result.url, /^\/api\/media\/.+\.png$/);
+  }
+  await generateCover('仅书名', '', undefined, false, undefined, false, undefined, { kind: 'book' });
+  assert.ok(requests.at(-1).prompt.includes('仅书名'));
+  assert.ok(!requests.at(-1).prompt.includes('undefined'));
+  console.log('PASS travel/hobby/book prompts, optional author, image sizes and media storage');
   console.log(
     'PASS film cover settings, film title/director and playlist title/synopsis prompts with 9:16 and 1:1 sizes, model request, PNG storage and failed generation without retries (no paid calls)',
   );

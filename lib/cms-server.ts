@@ -1,3 +1,6 @@
+import { migrateActivities } from './activity-content';
+import { migrateBooks } from './book-content';
+import { booklists as defaultBooklists } from './books';
 import { migratePodcasts } from './podcast-content';
 import { migrateFilms } from './film-content';
 import { migrateMusic, publicMusic } from './music-content';
@@ -6,7 +9,7 @@ import { env } from 'cloudflare:workers';
 import { defaults, type PublicContent, type Section } from './cms-defaults';
 import { publishedOnly } from './cms-validation';
 import { migrateProjects, resolveProjects } from './project-content';
-import { categoryId } from './article-categories';
+import { categoryId, stripArticleExtras } from './article-categories';
 import { migrateStories } from './story-content';
 
 export function bindings() {
@@ -34,6 +37,8 @@ export async function getDocuments() {
   }
   // Existing saved articles predate category IDs and cover generation settings.
   content.aiSettings = { ...defaults.aiSettings, ...content.aiSettings };
+  const { travelCover: _oldTravelCover, ...pageSettings } = content.pageSettings as typeof content.pageSettings & { travelCover?: unknown };
+  content.pageSettings = pageSettings;
   if (content.aiSettings.filmCoverPrompt.includes('{{excerpt}}'))
     content.aiSettings.filmCoverPrompt = defaults.aiSettings.filmCoverPrompt;
   for (const field of ['filmCoverStyle', 'filmCoverPrompt'] as const) {
@@ -65,7 +70,7 @@ export async function getDocuments() {
       content.categories.find((item) => item.name === article.category)?.id ??
       categoryId(article.category);
     return {
-      ...article,
+      ...stripArticleExtras(article),
       categoryId: id,
       category:
         content.categories.find((item) => item.id === id)?.name ??
@@ -83,6 +88,10 @@ export async function getDocuments() {
       : resolveDirectory(content[key]);
   content.stories = migrateStories(content.stories);
   content.tracks = migrateMusic(content.tracks);
+  content.travel = migrateActivities(content.travel);
+  content.hobbies = migrateActivities(content.hobbies);
+  const oldLists = results.find(row => String(row.key) === 'booklists');
+  content.books = migrateBooks(content.books, oldLists ? JSON.parse(oldLists.value) : defaultBooklists);
   content.films = migrateFilms(content.films);
   content.podcasts = migratePodcasts(content.podcasts);
   return { content, revisions };
@@ -92,7 +101,8 @@ export async function getPublicContent(): Promise<PublicContent> {
   const { content } = await getDocuments();
   const { aiSettings: _privateSettings, ...publicContent } = content;
   publicContent.tracks = publicMusic(publicContent.tracks);
-  return publishedOnly(publicContent) as PublicContent;
+  const visible = publishedOnly(publicContent) as PublicContent;
+  return visible;
 }
 
 export async function saveDocument(

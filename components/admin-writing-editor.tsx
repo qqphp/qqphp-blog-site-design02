@@ -316,30 +316,10 @@ export function AdminWritingEditor({
           value={article.body}
           onChange={(body) => set('body', body)}
         />
-        {(
-          [
-            ['label', '内容标签'],
-            ['tag', '主题标签'],
-          ] as const
-        ).map(([key, label]) => (
-          <div className="admin-field" key={key}>
-            <label htmlFor={`article-${key}`}>{label}</label>
-            <input
-              id={`article-${key}`}
-              value={article[key]}
-              onChange={(e) => set(key, e.target.value)}
-            />
-          </div>
-        ))}
         <details className="admin-article-extra admin-wide">
-          <summary>文章链接与阅读时长</summary>
+          <summary>文章链接</summary>
           <div className="admin-fields">
-            {(
-              [
-                ['slug', '文章路径标识'],
-                ['meta', '阅读时长'],
-              ] as const
-            ).map(([key, label]) => (
+            {([['slug', '文章路径标识']] as const).map(([key, label]) => (
               <div className="admin-field" key={key}>
                 <label htmlFor={`article-${key}`}>{label}</label>
                 <input

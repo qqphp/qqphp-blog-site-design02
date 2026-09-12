@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { Tabs } from '@base-ui/react/tabs';
 import {
   type Project,
@@ -26,14 +27,18 @@ export function AdminProjectManager({
   const [category, setCategory] = useState('');
   const data = resolveProjects(value);
   const current = editing === null ? undefined : data.items[editing];
-  const filtered = data.items.filter(
-    (item) =>
-      (!status || item.statusId === status) &&
-      (!category || item.categoryId === category) &&
-      `${item.title} ${item.description}`
-        .toLowerCase()
-        .includes(query.trim().toLowerCase()),
-  );
+  const filtered = data.items
+    .filter(
+      (item) =>
+        (!status || item.statusId === status) &&
+        (!category || item.categoryId === category) &&
+        `${item.title} ${item.description}`
+          .toLowerCase()
+          .includes(query.trim().toLowerCase()),
+    )
+    .sort(
+      (a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0),
+    );
   const changeItems = (items: Project[]) => onChange({ ...value, items });
   const edit = (updates: Partial<Project>) =>
     changeItems(
@@ -51,6 +56,7 @@ export function AdminProjectManager({
       categoryId: value.categories[0]?.id ?? '',
       category: value.categories[0]?.name ?? '',
       year: String(new Date().getFullYear()),
+      createdAt: new Date().toISOString(),
       role: '',
       description: '',
       body: '',
@@ -82,6 +88,32 @@ export function AdminProjectManager({
               <span className="admin-help">修改会保留，统一保存栏目后生效</span>
             </div>
             <div className="admin-fields">
+              <div className="admin-field">
+                <label htmlFor="project-createdAt">创建时间</label>
+                <input
+                  id="project-createdAt"
+                  type="datetime-local"
+                  step="1"
+                  value={
+                    current.createdAt
+                      ? format(
+                          new Date(current.createdAt),
+                          "yyyy-MM-dd'T'HH:mm:ss",
+                        )
+                      : ''
+                  }
+                  onChange={(event) =>
+                    edit({
+                      createdAt: event.target.value
+                        ? new Date(event.target.value).toISOString()
+                        : '',
+                    })
+                  }
+                />
+                {!current.createdAt && (
+                  <small>旧项目未记录创建时间，可手动补充。</small>
+                )}
+              </div>
               {(
                 [
                   ['title', '项目名称'],
@@ -233,6 +265,7 @@ export function AdminProjectManager({
                     <th scope="col">项目名称</th>
                     <th scope="col">项目状态</th>
                     <th scope="col">项目分类</th>
+                    <th scope="col">创建时间</th>
                     <th scope="col">发布状态</th>
                     <th scope="col">操作</th>
                   </tr>
@@ -254,6 +287,14 @@ export function AdminProjectManager({
                         </td>
                         <td>{item.status}</td>
                         <td>{item.category}</td>
+                        <td>
+                          {item.createdAt
+                            ? format(
+                                new Date(item.createdAt),
+                                'yyyy-MM-dd HH:mm:ss',
+                              )
+                            : '未记录'}
+                        </td>
                         <td>
                           <span
                             className={`admin-status-badge ${item._published ? 'published' : ''}`}
@@ -283,27 +324,6 @@ export function AdminProjectManager({
                             >
                               {item._published ? '转草稿' : '发布'}
                             </button>
-                            {[-1, 1].map((direction) => (
-                              <button
-                                type="button"
-                                key={direction}
-                                disabled={
-                                  index + direction < 0 ||
-                                  index + direction >= data.items.length
-                                }
-                                aria-label={`${direction < 0 ? '上移' : '下移'} ${item.title}`}
-                                onClick={() => {
-                                  const items = [...data.items];
-                                  [items[index], items[index + direction]] = [
-                                    items[index + direction],
-                                    items[index],
-                                  ];
-                                  changeItems(items);
-                                }}
-                              >
-                                {direction < 0 ? '↑' : '↓'}
-                              </button>
-                            ))}
                             <button
                               type="button"
                               className="admin-danger"

@@ -1,3 +1,5 @@
+import { activitySample, type ActivityDocument } from './activity-content';
+import { bookSample, type BookDocument } from './book-content';
 import { podcastSample, type PodcastDocument } from './podcast-content';
 import { filmSample, type FilmDocument } from './film-content';
 import { musicSample, type MusicDocument } from './music-content';
@@ -84,7 +86,7 @@ export function validateContent(key: Section, value: unknown) {
               key !== 'writing' &&
               key !== 'tracks' &&
               key !== 'films' &&
-              key !== 'podcasts')) &&
+              key !== 'podcasts' && key !== 'travel' && key !== 'hobbies' && key !== 'books')) &&
           !input.trim()
         )
           fail('请填写图片或音频地址');
@@ -114,9 +116,31 @@ export function validateContent(key: Section, value: unknown) {
         ? filmSample
         : key === 'podcasts'
           ? podcastSample
-          : defaults[key],
+          : key === 'travel' || key === 'hobbies' ? activitySample : key === 'books' ? bookSample : defaults[key],
     key,
   );
+  if (key === 'travel' || key === 'hobbies' || key === 'books') {
+    const doc = value as ActivityDocument | BookDocument;
+    const names = doc.categories.map(item => item.name.trim());
+    if (new Set(names).size !== names.length || names.includes('全部')) throw new Error('分类不能重复或命名为全部');
+    for (const item of doc.items) {
+      if (!doc.categories.some(category => category.id === item.categoryId)) throw new Error('请选择有效分类；删除分类前请调整关联内容（含草稿）');
+      if (item.cover.startsWith('#')) throw new Error('请使用有效封面地址');
+    }
+    if (key === 'travel' || key === 'hobbies') {
+      for (const item of (value as ActivityDocument).items) {
+        if (item.album.length > 50) throw new Error('相册最多 50 张图片');
+        for (const url of item.album) walk(url, '', '相册图片', 'image');
+        if (item.album.some(url => url.startsWith('#'))) throw new Error('请使用有效相册图片地址');
+      }
+    }
+    if (key === 'books') {
+      const books = value as BookDocument;
+      for (const list of books.lists) {
+        if (list.cover.startsWith('#')) throw new Error('请使用有效书单封面地址');
+      }
+    }
+  }
   if (key === 'podcasts') {
     const document = value as PodcastDocument;
     const names = document.categories.map((item) => item.name.trim());
@@ -183,6 +207,11 @@ export function validateContent(key: Section, value: unknown) {
     }
   if (key === 'aiSettings') {
     const settings = value as typeof defaults.aiSettings;
+    for (const kind of ['travel', 'hobby', 'book', 'booklist'] as const) {
+      const fields = kind === 'book' ? ['title', 'author'] : ['title', 'excerpt'];
+      if (!fields.every(field => settings[`${kind}CoverPrompt`].includes('{{' + field + '}}')))
+        throw new Error('旅行、爱好和书籍封面提示词须保留对应内容占位符');
+    }
     if (
       !['title', 'excerpt', 'host'].every((key) =>
         settings.podcastCoverPrompt.includes('{{' + key + '}}'),
@@ -249,6 +278,8 @@ export function validateContent(key: Section, value: unknown) {
         throw new Error('项目状态或分类名称不能重复');
     }
     for (const item of document.items) {
+      if (item.createdAt && (!Number.isFinite(Date.parse(item.createdAt)) || new Date(item.createdAt).toISOString() !== item.createdAt))
+        throw new Error('请选择有效的项目创建时间');
       if (item.images.some((image) => !['upload', 'ai'].includes(image.mode)))
         throw new Error('请选择项目图片来源');
       if (!document.statuses.some((option) => option.id === item.statusId))

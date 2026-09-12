@@ -66,6 +66,7 @@ export function buildCoverPrompt(
   subtitle = '',
   director = '',
   host = '',
+  author = '',
 ) {
   const values: Record<string, string> = {
     title: title.trim(),
@@ -74,9 +75,10 @@ export function buildCoverPrompt(
     subtitle: subtitle.trim(),
     director: director.trim(),
     host: host.trim(),
+    author: author.trim(),
   };
   return template.replace(
-    /\{\{(title|excerpt|style|subtitle|director|host)\}\}/g,
+    /\{\{(title|excerpt|style|subtitle|director|host|author)\}\}/g,
     (_, key: string) => values[key],
   );
 }
@@ -89,47 +91,58 @@ export async function generateCover(
   filmDirector?: string,
   playlistCover = false,
   podcastHost?: string,
+  collection?: {
+    kind: 'travel' | 'hobby' | 'book' | 'booklist';
+    author?: string;
+  },
 ) {
   const { content } = await getDocuments();
   const settings = content.aiSettings;
   const prompt = buildCoverPrompt(
-    podcastHost !== undefined
-      ? settings.podcastCoverPrompt
-      : playlistCover
-        ? settings.playlistCoverPrompt
-        : filmDirector !== undefined
-          ? settings.filmCoverPrompt
-          : storyImage
-            ? '为这条个人博客说说创作一张配图。话题：{{title}}。正文：{{excerpt}}。根据正文的情绪与场景构图，不添加文字、水印或虚构截图。'
-            : projectSubtitle === undefined
-              ? settings.coverPrompt
-              : settings.projectImagePrompt,
+    collection
+      ? settings[`${collection.kind}CoverPrompt`]
+      : podcastHost !== undefined
+        ? settings.podcastCoverPrompt
+        : playlistCover
+          ? settings.playlistCoverPrompt
+          : filmDirector !== undefined
+            ? settings.filmCoverPrompt
+            : storyImage
+              ? '为这条个人博客说说创作一张配图。话题：{{title}}。正文：{{excerpt}}。根据正文的情绪与场景构图，不添加文字、水印或虚构截图。'
+              : projectSubtitle === undefined
+                ? settings.coverPrompt
+                : settings.projectImagePrompt,
     title,
     excerpt,
-    podcastHost !== undefined
-      ? settings.podcastCoverStyle
-      : playlistCover
-        ? settings.playlistCoverStyle
-        : filmDirector !== undefined
-          ? settings.filmCoverStyle
-          : projectSubtitle === undefined
-            ? settings.coverStyle
-            : settings.projectImageStyle,
+    collection
+      ? settings[`${collection.kind}CoverStyle`]
+      : podcastHost !== undefined
+        ? settings.podcastCoverStyle
+        : playlistCover
+          ? settings.playlistCoverStyle
+          : filmDirector !== undefined
+            ? settings.filmCoverStyle
+            : projectSubtitle === undefined
+              ? settings.coverStyle
+              : settings.projectImageStyle,
     projectSubtitle,
     filmDirector,
     podcastHost,
+    collection?.author,
   );
   const result = await providerRequest('images/generations', {
     model: settings.imageModel,
     prompt,
     n: 1,
-    ...(podcastHost !== undefined
-      ? { size: '1536x1024' }
-      : filmDirector !== undefined
-        ? { size: '864x1536' }
-        : playlistCover
-          ? { size: '1024x1024' }
-          : {}),
+    ...(collection
+      ? { size: collection.kind === 'book' ? '1024x1536' : '1536x1024' }
+      : podcastHost !== undefined
+        ? { size: '1536x1024' }
+        : filmDirector !== undefined
+          ? { size: '864x1536' }
+          : playlistCover
+            ? { size: '1024x1024' }
+            : {}),
   });
   const first = result.data?.[0];
   let bytes: Uint8Array;

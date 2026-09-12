@@ -488,6 +488,7 @@ try {
   );
   const articles = structuredClone(documents.content.writing);
   const projectData = structuredClone(documents.content.projects);
+  projectData.items[0].createdAt = '2026-09-11T08:30:00.000Z';
   projectData.items[0].body =
     '## PROJECT_MARKDOWN_SENTINEL\n\n项目说明正文\n\n<script>alert(123)</script>';
   projectData.statuses[0].name = '测试项目状态改名';
@@ -497,6 +498,7 @@ try {
     .projects;
   assert.equal(savedProject.items[0].status, projectData.statuses[0].name);
   assert.equal(savedProject.items[0].category, projectData.categories[0].name);
+  assert.equal(savedProject.items[0].createdAt, projectData.items[0].createdAt);
   const projectPage = await request('/projects');
   check(projectPage, 200);
   assert.ok(projectPage.text.includes('<h2>PROJECT_MARKDOWN_SENTINEL</h2>'));
@@ -569,6 +571,42 @@ try {
   await save('writing', [...articles, articles[0]], revisions.writing, 400);
 
   const filmData = structuredClone(documents.content.films);
+  for (const action of ['travel-cover', 'hobby-cover']) {
+    check(await request('/api/admin/ai', { method: 'POST', body: { action, title: '标题', excerpt: '' } }), 400);
+  }
+  check(await request('/api/admin/ai', { method: 'POST', body: { action: 'book-cover', title: '书名', author: 123 } }), 400);
+  for (const section of ['travel', 'hobbies']) {
+    const activityData = structuredClone(documents.content[section]);
+    Object.assign(activityData.items[0], { title: `CMS_${section}_VISIBLE`, body: `CMS_${section}_BODY`, cover: '/notes-city.png' });
+    if (section === 'travel') activityData.items[0].album = ['/notes-city.png', '/notes-book.png'];
+    Object.assign(activityData.items[1], { title: `CMS_${section}_HIDDEN`, _published: false });
+    activityData.categories.find(item => item.id === activityData.items[0].categoryId).name = `CMS_${section}_CATEGORY`;
+    await save(section, activityData);
+    assert.deepEqual((await request('/api/admin/content')).json().content[section], activityData);
+    if (section === 'travel') {
+      const invalid = structuredClone(activityData); invalid.items[0].album = ['javascript:alert(1)'];
+      await save(section, invalid, revisions[section], 400);
+    }
+    const page = await request('/' + section, { auth: false }); check(page, 200);
+    assert.ok(page.text.includes(`CMS_${section}_VISIBLE`)); assert.ok(page.text.includes(`CMS_${section}_CATEGORY`)); assert.ok(!page.text.includes(`CMS_${section}_HIDDEN`));
+    await save(section, { ...activityData, categories: [] }, revisions[section], 400);
+    await save(section, { ...activityData, items: [] });
+    assert.ok((await request('/' + section, { auth: false })).text.includes('暂无发布'));
+  }
+  const bookData = structuredClone(documents.content.books);
+  Object.assign(bookData.items[0], { title: 'CMS_BOOK_VISIBLE', cover: '/notes-city.png' });
+  Object.assign(bookData.items[1], { title: 'CMS_BOOK_HIDDEN', _published: false });
+  bookData.lists = [{ id: 'roundtrip-list', title: 'CMS_LIST_VISIBLE', description: '书单简介', cover: '/notes-city.png', entries: [{ title: 'CMS_INDEPENDENT_BOOK', author: '独立作者' }], _published: true }, { id: 'private-list', title: 'CMS_LIST_HIDDEN', description: '', cover: '', entries: [], _published: false }];
+  await save('books', bookData);
+  assert.deepEqual((await request('/api/admin/content')).json().content.books, bookData);
+  const bookPage = await request('/books', { auth: false }); check(bookPage, 200);
+  assert.ok(bookPage.text.includes('CMS_BOOK_VISIBLE')); assert.ok(!bookPage.text.includes('CMS_BOOK_HIDDEN')); assert.ok(!bookPage.text.includes('CMS_LIST_HIDDEN'));
+  await save('books', { ...bookData, items: [] });
+  assert.deepEqual((await request('/api/admin/content')).json().content.books.lists[0].entries, bookData.lists[0].entries);
+  await save('books', { ...bookData, categories: [] }, revisions.books, 400);
+  await save('books', { ...bookData, items: [], lists: [] });
+  check(await request('/books', { auth: false }), 200);
+  console.log('PASS travel/hobbies/books persistence, category references, booklist atomic storage, draft privacy, invalid references and empty collections');
   const podcastData = structuredClone(documents.content.podcasts);
   Object.assign(podcastData.items[0], {
     title: 'CMS_PODCAST_VISIBLE',

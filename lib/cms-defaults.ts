@@ -1,3 +1,5 @@
+import { migrateActivities } from './activity-content';
+import { migrateBooks } from './book-content';
 import { migratePodcasts } from './podcast-content';
 import { migrateFilms } from './film-content';
 import { migrateMusic } from './music-content';
@@ -14,12 +16,20 @@ import { aiNotes, promptRecipe } from './ai-notebook';
 import { researchContent } from './research-content';
 import pageCopy from './page-copy.json';
 import articleSeed from './article-seed.json';
-import { categoryId } from './article-categories';
+import { categoryId, stripArticleExtras } from './article-categories';
 
 const publish = <T extends object>(items: T[]) =>
   items.map((item) => ({ ...item, _published: true }));
 export const defaults = {
   aiSettings: {
+    booklistCoverStyle: '3:2 横版编辑插画，以阅读主题为视觉中心，细腻纸张质感、克制的色彩与留白。',
+    booklistCoverPrompt: '为主题书单创作原创封面。书单名称：{{title}}。书单简介：{{excerpt}}。风格：{{style}}。用象征性场景、物件和色彩表达主题，不添加文字、水印或虚构的官方标志。',
+    travelCoverStyle: '自然旅行摄影，3:2 横版构图，真实光线、风景层次和安静的旅行氛围。',
+    travelCoverPrompt: '为旅行记录创作封面。标题：{{title}}。简介：{{excerpt}}。风格：{{style}}。按目的地和风景线索构图，不添加文字或水印。',
+    hobbyCoverStyle: '3:2 横版编辑摄影，细腻自然光，突出爱好的物件、动作与日常氛围。',
+    hobbyCoverPrompt: '为爱好记录创作封面。爱好：{{title}}。简介：{{excerpt}}。风格：{{style}}。围绕具体活动构图，不添加文字或水印。',
+    bookCoverStyle: '2:3 竖版书籍封面，精炼的插画与象征性构图，有层次的色彩和留白。',
+    bookCoverPrompt: '为书籍创作原创视觉封面。书名：{{title}}。作者：{{author}}。风格：{{style}}。围绕书名和作者线索表达主题，作者未提供时仅根据书名构图，不冒充官方封面，不添加文字或水印。',
     playlistCoverStyle:
       '音乐专辑封面风格，方形 1:1 构图，用克制的色彩和具象场景传达歌单情绪。',
     playlistCoverPrompt:
@@ -60,7 +70,6 @@ export const defaults = {
       alt: '本站说说封面的 AI 纸艺山水实验',
       href: '#ai-note-cover',
     },
-    travelCover: { src: '/stories-coast.png', alt: '旅行栏目示例海岸景观' },
     films: {
       description: '四个虚构短片的故事提案，从城市、生活、声音到实验影像。',
     },
@@ -122,7 +131,7 @@ export const defaults = {
   },
   writing: publish(
     writing.map((item) => ({
-      ...item,
+      ...stripArticleExtras(item),
       body: articleSeed,
       categoryId: categoryId(item.category),
       coverMode: 'upload',
@@ -190,8 +199,7 @@ export const defaults = {
   },
   bookmarks: migrateDirectory(bookmarks),
   friends: migrateDirectory(friends),
-  books: publish(books),
-  booklists: publish(booklists),
+  books: migrateBooks(publish(books), publish(booklists)),
   tracks: migrateMusic(tracks),
   films: migrateFilms({
     ...lifeContent.films,
@@ -210,19 +218,8 @@ export const defaults = {
     ...lifeContent.podcasts,
     entries: publish(lifeContent.podcasts.entries),
   }),
-  travel: {
-    ...lifeContent.travel,
-    entries: publish(
-      lifeContent.travel.entries.map((item) => ({
-        ...item,
-        image: item.image ?? '',
-      })),
-    ),
-  },
-  hobbies: {
-    ...lifeContent.hobbies,
-    entries: publish(lifeContent.hobbies.entries),
-  },
+  travel: migrateActivities({ ...lifeContent.travel, entries: publish(lifeContent.travel.entries) }),
+  hobbies: migrateActivities({ ...lifeContent.hobbies, entries: publish(lifeContent.hobbies.entries) }),
 };
 export type Content = typeof defaults;
 export type PublicContent = Omit<Content, 'aiSettings'>;
@@ -245,7 +242,6 @@ export const sectionLabels: Record<Section, string> = {
   bookmarks: '书签',
   friends: '友链',
   books: '书籍',
-  booklists: '主题书单',
   tracks: '音乐',
   films: '电影',
   podcasts: '播客',

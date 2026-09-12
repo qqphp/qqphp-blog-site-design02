@@ -21,7 +21,7 @@ export default function WritingPage() {
   const filtered = writing.filter(
     (item) =>
       (!group || branch.has(item.categoryId)) &&
-      `${item.title} ${item.excerpt} ${item.tag} ${item.category} ${item.label}`
+      `${item.title} ${item.excerpt} ${item.category}`
         .toLocaleLowerCase()
         .includes(query.trim().toLocaleLowerCase()),
   );
@@ -89,14 +89,13 @@ export default function WritingPage() {
               />
               <div>
                 <p className="entry-meta">
-                  {entry.category} / {entry.label} / {entry.meta}
+                  {entry.category}
                 </p>
                 <h2>
                   <Link href={`/writing/${entry.slug}`}>{entry.title}</Link>
                 </h2>
                 <p>{entry.excerpt}</p>
                 <div className="tag-row">
-                  <span>{entry.tag}</span>
                   <time>{entry.date}</time>
                 </div>
               </div>

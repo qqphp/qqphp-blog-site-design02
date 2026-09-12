@@ -26,14 +26,20 @@ export function AdminWritingManager({
   const rows = categoryRows(categories);
   const paths = new Map(rows.map((row) => [row.category.id, row.path]));
   const branch = categoryBranch(categories, category);
-  const filtered = articles.filter(
-    (article) =>
-      (status === 'all' || article._published === (status === 'published')) &&
-      (!category || branch.has(article.categoryId)) &&
-      `${article.title} ${article.excerpt} ${paths.get(article.categoryId) ?? ''}`
-        .toLocaleLowerCase()
-        .includes(query.trim().toLocaleLowerCase()),
-  );
+  const filtered = articles
+    .filter(
+      (article) =>
+        (status === 'all' || article._published === (status === 'published')) &&
+        (!category || branch.has(article.categoryId)) &&
+        `${article.title} ${article.excerpt} ${paths.get(article.categoryId) ?? ''}`
+          .toLocaleLowerCase()
+          .includes(query.trim().toLocaleLowerCase()),
+    )
+    .sort(
+      (a, b) =>
+        (Date.parse(b.date.replaceAll('.', '-')) || 0) -
+        (Date.parse(a.date.replaceAll('.', '-')) || 0),
+    );
   function add() {
     const article: Article = {
       slug: `article-${crypto.randomUUID().slice(0, 8)}`,
@@ -47,9 +53,6 @@ export function AdminWritingManager({
       category: categories[0]?.name ?? '',
       date: format(new Date(), 'yyyy.MM.dd'),
       _published: false,
-      label: '',
-      tag: '',
-      meta: '',
     };
     onChange([...articles, article]);
     setEditing(articles.length);
@@ -126,7 +129,6 @@ export function AdminWritingManager({
           </thead>
           <tbody>
             {filtered.map((article) => {
-              const i = articles.indexOf(article);
               return (
                 <tr key={article.slug}>
                   <td>
@@ -169,30 +171,6 @@ export function AdminWritingManager({
                         }
                       >
                         {article._published ? '转草稿' : '发布'}
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`上移 ${article.title}`}
-                        disabled={i === 0}
-                        onClick={() => {
-                          const next = [...articles];
-                          [next[i - 1], next[i]] = [next[i], next[i - 1]];
-                          onChange(next);
-                        }}
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`下移 ${article.title}`}
-                        disabled={i === articles.length - 1}
-                        onClick={() => {
-                          const next = [...articles];
-                          [next[i + 1], next[i]] = [next[i], next[i + 1]];
-                          onChange(next);
-                        }}
-                      >
-                        ↓
                       </button>
                       <button
                         type="button"

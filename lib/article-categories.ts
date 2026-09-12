@@ -8,6 +8,18 @@ export function coverInput(title: string, excerpt: string) {
   return JSON.stringify([title.trim(), excerpt.trim()]);
 }
 
+export function stripArticleExtras<T extends object>(
+  article: T,
+): Omit<T, 'label' | 'tag' | 'meta'> {
+  const {
+    label: _label,
+    tag: _tag,
+    meta: _meta,
+    ...content
+  } = article as T & { label?: unknown; tag?: unknown; meta?: unknown };
+  return content;
+}
+
 export type CategoryNode = { id: string; name: string; parentId: string };
 export function categoryRows<T extends CategoryNode>(categories: T[]) {
   const rows: { category: T; depth: number; path: string }[] = [];
