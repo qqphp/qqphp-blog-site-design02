@@ -12,6 +12,8 @@ const stored = [];
 const requests = [];
 globalThis.__filmTestBindings = {
   TEAMOROUTER_KEY: 'test-only-key',
+  LOCAL_MEDIA_STORAGE: 'http://127.0.0.1:3210',
+  LOCAL_MEDIA_TOKEN: 'test-media-token',
   DB: {
     prepare: () => ({
       all: async () => ({
@@ -21,15 +23,31 @@ globalThis.__filmTestBindings = {
       }),
     }),
   },
-  MEDIA: { put: async (...args) => stored.push(args) },
 };
 const png =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6L1sAAAAASUVORK5CYII=';
 const originalFetch = globalThis.fetch;
 let fail = false;
 globalThis.fetch = async (url, init) => {
+  const href =
+    typeof url === 'string'
+      ? url
+      : url instanceof URL
+        ? url.href
+        : url.url;
+  if (href.startsWith('http://127.0.0.1:3210/media/')) {
+    assert.equal(init.method, 'PUT');
+    assert.equal(init.headers.get('X-Local-Media-Token'), 'test-media-token');
+    stored.push({
+      key: href.split('/').at(-1),
+      bytes: Buffer.from(init.body),
+      contentType: init.headers.get('Content-Type'),
+      source: init.headers.get('X-Media-Source'),
+    });
+    return new Response(null, { status: 201 });
+  }
   assert.equal(
-    String(url),
+    href,
     'https://api.teamorouter.com/v1/images/generations',
   );
   assert.equal(init.headers.Authorization, 'Bearer test-only-key');
@@ -56,8 +74,9 @@ try {
   );
   assert.equal(requests[0].size, '864x1536');
   assert.equal(stored.length, 1);
-  assert.deepEqual(Buffer.from(stored[0][1]), Buffer.from(png, 'base64'));
-  assert.equal(stored[0][2].httpMetadata.contentType, 'image/png');
+  assert.deepEqual(stored[0].bytes, Buffer.from(png, 'base64'));
+  assert.equal(stored[0].contentType, 'image/png');
+  assert.equal(stored[0].source, 'ai');
   const playlist = await generateCover(
     '歌单名称',
     '夜晚听的音乐',

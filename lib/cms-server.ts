@@ -16,11 +16,12 @@ import { migratePageCopy } from './page-copy';
 export function bindings() {
   return env as unknown as {
     DB: D1Database;
-    MEDIA: R2Bucket;
     ADMIN_PASSWORD?: string;
     TEAMOROUTER_KEY?: string;
     LOCAL_AI_TRANSPORT?: string;
     LOCAL_AI_TOKEN?: string;
+    LOCAL_MEDIA_STORAGE?: string;
+    LOCAL_MEDIA_TOKEN?: string;
   };
 }
 

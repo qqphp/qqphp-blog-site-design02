@@ -118,7 +118,7 @@ AI 设置新增“项目配置”：图片风格与提示词支持 `{{title}}` �
 ## 数据与备份
 
 - 结构化内容：本地 D1 / SQLite，位于 `.wrangler/state/v3/d1/`。
-- 上传文件：本地 R2，位于 `.wrangler/state/v3/r2/`。
+- 上传文件与 AI 生成图片：普通本地文件，位于 `.local/media/`。
 - 管理员密码：`.dev.vars`。
 - 默认内容：`lib/cms-defaults.ts`、`lib/page-copy.json`、`lib/article-seed.json` 及原有数据模块。
 
@@ -132,9 +132,9 @@ JSON 只包含内容和素材地址，**不包含评论、上传文件本身、�
 
 ### 完整本地备份
 
-停止开发 / 预览服务后，复制整个 `.wrangler/state` 目录，并单独妥善备份 `.dev.vars`。同一项目和绑定配置下，将状态目录放回相同位置即可恢复数据库与素材。不要只复制单个 SQLite 文件而遗漏 WAL 或 R2 元数据。
+停止开发 / 预览服务后，同时复制 `.wrangler/state` 和 `.local/media`，并单独妥善备份 `.dev.vars`。将这些目录放回项目中的相同位置即可恢复数据库与素材。不要只复制单个 SQLite 文件而遗漏 WAL，也不要遗漏独立的素材目录。
 
-`.wrangler/`、`.dev.vars`、测试临时文件和构建产物均已加入 Git 忽略规则。不要删除 `.wrangler/state`，除非确实希望清空本地数据。
+`.wrangler/`、`.local/`、`.dev.vars`、测试临时文件和构建产物均已加入 Git 忽略规则。不要删除 `.wrangler/state` 或 `.local/media`，除非确实希望清空对应的本地数据。
 
 ## 开发命令
 
@@ -156,7 +156,7 @@ JSON 只包含内容和素材地址，**不包含评论、上传文件本身、�
 
 `npm run test:admin-ui` 使用 Happy DOM 运行组件交互测试，覆盖说说表格、封面标签、秒级日期、多话题、图片上传 / 生成、评论入口移除，以及写作标签与草稿保留、Markdown 列表样式、项目图片自动生成 / 失败保留、模型选择、分类层级、文章表格和日历 Portal。图片接口使用模拟请求；不启动真实浏览器，不调用付费 API，不等同于浏览器视觉截图验收。`npm run test:cms` 使用隔离数据库验证评论接口已移除、旧说说迁移和内容重启后持久化，不写入用户内容。
 
-集成测试使用独立 checkout、独立 D1 / R2 状态和 `3107` 端口。不会写入日常使用的 `.wrangler/state`，也不会停止已运行的开发服务。需要先生成 `.dev.vars`，并确保 `3107` 未被其他程序占用。
+集成测试使用独立 checkout、独立 D1 状态、独立本地素材目录和 `3107` 端口。不会写入日常使用的 `.wrangler/state` 或 `.local/media`，也不会停止已运行的开发服务。需要先生成 `.dev.vars`，并确保 `3107` 未被其他程序占用。
 
 测试覆盖：管理员登录、未登录拒绝、跨站写入拒绝、所有栏目保存、分类增删改与引用保护、AI 设置隔离和校验（不发送付费请求）、草稿隐藏、文章发布与 Markdown、重复标识与非法网址、版本冲突、首页联动、素材字节与范围请求、重启后的持久化、空栏目路由、退出和登录限流。日志保留在 `.wrangler/cms-test-*/server.log`，测试 checkout 位于 `work/cms-test-app-*`。
 
@@ -174,12 +174,13 @@ lib/admin-auth.ts       登录会话与请求保护
 db/schema.ts           数据表定义
 drizzle/               已生成的 SQL 迁移
 scripts/               密码初始化与集成测试
+scripts/local-media-storage.mjs  仅监听本机的文件存储服务
 public/                项目自带静态素材
 wrangler.local.json    本地迁移绑定配置
 vite.config.ts         Vinext / Cloudflare 本地运行配置
 ```
 
-技术栈：React 19、TypeScript、Vinext / Vite、Cloudflare 本地 D1 与 R2、Drizzle 迁移、React Markdown。使用单管理员密码、8 小时 HttpOnly / SameSite 会话、服务端权限检查和持久化登录限流；没有多用户、角色分配或找回密码邮件流程。
+技术栈：React 19、TypeScript、Vinext / Vite、Cloudflare 本地 D1、Node.js 本地文件存储、Drizzle 迁移、React Markdown。使用单管理员密码、8 小时 HttpOnly / SameSite 会话、服务端权限检查和持久化登录限流；没有多用户、角色分配或找回密码邮件流程。
 
 ## 常见问题
 

@@ -4,25 +4,27 @@ import {
   readLimitedBody,
   sameOrigin,
 } from '@/lib/admin-auth';
-import { bindings } from '@/lib/cms-server';
+import { listLocalMedia, saveLocalMedia } from '@/lib/local-media';
 
 export async function GET(request: Request) {
   if (!(await authenticated(request))) return json({ error: '请先登录' }, 401);
   const cursor = new URL(request.url).searchParams.get('cursor') || undefined;
-  const options: R2ListOptions & { include: string[] } = {
-    limit: 100,
-    cursor,
-    include: ['customMetadata'],
-  };
-  const result = await bindings().MEDIA.list(options);
-  return json({
-    files: result.objects.map((item) => ({
-      url: `/api/media/${item.key}`,
-      name: item.customMetadata?.name || item.key,
-      size: item.size,
-    })),
-    cursor: result.truncated ? result.cursor : null,
-  });
+  try {
+    const result = await listLocalMedia(cursor);
+    return json({
+      files: result.files.map((item) => ({
+        url: `/api/media/${item.key}`,
+        name: item.name,
+        size: item.size,
+      })),
+      cursor: result.cursor,
+    });
+  } catch (error) {
+    return json(
+      { error: error instanceof Error ? error.message : '读取素材库失败' },
+      503,
+    );
+  }
 }
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return json({ error: '请求来源无效' }, 403);
@@ -81,9 +83,13 @@ export async function POST(request: Request) {
     /* Use a safe display name. */
   }
   const key = `${crypto.randomUUID()}.${ext}`;
-  await bindings().MEDIA.put(key, data, {
-    httpMetadata: { contentType: type },
-    customMetadata: { name },
-  });
+  try {
+    await saveLocalMedia(key, data, { contentType: type, name });
+  } catch (error) {
+    return json(
+      { error: error instanceof Error ? error.message : '保存素材失败' },
+      503,
+    );
+  }
   return json({ url: `/api/media/${key}`, name });
 }

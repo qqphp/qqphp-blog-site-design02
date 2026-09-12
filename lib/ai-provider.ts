@@ -6,6 +6,7 @@ import { readLimitedBody } from './admin-auth';
 import { validateProviderUrl } from './cms-validation';
 import { projectImageInput } from './project-content';
 import { coverInput } from './article-categories';
+import { saveLocalMedia } from './local-media';
 
 function aiFetch(url: string | URL, init: RequestInit) {
   const { LOCAL_AI_TRANSPORT, LOCAL_AI_TOKEN } = bindings();
@@ -190,9 +191,10 @@ export async function generateCover(
   if (!format)
     throw new Error('模型返回的图片格式不受支持，请使用 PNG、JPEG 或 WebP。');
   const key = `${crypto.randomUUID()}.${format[0]}`;
-  await bindings().MEDIA.put(key, bytes, {
-    httpMetadata: { contentType: format[1] },
-    customMetadata: { name: `${title.slice(0, 80)} · AI封面`, source: 'ai' },
+  await saveLocalMedia(key, bytes, {
+    contentType: format[1],
+    name: `${title.slice(0, 80)} · AI封面`,
+    source: 'ai',
   });
   return {
     url: `/api/media/${key}`,

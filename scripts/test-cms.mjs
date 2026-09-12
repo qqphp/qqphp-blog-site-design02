@@ -7,11 +7,13 @@ import {
   readdirSync,
   cpSync,
   symlinkSync,
+  existsSync,
 } from 'node:fs';
 import { resolve } from 'node:path';
 
-// An isolated local D1/R2 directory keeps checks away from the user's content.
+// Isolated database and media directories keep checks away from user content.
 const state = resolve('.wrangler', `cms-test-${Date.now()}`);
+const mediaDirectory = resolve(state, 'media');
 const checkout = resolve('work', `cms-test-app-${Date.now()}`);
 const base = 'http://localhost:3107';
 const password = readFileSync('.dev.vars', 'utf8')
@@ -24,6 +26,7 @@ for (const entry of readdirSync('.')) {
   if (
     [
       '.git',
+      '.local',
       '.wrangler',
       'node_modules',
       'dist',
@@ -69,7 +72,11 @@ function startServer() {
     [resolve('node_modules/vinext/dist/cli.js'), 'dev', '--port', '3107'],
     {
       cwd: checkout,
-      env: { ...process.env, CMS_TEST_STATE: state },
+      env: {
+        ...process.env,
+        CMS_TEST_STATE: state,
+        CMS_MEDIA_DIRECTORY: mediaDirectory,
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   );
@@ -873,6 +880,9 @@ try {
   });
   assert.equal(uploaded.status, 200);
   const media = await uploaded.json();
+  const mediaKey = media.url.split('/').at(-1);
+  assert.deepEqual(readFileSync(resolve(mediaDirectory, mediaKey)), bytes);
+  assert.equal(existsSync(resolve(state, 'v3', 'r2')), false);
   const retrieved = await fetch(base + media.url);
   assert.equal(retrieved.status, 200);
   assert.equal(retrieved.headers.get('content-type'), 'image/png');
@@ -884,8 +894,27 @@ try {
   assert.equal((await ranged.arrayBuffer()).byteLength, 16);
   const library = (await request('/api/admin/media')).json();
   assert.ok(library.files.some((item) => item.url === media.url));
+  const audioBytes = Buffer.alloc(48);
+  audioBytes.write('RIFF');
+  audioBytes.write('WAVE', 8);
+  const audioUpload = await fetch(base + '/api/admin/media', {
+    method: 'POST',
+    headers: {
+      Origin: base,
+      Cookie: cookie,
+      'X-File-Name': encodeURIComponent('测试音频.wav'),
+    },
+    body: audioBytes,
+  });
+  assert.equal(audioUpload.status, 200);
+  const audioMedia = await audioUpload.json();
+  const audioKey = audioMedia.url.split('/').at(-1);
+  assert.deepEqual(readFileSync(resolve(mediaDirectory, audioKey)), audioBytes);
+  const retrievedAudio = await fetch(base + audioMedia.url);
+  assert.equal(retrievedAudio.headers.get('content-type'), 'audio/wav');
+  assert.deepEqual(Buffer.from(await retrievedAudio.arrayBuffer()), audioBytes);
   console.log(
-    'PASS homepage edits, media upload, byte integrity and range requests',
+    'PASS homepage edits, image/audio local storage, byte integrity and range requests',
   );
   stopServer();
   await new Promise((resolve) => setTimeout(resolve, 500));
