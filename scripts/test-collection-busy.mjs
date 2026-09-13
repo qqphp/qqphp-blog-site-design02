@@ -167,5 +167,5 @@ try {
 } finally {
   globalThis.fetch = realFetch;
   cleanup();
-  window.happyDOM.abort();
+  await window.happyDOM.abort();
 }

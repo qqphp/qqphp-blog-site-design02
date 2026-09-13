@@ -46,8 +46,8 @@ for (const name of [
   });
 }
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-const { createElement: h, useState } = await import('react');
-const { render, screen, cleanup, waitFor, within, fireEvent } =
+const { createElement: h } = await import('react');
+const { render, screen, cleanup, within, fireEvent } =
   await import('@testing-library/react');
 const { default: userEvent } = await import('@testing-library/user-event');
 
@@ -328,5 +328,5 @@ try {
   );
 } finally {
   cleanup();
-  window.happyDOM.abort();
+  await window.happyDOM.abort();
 }

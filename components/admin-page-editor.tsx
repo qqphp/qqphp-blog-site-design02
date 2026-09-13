@@ -165,8 +165,7 @@ export function AdminPageEditor({
   const page = pages[selected];
   return (
     <div className="admin-page-editor">
-      <div
-        role="navigation"
+      <nav
         className="admin-records admin-page-list"
         aria-label="选择要编辑的页面"
       >
@@ -194,7 +193,7 @@ export function AdminPageEditor({
             </button>
           );
         })}
-      </div>
+      </nav>
       <section className="admin-form" aria-label={`${page.name}编辑区`}>
         <header className="admin-page-heading">
           <div>

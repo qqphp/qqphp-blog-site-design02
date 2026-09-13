@@ -44,10 +44,10 @@ export function AdminProjectImages({
 }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  function update(index: number, update: Partial<ProjectImage>) {
+  function updateImage(index: number, changes: Partial<ProjectImage>) {
     onChange(
       project.images.map((image, i) =>
-        i === index ? { ...image, ...update } : image,
+        i === index ? { ...image, ...changes } : image,
       ),
     );
   }
@@ -56,7 +56,11 @@ export function AdminProjectImages({
     onWorking(true);
     setMessage('正在根据项目名称、副标题与摘要生成图片…');
     try {
-      update(index, await createProjectImage(project, project.images[index]));
+      const generatedImage = await createProjectImage(
+        project,
+        project.images[index],
+      );
+      updateImage(index, generatedImage);
       setMessage('图片已生成，保存栏目后生效。');
     } catch (error) {
       setMessage(String(error));
@@ -148,7 +152,7 @@ export function AdminProjectImages({
                     name={`project-image-mode-${index}`}
                     checked={item.mode === 'upload'}
                     disabled={busy}
-                    onChange={() => update(index, { mode: 'upload' })}
+                    onChange={() => updateImage(index, { mode: 'upload' })}
                   />
                   上传文件
                 </label>
@@ -158,7 +162,7 @@ export function AdminProjectImages({
                     name={`project-image-mode-${index}`}
                     checked={item.mode === 'ai'}
                     disabled={busy}
-                    onChange={() => update(index, { mode: 'ai' })}
+                    onChange={() => updateImage(index, { mode: 'ai' })}
                   />
                   AI 生成
                 </label>
@@ -205,7 +209,10 @@ export function AdminProjectImages({
                           if (!file.type.startsWith('image/'))
                             throw new Error('请选择图片文件');
                           const result = await upload(file);
-                          update(index, { src: result.url, generatedFor: '' });
+                          updateImage(index, {
+                            src: result.url,
+                            generatedFor: '',
+                          });
                           setMessage('上传成功，保存后生效。');
                         } catch (error) {
                           setMessage(String(error));
@@ -226,7 +233,10 @@ export function AdminProjectImages({
                       id={`project-image-src-${index}`}
                       value={item.src}
                       onChange={(e) =>
-                        update(index, { src: e.target.value, generatedFor: '' })
+                        updateImage(index, {
+                          src: e.target.value,
+                          generatedFor: '',
+                        })
                       }
                     />
                   </label>
@@ -241,7 +251,9 @@ export function AdminProjectImages({
                     <input
                       id={`project-image-${key}-${index}`}
                       value={item[key]}
-                      onChange={(e) => update(index, { [key]: e.target.value })}
+                      onChange={(e) =>
+                        updateImage(index, { [key]: e.target.value })
+                      }
                     />
                   </div>
                 ))}

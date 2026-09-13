@@ -742,7 +742,9 @@ try {
   assert.match(screen.getByLabelText('发布日期').textContent, /2026.09.15/);
   await user.click(screen.getByRole('button', { name: '← 返回文章表格' }));
   assert.ok(screen.getByRole('button', { name: '测试文章 已编辑' }));
-  await user.click(screen.getByRole('button', { name: '发布' }));
+  await user.click(
+    screen.getByRole('button', { name: '发布文章：测试文章 已编辑' }),
+  );
   assert.equal(screen.getAllByRole('row').length, 1);
   cleanup();
   console.log(
@@ -996,9 +998,9 @@ try {
     throw new Error('Unexpected collection request');
   };
   for (const kind of ['travel', 'hobby', 'book', 'booklist']) {
-    let cover = '/old.png'; let coverView;
+    let cover = '/old.png';
     const props = () => ({ kind, title: '封面标题', description: '封面简介', author: '', value: cover, onWorking: () => {}, onChange: next => { cover = next; coverView.rerender(h(AdminCollectionCover, props())); } });
-    coverView = render(h(AdminCollectionCover, props()));
+    const coverView = render(h(AdminCollectionCover, props()));
     const count = coverCalls.length;
     coverView.rerender(h(AdminCollectionCover, { ...props(), title: '修改标题' }));
     assert.equal(coverCalls.length, count, 'Changing content must not generate');
@@ -1011,9 +1013,9 @@ try {
     await waitFor(() => assert.match(screen.getByRole('status').textContent, /原封面已保留/));
     assert.equal(cover, '/api/media/collection.png'); coverFails = false; cleanup();
   }
-  let album = []; let albumView;
+  let album = [];
   const albumProps = () => ({ value: album, onWorking: () => {}, onChange: next => { album = next; albumView.rerender(h(AdminTravelAlbum, albumProps())); } });
-  albumView = render(h(AdminTravelAlbum, albumProps()));
+  const albumView = render(h(AdminTravelAlbum, albumProps()));
   await user.upload(screen.getByLabelText('上传相册图片'), [new window.File(['image'], 'a.png', { type: 'image/png' }), new window.File(['image'], 'b.png', { type: 'image/png' })]);
   await waitFor(() => assert.equal(album.length, 2));
   await user.click(screen.getByRole('button', { name: '后移图片 1' }));
@@ -1030,9 +1032,9 @@ try {
   const collectionStyle = document.createElement('style');
   collectionStyle.textContent = readFileSync(new URL('../components/admin-collections.css', import.meta.url), 'utf8'); document.head.append(collectionStyle);
   for (const section of ['travel', 'hobbies']) {
-    let data = structuredClone(defaults[section]); const label = section === 'travel' ? '旅行' : '爱好'; let view;
+    let data = structuredClone(defaults[section]); const label = section === 'travel' ? '旅行' : '爱好';
     const update = next => { data = next; view.rerender(h(AdminActivityManager, { section, value: data, onChange: update, onWorking: () => {} })); };
-    view = render(h(AdminActivityManager, { section, value: data, onChange: update, onWorking: () => {} }));
+    const view = render(h(AdminActivityManager, { section, value: data, onChange: update, onWorking: () => {} }));
     assert.ok(screen.getByRole('table'));
     await user.click(screen.getByRole('button', { name: `新增${label}` }));
     await user.type(screen.getByLabelText(`${label}标题`), '新记录');
@@ -1065,9 +1067,9 @@ try {
   assert.equal(legacyActivity.items[0].body, '第一段\n\n第二段'); assert.equal(legacyActivity.items[0]._published, false);
   const legacyBooks = migrateBooks([{ id: 'old', title: '旧书', author: '作者', category: '文学', status: '读过', color: '#123456', note: '旧笔记', _published: false }], [{ id: 'old-list', title: '旧书单', description: '简介', label: '旧标签', ids: ['old'], _published: false }]);
   assert.equal(legacyBooks.items[0].note, '旧笔记'); assert.deepEqual(legacyBooks.lists[0].entries, [{ title: '旧书', author: '作者' }]); assert.equal(legacyBooks.lists[0]._published, false);
-  let bookDoc = structuredClone(defaults.books); let bookView;
+  let bookDoc = structuredClone(defaults.books);
   const updateBooks = next => { bookDoc = next; bookView.rerender(h(AdminBookManager, { value: bookDoc, onChange: updateBooks, onWorking: () => {} })); };
-  bookView = render(h(AdminBookManager, { value: bookDoc, onChange: updateBooks, onWorking: () => {} }));
+  const bookView = render(h(AdminBookManager, { value: bookDoc, onChange: updateBooks, onWorking: () => {} }));
   await user.click(screen.getByRole('button', { name: '新增书籍' })); await user.type(screen.getByLabelText('书名'), '新书'); await user.type(screen.getByLabelText('作者'), '作者'); await user.click(screen.getByRole('button', { name: '确认添加' }));
   assert.ok(!('status' in bookDoc.items.at(-1))); assert.equal(screen.queryByLabelText('阅读状态'), null); assert.equal(bookDoc.items.at(-1)._published, false);
   await user.click(screen.getByRole('tab', { name: '主题书单' })); await user.click(screen.getByRole('button', { name: '新增主题书单' })); await user.type(screen.getByLabelText('书单名称'), '我的书单');
@@ -1098,7 +1100,7 @@ try {
   let podcastFail = false;
   const podcastRequests = [];
   globalThis.fetch = async (url, init) => {
-    if (String(url).startsWith('/api/admin/media'))
+    if (url === '/api/admin/media')
       return Response.json({
         url: init.body.type.startsWith('audio/')
           ? '/api/media/clip.mp3'
@@ -1118,7 +1120,6 @@ try {
           }),
         });
   };
-  let podcastAdmin;
   const changePodcasts = (next) => {
     podcasts = next;
     podcastAdmin.rerender(
@@ -1129,7 +1130,7 @@ try {
       }),
     );
   };
-  podcastAdmin = render(
+  const podcastAdmin = render(
     h(AdminPodcastManager, {
       value: podcasts,
       onChange: changePodcasts,
@@ -1323,7 +1324,7 @@ try {
     'PASS podcast table, staged edit/discard, category rename/protection, single audio upload, 3:2 upload/AI/failure, migration, search/pagination and exclusive excerpt playback/error',
   );
   const { FilmLibrary } = await import('../components/film-library.tsx');
-  const { filmSample, migrateFilms, filmCoverInput } =
+  const { migrateFilms, filmCoverInput } =
     await import('../lib/film-content.ts');
   const { validateContent: validateFilm } =
     await import('../lib/cms-validation.ts');

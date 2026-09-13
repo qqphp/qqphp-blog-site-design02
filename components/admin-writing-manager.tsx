@@ -172,6 +172,7 @@ export function AdminWritingManager({
                       </button>
                       <button
                         type="button"
+                        aria-label={`${article._published ? '将文章转为草稿' : '发布文章'}：${article.title || '未命名文章'}`}
                         onClick={() =>
                           onChange(
                             articles.map((old) =>

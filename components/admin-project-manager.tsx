@@ -324,6 +324,7 @@ export function AdminProjectManager({
                             </button>
                             <button
                               type="button"
+                              aria-label={`${item._published ? '将项目转为草稿' : '发布项目'}：${item.title}`}
                               onClick={() =>
                                 changeItems(
                                   data.items.map((old, i) =>
