@@ -156,11 +156,12 @@ nav a:hover {
   border-left: 1px solid var(--line);
 }
 .entry {
-  min-height: 152px;
-  padding: 30px 0 28px 52px;
+  min-height: 190px;
+  padding: 26px 0 26px 38px;
   display: grid;
-  grid-template-columns: 100px 1fr auto;
-  gap: 25px;
+  grid-template-columns: minmax(170px, 210px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 28px;
   border-bottom: 1px solid var(--line);
   transition:
     background 0.2s,
@@ -168,15 +169,51 @@ nav a:hover {
 }
 .entry:hover {
   background: #162730;
-  padding-left: 66px;
+  padding-left: 48px;
+}
+.entry-cover {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #193039;
+}
+.entry-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.entry:hover .entry-cover img {
+  transform: scale(1.04);
+}
+.entry-cover > span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
+.entry-content {
+  min-width: 0;
 }
 .entry-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
   color: var(--lime);
   font-family: ui-monospace, monospace;
   font-size: 0.72rem;
 }
+.entry-meta span {
+  color: var(--muted);
+}
 .entry h2 {
-  margin: -7px 0 8px;
+  margin: 9px 0 8px;
   font-size: clamp(1.35rem, 2.3vw, 2rem);
   font-weight: 500;
   letter-spacing: -0.045em;
@@ -330,19 +367,32 @@ nav a:hover {
   .entry {
     padding: 23px 0;
     min-height: 0;
-    grid-template-columns: 75px 1fr auto;
-    gap: 13px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 18px;
   }
   .entry:hover {
-    padding-left: 8px;
+    padding-left: 0;
+  }
+  .entry-cover {
+    aspect-ratio: 16 / 9;
   }
   .entry h2 {
-    margin: -5px 0 7px;
+    margin: 5px 0 7px;
     font-size: 1.25rem;
+    overflow-wrap: anywhere;
   }
   .entry p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
     font-size: 0.82rem;
     line-height: 1.5;
+  }
+  .entry-arrow {
+    display: none;
   }
   .work-grid {
     margin-top: 76px;
@@ -401,12 +451,31 @@ nav a:hover {
   transform: translateY(-5px);
 }
 .shelf-art {
-  height: 310px;
+  aspect-ratio: 16 / 10;
   position: relative;
   overflow: hidden;
   margin-bottom: 22px;
+  border: 1px solid var(--line);
+  background: #193039;
 }
-.shelf-art b,
+.shelf-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.45s ease;
+}
+.shelf-card:hover .shelf-art img {
+  transform: scale(1.035);
+}
+.shelf-art > span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
 .project-large-art b {
   position: absolute;
   z-index: 1;
@@ -417,7 +486,6 @@ nav a:hover {
     monospace;
   color: var(--lime);
 }
-.shelf-art em,
 .project-large-art i {
   position: absolute;
   width: 290px;
@@ -426,11 +494,9 @@ nav a:hover {
   bottom: -105px;
   border-radius: 50%;
 }
-.shelf-card.a .shelf-art,
 .project-large-art.a {
   background: #304c52;
 }
-.shelf-card.a em,
 .project-large-art.a i {
   background: radial-gradient(
     circle at 35% 30%,
@@ -439,11 +505,9 @@ nav a:hover {
     #244f59 75%
   );
 }
-.shelf-card.b .shelf-art,
 .project-large-art.b {
   background: #30384e;
 }
-.shelf-card.b em,
 .project-large-art.b i {
   background: radial-gradient(
     circle at 35% 30%,
@@ -452,11 +516,9 @@ nav a:hover {
     #3f4469 75%
   );
 }
-.shelf-card.c .shelf-art,
 .project-large-art.c {
   background: #4b392c;
 }
-.shelf-card.c em,
 .project-large-art.c i {
   background: radial-gradient(
     circle at 35% 30%,
@@ -992,7 +1054,7 @@ nav a:hover {
     grid-template-columns: 1fr;
   }
   .shelf-art {
-    height: 230px;
+    aspect-ratio: 3 / 2;
   }
   .home-note {
     padding: 55px 25px;

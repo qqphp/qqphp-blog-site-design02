@@ -14,7 +14,9 @@ const lifeCss = readFileSync(
   new URL('../components/life.css', import.meta.url),
   'utf8',
 );
-window.document.head.append(style);
+const lifeStyle = window.document.createElement('style');
+lifeStyle.textContent = lifeCss;
+window.document.head.append(lifeStyle, style);
 for (const name of [
   'window',
   'document',
@@ -131,6 +133,25 @@ try {
   const adminNavigation = within(
     screen.getByRole('navigation', { name: '后台栏目' }),
   );
+  const adminBrand = screen.getByText('后台管理系统').closest('.admin-brand');
+  assert.ok(adminBrand);
+  assert.equal(adminBrand.closest('a'), null);
+  assert.equal(screen.queryByRole('button', { name: /素材库/ }), null);
+  assert.equal(screen.queryByRole('link', { name: /打开博客/ }), null);
+  assert.equal(
+    window.getComputedStyle(window.document.querySelector('.admin-shell'))
+      .minHeight,
+    '100dvh',
+  );
+  assert.match(
+    style.textContent,
+    /html\.fresh-theme body:has\(\.admin-shell\)[\s\S]*?background-image: none/,
+  );
+  assert.match(
+    style.textContent,
+    /body:has\(\.admin-shell\),[\s\S]*?padding-bottom:\s*0/,
+  );
+  assert.equal(window.getComputedStyle(window.document.body).paddingBottom, '0px');
   assert.ok(adminNavigation.getByRole('button', { name: '关于' }));
   assert.equal(
     adminNavigation.queryByRole('button', { name: '个人资料' }),
@@ -1861,6 +1882,20 @@ try {
       h(MusicProvider, {}, h(MusicLibrary)),
     );
   const musicFront = render(musicFrontend(manyMusic));
+  const globalPlayer = screen.getByLabelText('全局音乐播放器');
+  const discButton = within(globalPlayer).getByRole('button', {
+    name: '展开播放器',
+  });
+  assert.ok(globalPlayer.classList.contains('is-collapsed'));
+  assert.equal(discButton.getAttribute('aria-expanded'), 'false');
+  assert.match(
+    lifeCss,
+    /\.music-dock\.is-playing \.music-disc \{ animation-play-state: running;/,
+  );
+  await user.click(discButton);
+  assert.ok(!globalPlayer.classList.contains('is-collapsed'));
+  assert.equal(discButton.getAttribute('aria-label'), '收起播放器');
+  assert.equal(discButton.getAttribute('aria-expanded'), 'true');
   assert.equal(
     document.querySelector('audio').getAttribute('src'),
     null,
@@ -1870,7 +1905,9 @@ try {
   assert.ok(
     document.querySelector('audio').src.endsWith(manyMusic.items[0].src),
   );
+  assert.ok(globalPlayer.classList.contains('is-playing'));
   await user.click(screen.getByRole('button', { name: '播放台暂停' }));
+  assert.ok(!globalPlayer.classList.contains('is-playing'));
   assert.equal(document.querySelectorAll('.music-track-row').length, 25);
   await user.click(screen.getByRole('button', { name: '下一页', exact: true }));
   assert.ok(screen.getByRole('button', { name: '音乐 25', exact: true }));

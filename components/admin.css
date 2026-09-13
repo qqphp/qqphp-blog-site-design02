@@ -748,12 +748,14 @@
 .admin-shell {
   display: grid;
   grid-template-columns: 215px minmax(0, 1fr);
+  min-height: 100dvh;
 }
 .admin-sidebar {
   position: sticky;
   top: 0;
-  height: 100vh;
-  overflow: auto;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 24px 14px;
   border-right: 1px solid var(--admin-line);
   background: #eef0e8;
@@ -762,9 +764,23 @@
   gap: 12px;
 }
 .admin-brand {
+  display: grid;
+  gap: 2px;
+  padding: 4px 10px 14px;
+  border-bottom: 1px solid #d8ddd3;
+  background: #eef0e8;
+}
+.admin-brand span {
+  color: #728074;
+  font-size: 10px;
   font-weight: 700;
-  font-size: 17px;
-  padding: 0 10px;
+  letter-spacing: 0.16em;
+}
+.admin-brand strong {
+  color: #263c34;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 .admin-sidebar > p {
   font-size: 12px;
@@ -810,11 +826,9 @@
   background: #315c47;
   color: white;
 }
-.admin-sidebar > a:last-of-type {
-  padding: 8px 12px;
-}
 .admin-workspace {
   min-width: 0;
+  min-height: 100dvh;
   padding: 30px 36px 70px;
 }
 .admin-topbar,
@@ -1210,32 +1224,14 @@
     border-bottom: 1px solid var(--admin-line);
   }
 }
-.admin-media {
-  padding: 24px;
-  background: #fff;
-  margin-top: 24px;
-}
-.admin-media > p {
-  color: #68786c;
-  max-width: 800px;
-}
-.admin-media-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-.admin-media-list article {
-  border: 1px solid var(--admin-line);
-  padding: 16px;
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-.admin-media-list a {
-  overflow-wrap: anywhere;
-}
-.admin-media-list small {
-  color: #748372;
+body:has(.admin-shell),
+html.fresh-theme body:has(.admin-shell),
+body:has(.admin-login),
+html.fresh-theme body:has(.admin-login) {
+  min-height: 100dvh;
+  padding-bottom: 0;
+  background: #f5f4ee;
+  background-image: none;
 }
 body:has(.admin-shell) .music-dock,
 body:has(.admin-login) .music-dock {
@@ -1299,9 +1295,6 @@ body:has(.admin-login) .music-dock {
   }
   .admin-record-heading {
     flex-direction: column;
-  }
-  .admin-media-list {
-    grid-template-columns: 1fr;
   }
   .admin-login form {
     padding: 25px;

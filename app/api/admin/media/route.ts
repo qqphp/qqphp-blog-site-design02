@@ -4,28 +4,7 @@ import {
   readLimitedBody,
   sameOrigin,
 } from '@/lib/admin-auth';
-import { listLocalMedia, saveLocalMedia } from '@/lib/local-media';
-
-export async function GET(request: Request) {
-  if (!(await authenticated(request))) return json({ error: '请先登录' }, 401);
-  const cursor = new URL(request.url).searchParams.get('cursor') || undefined;
-  try {
-    const result = await listLocalMedia(cursor);
-    return json({
-      files: result.files.map((item) => ({
-        url: `/api/media/${item.key}`,
-        name: item.name,
-        size: item.size,
-      })),
-      cursor: result.cursor,
-    });
-  } catch (error) {
-    return json(
-      { error: error instanceof Error ? error.message : '读取素材库失败' },
-      503,
-    );
-  }
-}
+import { saveLocalMedia } from '@/lib/local-media';
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return json({ error: '请求来源无效' }, 403);
   if (!(await authenticated(request))) return json({ error: '请先登录' }, 401);

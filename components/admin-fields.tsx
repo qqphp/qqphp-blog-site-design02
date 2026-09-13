@@ -12,8 +12,6 @@ type ApiData = {
   configured: boolean;
   url: string;
   name: string;
-  files: { url: string; name: string; size: number }[];
-  cursor: string | null;
 };
 
 const names: Record<string, string> = {
@@ -372,95 +370,5 @@ export function Field({
         </div>
       )}
     </div>
-  );
-}
-
-export function MediaLibrary() {
-  const [files, setFiles] = useState<
-    { url: string; name: string; size: number }[]
-  >([]);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [message, setMessage] = useState('');
-  const [loaded, setLoaded] = useState(false);
-  async function load(next?: string) {
-    try {
-      const data = await api(
-        `/api/admin/media${next ? `?cursor=${encodeURIComponent(next)}` : ''}`,
-      );
-      setFiles((previous) =>
-        next ? [...previous, ...data.files] : data.files,
-      );
-      setCursor(data.cursor);
-      setLoaded(true);
-    } catch (error) {
-      setMessage(String(error));
-    }
-  }
-  return (
-    <section className="admin-media">
-      <h2>素材库</h2>
-      <p>
-        上传图片或音乐，再将地址填入对应栏目。单文件最大 20
-        MB。素材上传后即可通过地址访问；草稿内容请勿使用保密素材。
-      </p>
-      <button type="button" onClick={() => void load()}>
-        {loaded ? '刷新素材列表' : '查看已有素材'}
-      </button>{' '}
-      <label className="admin-file-button">
-        上传素材
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif,audio/mpeg,audio/wav"
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            setMessage('上传中…');
-            try {
-              await upload(file);
-              await load();
-              setMessage('上传完成');
-            } catch (error) {
-              setMessage(String(error));
-            }
-            e.target.value = '';
-          }}
-        />
-      </label>
-      <output>{message}</output>
-      <div className="admin-media-list">
-        {files.map((file) => (
-          <article key={file.url}>
-            <a href={file.url} target="_blank" rel="noreferrer">
-              {file.name} ↗
-            </a>
-            <small>{Math.round(file.size / 1024)} KB</small>
-            <input
-              readOnly
-              aria-label={`${file.name}地址`}
-              value={file.url}
-              onFocus={(e) => e.target.select()}
-            />
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(file.url);
-                  setMessage('地址已复制');
-                } catch {
-                  setMessage('请选中地址并手动复制');
-                }
-              }}
-            >
-              复制地址
-            </button>
-          </article>
-        ))}
-      </div>
-      {cursor && (
-        <button type="button" onClick={() => void load(cursor)}>
-          加载更多
-        </button>
-      )}
-    </section>
   );
 }

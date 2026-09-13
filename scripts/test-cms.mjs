@@ -150,7 +150,6 @@ try {
   await waitForServer();
   console.log('PASS isolated local server and migrations');
   check(await request('/api/admin/content', { auth: false }), 401);
-  check(await request('/api/admin/media', { auth: false }), 401);
   check(await request('/api/admin/ai', { auth: false }), 401);
   check(
     await request('/api/admin/session', {
@@ -895,8 +894,6 @@ try {
   });
   assert.equal(ranged.status, 206);
   assert.equal((await ranged.arrayBuffer()).byteLength, 16);
-  const library = (await request('/api/admin/media')).json();
-  assert.ok(library.files.some((item) => item.url === media.url));
   const audioBytes = Buffer.alloc(48);
   audioBytes.write('RIFF');
   audioBytes.write('WAVE', 8);

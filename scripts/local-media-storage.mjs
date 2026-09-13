@@ -3,7 +3,6 @@ import { createServer } from 'node:http';
 import {
   mkdir,
   readFile,
-  readdir,
   rename,
   stat,
   unlink,
@@ -20,11 +19,6 @@ const contentTypes = {
   mp3: 'audio/mpeg',
   wav: 'audio/wav',
 };
-
-function sendJson(response, status, value) {
-  response.writeHead(status, { 'Content-Type': 'application/json' });
-  response.end(JSON.stringify(value));
-}
 
 async function readBody(request, maximum) {
   const chunks = [];
@@ -62,16 +56,6 @@ function parseRange(value, size) {
   return { start, end: Math.min(end, size - 1) };
 }
 
-async function readMetadata(metadataDirectory, key) {
-  try {
-    return JSON.parse(
-      await readFile(resolve(metadataDirectory, `${key}.json`), 'utf8'),
-    );
-  } catch {
-    return {};
-  }
-}
-
 /**
  * Starts a loopback-only file service so the local Worker runtime can use the
  * host filesystem without an R2 binding.
@@ -89,47 +73,6 @@ export async function startLocalMediaStorage() {
     }
     try {
       const url = new URL(request.url || '/', 'http://localhost');
-      if (url.pathname === '/media' && request.method === 'GET') {
-        const offsetText = url.searchParams.get('cursor') || '0';
-        if (!/^\d+$/.test(offsetText)) {
-          sendJson(response, 400, { error: 'Invalid cursor' });
-          return;
-        }
-        const offset = Number(offsetText);
-        const keys = (await readdir(directory, { withFileTypes: true }))
-          .filter((entry) => entry.isFile() && keyPattern.test(entry.name))
-          .map((entry) => entry.name);
-        const files = await Promise.all(
-          keys.map(async (key) => {
-            const [details, metadata] = await Promise.all([
-              stat(resolve(directory, key)),
-              readMetadata(metadataDirectory, key),
-            ]);
-            return {
-              key,
-              name:
-                typeof metadata.name === 'string' && metadata.name
-                  ? metadata.name
-                  : key,
-              size: details.size,
-              modified: details.mtimeMs,
-            };
-          }),
-        );
-        files.sort(
-          (left, right) =>
-            right.modified - left.modified || left.key.localeCompare(right.key),
-        );
-        const page = files.slice(offset, offset + 100);
-        sendJson(response, 200, {
-          files: page.map(({ modified: _modified, ...file }) => file),
-          cursor:
-            offset + page.length < files.length
-              ? String(offset + page.length)
-              : null,
-        });
-        return;
-      }
       const key = decodeURIComponent(url.pathname.slice('/media/'.length));
       if (!url.pathname.startsWith('/media/') || !keyPattern.test(key)) {
         response.writeHead(404).end();

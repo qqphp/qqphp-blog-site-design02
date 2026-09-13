@@ -4,7 +4,9 @@ body { padding-bottom: 175px; }
 .music-dock button:hover { color: var(--lime); }
 .music-dock button:focus-visible, .life-page :is(a, button, summary):focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
 .music-dock-main { display: flex; align-items: center; gap: 8px; }
-.music-dock .music-disc { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 50%; color: var(--lime); }
+.music-dock .music-disc { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 50%; color: var(--lime); animation: music-disc-turn 4s linear infinite; animation-play-state: paused; transform-origin: center; }
+.music-dock.is-playing .music-disc { animation-play-state: running; will-change: transform; }
+@keyframes music-disc-turn { to { transform: rotate(360deg); } }
 .music-now { flex: 1; min-width: 0; }
 .music-now strong { display: block; font-size: .8rem; font-weight: 500; }
 .music-now small { display: block; margin-top: 5px; color: var(--muted); font-size: .6rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -150,4 +152,4 @@ body { padding-bottom: 175px; }
   .life-collection, .life-collection-travel { grid-template-columns: minmax(0, 1fr); }
   .life-section-heading { flex-wrap: wrap; }
 }
-@media (prefers-reduced-motion: reduce) { .listening-record.is-playing { animation: none; } .life-entry summary span { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .music-dock .music-disc, .listening-record.is-playing { animation: none; } .life-entry summary span { transition: none; } }

@@ -42,7 +42,6 @@ import {
   download,
   Field,
   fresh,
-  MediaLibrary,
   titleOf,
 } from './admin-fields';
 
@@ -122,7 +121,6 @@ export function AdminPanel() {
   const [requestBusy, setBusy] = useState(false);
   const [generating, setGenerating] = useState(false);
   const busy = requestBusy || generating;
-  const [media, setMedia] = useState(false);
   const dirty =
     content !== null &&
     JSON.stringify(draft) !== JSON.stringify(content[section]);
@@ -173,7 +171,7 @@ export function AdminPanel() {
   const discard = () =>
     !unsaved || window.confirm('有未保存的修改，确定放弃这些修改吗？');
   function choose(key: Section) {
-    if (!content || (key === section && !media)) return;
+    if (!content || key === section) return;
     if (
       (writingGroup && (key === 'writing' || key === 'categories')) ||
       (storyGroup && (key === 'stories' || key === 'slides'))
@@ -185,7 +183,6 @@ export function AdminPanel() {
       setDraft(structuredClone(writingCache[key] ?? asJson(content[key])));
       setSection(key);
       setMessage('');
-      setMedia(false);
       return;
     }
     if (!discard()) return;
@@ -195,7 +192,6 @@ export function AdminPanel() {
     setSelected(0);
     setQuery('');
     setMessage('');
-    setMedia(false);
   }
   async function save() {
     setBusy(true);
@@ -333,7 +329,6 @@ export function AdminPanel() {
       disabled={busy}
       key={key}
       aria-current={
-        !media &&
         (section === key ||
           (key === 'writing' && writingGroup) ||
           (key === 'stories' && storyGroup))
@@ -357,9 +352,10 @@ export function AdminPanel() {
   return (
     <main className="admin-shell">
       <aside className="admin-sidebar">
-        <Link className="admin-brand" href="/">
-          A / 内容工作室
-        </Link>
+        <div className="admin-brand">
+          <span>ALEI ADMIN</span>
+          <strong>后台管理系统</strong>
+        </div>
         <p>内容与页面</p>
         <nav aria-label="后台栏目">
           {sidebarSections.map((group, index) =>
@@ -377,22 +373,6 @@ export function AdminPanel() {
             ),
           )}
         </nav>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            if (discard()) {
-              setDraft(asJson(content![section]));
-              setWritingCache({});
-              setMedia(true);
-            }
-          }}
-        >
-          素材库 ↗
-        </button>
-        <a href="/" target="_blank" rel="noreferrer">
-          打开博客 ↗
-        </a>
         <button
           type="button"
           disabled={busy}
@@ -417,13 +397,11 @@ export function AdminPanel() {
           <div>
             <p className="admin-eyebrow">LOCAL BLOG / EDITOR</p>
             <h1>
-              {media
-                ? '素材管理'
-                : writingGroup
-                  ? '写作'
-                  : storyGroup
-                    ? '说说'
-                    : sectionLabels[section]}
+              {writingGroup
+                ? '写作'
+                : storyGroup
+                  ? '说说'
+                  : sectionLabels[section]}
             </h1>
           </div>
           <div>
@@ -453,11 +431,7 @@ export function AdminPanel() {
             )}
           </div>
         </header>
-        {media ? (
-          <MediaLibrary />
-        ) : (
-          <>
-            <div className="admin-toolbar">
+        <div className="admin-toolbar">
               <span>
                 {dirty ? '有未保存的修改' : '已与服务器同步'} · 版本{' '}
                 {revisions[section] ?? 0}
@@ -830,8 +804,6 @@ export function AdminPanel() {
                 )}
               </fieldset>
             </div>
-          </>
-        )}
       </div>
     </main>
   );

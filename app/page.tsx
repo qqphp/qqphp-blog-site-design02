@@ -1,12 +1,19 @@
 import { CmsText } from '@/components/cms-text';
+import Image from 'next/image';
 import Link from 'next/link';
 import { HeroGarden } from '@/components/hero-garden';
 import { getPublicContent } from '@/lib/cms-server';
+import {
+  newestArticlesFirst,
+  newestProjectsFirst,
+} from '@/lib/content-order';
 
 import { SiteFooter, SiteHeader } from '@/components/site-chrome';
 
 export default async function Home() {
   const { writing, projects, home } = await getPublicContent();
+  const latestWriting = newestArticlesFirst(writing).slice(0, 3);
+  const latestProjects = newestProjectsFirst(projects.items).slice(0, 2);
   return (
     <main className="site-shell">
       <SiteHeader />
@@ -31,16 +38,32 @@ export default async function Home() {
         <div className="section-label">
           <span>01</span><CmsText page="首页栏目" name="01 最近更新" /></div>
         <div className="entry-list">
-          {writing.slice(0, 3).map((entry) => (
+          {latestWriting.map((entry) => (
             <Link
               className="entry"
               href={`/writing/${entry.slug}`}
-              key={entry.title}
+              key={entry.slug}
             >
-              <span className="entry-meta">
-                {entry.date.slice(5)}
-              </span>
-              <div>
+              <div className="entry-cover">
+                {entry.cover ? (
+                  <Image
+                    src={entry.cover}
+                    width={600}
+                    height={400}
+                    sizes="(max-width: 700px) calc(100vw - 50px), 210px"
+                    alt=""
+                  />
+                ) : (
+                  <span>{entry.category}</span>
+                )}
+              </div>
+              <div className="entry-content">
+                <div className="entry-meta">
+                  <time dateTime={entry.date.replaceAll('.', '-')}>
+                    {entry.date.slice(5)}
+                  </time>
+                  <span>{entry.category}</span>
+                </div>
                 <h2>{entry.title}</h2>
                 <p>{entry.excerpt}</p>
               </div>
@@ -57,21 +80,33 @@ export default async function Home() {
           <Link href="/projects"><CmsText page="首页栏目" name="04 全部项目 →" /></Link>
         </div>
         <div className="project-shelf">
-          {projects.items.slice(0, 2).map((project, index) => (
-            <Link
-              className={`shelf-card ${['a', 'b'][index]}`}
-              href={`/projects?project=${project.id}`}
-              key={project.id}
-            >
-              <div className="shelf-art">
-
-                <em />
-              </div>
-              <p>{project.category}</p>
-              <h2>{project.title}</h2>
-              <span>{project.status} ↗</span>
-            </Link>
-          ))}
+          {latestProjects.map((project, index) => {
+            const cover = project.images.find((image) => image.src);
+            return (
+              <Link
+                className={`shelf-card ${['a', 'b'][index]}`}
+                href={`/projects?project=${project.id}`}
+                key={project.id}
+              >
+                <div className="shelf-art">
+                  {cover ? (
+                    <Image
+                      src={cover.src}
+                      width={1200}
+                      height={750}
+                      sizes="(max-width: 700px) calc(100vw - 102px), (max-width: 1420px) 38vw, 500px"
+                      alt={cover.alt || `${project.title}项目封面`}
+                    />
+                  ) : (
+                    <span>{project.category}</span>
+                  )}
+                </div>
+                <p>{project.category}</p>
+                <h2>{project.title}</h2>
+                <span>{project.status} ↗</span>
+              </Link>
+            );
+          })}
         </div>
       </section>
       <section className="home-note">

@@ -1,11 +1,5 @@
 import { bindings } from './cms-server';
 
-export type LocalMediaFile = {
-  key: string;
-  name: string;
-  size: number;
-};
-
 function mediaConfig() {
   const { LOCAL_MEDIA_STORAGE, LOCAL_MEDIA_TOKEN } = bindings();
   if (!LOCAL_MEDIA_STORAGE || !LOCAL_MEDIA_TOKEN)
@@ -25,17 +19,6 @@ async function mediaRequest(path: string, init: RequestInit = {}) {
   } catch {
     throw new Error('本地素材存储连接失败，请重启开发服务。');
   }
-}
-
-export async function listLocalMedia(cursor?: string) {
-  const response = await mediaRequest(
-    `/media${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
-  );
-  if (!response.ok) throw new Error('读取本地素材库失败。');
-  return (await response.json()) as {
-    files: LocalMediaFile[];
-    cursor: string | null;
-  };
 }
 
 export async function saveLocalMedia(

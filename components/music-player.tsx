@@ -69,7 +69,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [playlist, setPlaylist] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const start = useCallback(async () => {
     const element = audio.current;
@@ -221,7 +221,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         />
       </audio>
       <aside
-        className={`music-dock${collapsed ? ' is-collapsed' : ''}`}
+        className={`music-dock${collapsed ? ' is-collapsed' : ''}${playing ? ' is-playing' : ''}`}
         aria-label="全局音乐播放器"
       >
         {playlist && !collapsed && (
@@ -275,6 +275,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
             className="music-disc"
             type="button"
             aria-label={collapsed ? '展开播放器' : '收起播放器'}
+            aria-expanded={!collapsed}
             onClick={() => {
               setCollapsed(!collapsed);
               setPlaylist(false);

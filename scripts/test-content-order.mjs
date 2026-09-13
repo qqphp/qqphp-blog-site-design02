@@ -58,6 +58,8 @@ const { AdminProjectManager } =
 const { defaults } = await import('../lib/cms-defaults.ts');
 const { resolveProjects } = await import('../lib/project-content.ts');
 const { stripArticleExtras } = await import('../lib/article-categories.ts');
+const { newestArticlesFirst, newestProjectsFirst } =
+  await import('../lib/content-order.ts');
 const { validateContent } = await import('../lib/cms-validation.ts');
 const user = userEvent.setup({ document: window.document });
 try {
@@ -155,6 +157,24 @@ try {
   const invalid = structuredClone(defaults.projects);
   invalid.items[0].createdAt = 'not-a-date';
   assert.throws(() => validateContent('projects', invalid), /创建时间/);
+  const homeArticles = newestArticlesFirst([
+    { title: '旧文章', date: '2024.01.01' },
+    { title: '最新文章', date: '2026.09.12' },
+    { title: '较新文章', date: '2025.06.01' },
+  ]);
+  assert.deepEqual(
+    homeArticles.map((item) => item.title),
+    ['最新文章', '较新文章', '旧文章'],
+  );
+  const homeProjects = newestProjectsFirst([
+    { title: '旧项目', createdAt: '2024-01-01T00:00:00.000Z', year: '2024' },
+    { title: '最新项目', createdAt: '2026-09-12T00:00:00.000Z', year: '2026' },
+    { title: '旧数据项目', createdAt: '', year: '2025 — 2026' },
+  ]);
+  assert.deepEqual(
+    homeProjects.map((item) => item.title),
+    ['最新项目', '旧数据项目', '旧项目'],
+  );
   const { default: WritingPage } = await import('../app/writing/page.tsx');
   const { ContentProvider } =
     await import('../components/content-provider.tsx');
