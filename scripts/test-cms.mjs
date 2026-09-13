@@ -303,11 +303,32 @@ try {
   const aiSettings = {
     ...documents.content.aiSettings,
     coverPrompt: 'PRIVATE_AI_PROMPT {{title}} {{excerpt}} {{style}}',
-    filmCoverPrompt: 'PRIVATE_FILM_PROMPT {{title}} {{director}} {{style}}',
+    filmCoverStyle: 'PRIVATE_FILM_STYLE 16:9 横版',
+    filmCoverPrompt:
+      'PRIVATE_FILM_PROMPT {{title}} {{director}} {{style}} 16:9 横版',
     projectImagePrompt:
       'PRIVATE_PROJECT_PROMPT {{title}} {{subtitle}} {{excerpt}} {{style}}',
   };
   await save('aiSettings', aiSettings);
+  const savedAiSettings = (await request('/api/admin/content')).json().content
+    .aiSettings;
+  assert.equal(savedAiSettings.filmCoverSize, aiSettings.filmCoverSize);
+  assert.equal(savedAiSettings.filmCoverStyle, aiSettings.filmCoverStyle);
+  assert.equal(savedAiSettings.filmCoverPrompt, aiSettings.filmCoverPrompt);
+  for (const invalidSize of [
+    '1024',
+    '1025x1024',
+    '3840x1024',
+    '512x512',
+    '3840x3840',
+  ])
+    await save(
+      'aiSettings',
+      { ...aiSettings, coverSize: invalidSize },
+      revisions.aiSettings,
+      400,
+    );
+  await save('aiSettings', { ...aiSettings, coverSize: 'auto' });
   await save(
     'aiSettings',
     { ...aiSettings, filmCoverPrompt: 'missing placeholders' },

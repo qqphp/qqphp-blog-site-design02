@@ -5,6 +5,52 @@ import { Tabs } from '@base-ui/react/tabs';
 import { AdminModelSelect } from './admin-model-select';
 import { api } from './admin-fields';
 
+type AiSettings = Content['aiSettings'];
+type ImageSizeField =
+  | 'coverSize'
+  | 'projectImageSize'
+  | 'playlistCoverSize'
+  | 'filmCoverSize'
+  | 'podcastCoverSize'
+  | 'travelCoverSize'
+  | 'hobbyCoverSize'
+  | 'bookCoverSize'
+  | 'booklistCoverSize';
+
+function ImageSizeSetting({
+  id,
+  label,
+  field,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  field: ImageSizeField;
+  value: AiSettings;
+  onChange: (value: AiSettings) => void;
+}) {
+  return (
+    <div className="admin-field">
+      <label htmlFor={id}>{label}</label>
+      <input
+        id={id}
+        value={value[field]}
+        inputMode="text"
+        pattern="(?:auto|[0-9]+x[0-9]+)"
+        spellCheck={false}
+        onChange={(event) =>
+          onChange({ ...value, [field]: event.target.value })
+        }
+      />
+      <small>
+        填写 auto 或像素尺寸，如 1536x1024。宽高须为 16 的倍数，最大边不超过
+        3840，比例不超过 3:1，总像素数为 655,360–8,294,400。
+      </small>
+    </div>
+  );
+}
+
 export function AdminAiSettings({
   value,
   onChange,
@@ -52,7 +98,7 @@ export function AdminAiSettings({
         <Tabs.Tab value="models">模型配置</Tabs.Tab>
         <Tabs.Tab value="writing">写作配置</Tabs.Tab>
         <Tabs.Tab value="projects">项目配置</Tabs.Tab>
-        <Tabs.Tab value="music">音乐配置</Tabs.Tab>
+        <Tabs.Tab value="music">歌单配置</Tabs.Tab>
         <Tabs.Tab value="films">电影配置</Tabs.Tab>
         <Tabs.Tab value="podcasts">播客配置</Tabs.Tab>
         <Tabs.Tab value="travel">旅行配置</Tabs.Tab>
@@ -177,6 +223,13 @@ export function AdminAiSettings({
           </div>
         </div>
         <div className="admin-fields">
+          <ImageSizeSetting
+            id="ai-cover-size"
+            label="文章封面尺寸"
+            field="coverSize"
+            value={value}
+            onChange={onChange}
+          />
           <div className="admin-field admin-wide">
             <label htmlFor="ai-cover-style">文章封面风格</label>
             <textarea
@@ -220,6 +273,13 @@ export function AdminAiSettings({
           </div>
         </div>
         <div className="admin-fields">
+          <ImageSizeSetting
+            id="ai-project-size"
+            label="项目图片尺寸"
+            field="projectImageSize"
+            value={value}
+            onChange={onChange}
+          />
           <div className="admin-field admin-wide">
             <label htmlFor="ai-project-style">项目图片风格</label>
             <textarea
@@ -252,9 +312,16 @@ export function AdminAiSettings({
       <Tabs.Panel value="music">
         <h2>歌单封面生成</h2>
         <p className="admin-help">
-          使用图片模型，根据歌单名称和简介生成 1:1 方形封面。请先保存配置。
+          使用图片模型，根据歌单名称和简介生成封面。请先保存配置。
         </p>
         <div className="admin-fields">
+          <ImageSizeSetting
+            id="playlist-cover-size"
+            label="歌单封面尺寸"
+            field="playlistCoverSize"
+            value={value}
+            onChange={onChange}
+          />
           <div className="admin-field admin-wide">
             <label htmlFor="playlist-cover-style">歌单封面风格</label>
             <textarea
@@ -287,10 +354,16 @@ export function AdminAiSettings({
       <Tabs.Panel value="films">
         <h2>电影封面生成</h2>
         <p className="admin-help">
-          使用“模型配置”中的图片模型，根据电影名称和导演生成 9:16
-          竖版封面。请先保存配置。
+          使用“模型配置”中的图片模型，根据电影名称和导演生成封面。请先保存配置。
         </p>
         <div className="admin-fields">
+          <ImageSizeSetting
+            id="film-cover-size"
+            label="电影封面尺寸"
+            field="filmCoverSize"
+            value={value}
+            onChange={onChange}
+          />
           <div className="admin-field admin-wide">
             <label htmlFor="film-cover-style">电影封面风格</label>
             <textarea
@@ -323,10 +396,16 @@ export function AdminAiSettings({
       <Tabs.Panel value="podcasts">
         <h2>播客封面生成</h2>
         <p className="admin-help">
-          使用“模型配置”中的图片模型，根据播客标题、简介和主播生成 3:2
-          横版封面。请先保存配置。
+          使用“模型配置”中的图片模型，根据播客标题、简介和主播生成封面。请先保存配置。
         </p>
         <div className="admin-fields">
+          <ImageSizeSetting
+            id="podcast-cover-size"
+            label="播客封面尺寸"
+            field="podcastCoverSize"
+            value={value}
+            onChange={onChange}
+          />
           <div className="admin-field admin-wide">
             <label htmlFor="podcast-cover-style">播客封面风格</label>
             <textarea
@@ -366,6 +445,13 @@ export function AdminAiSettings({
         return (
           <Tabs.Panel value={kind} key={kind}>
             <div className="admin-fields">
+              <ImageSizeSetting
+                id={`${kind}-cover-size`}
+                label={`${label}封面尺寸`}
+                field={`${kind}CoverSize`}
+                value={value}
+                onChange={onChange}
+              />
               <div className="admin-field admin-wide">
                 <label htmlFor={`${kind}-cover-style`}>{label}封面风格</label>
                 <textarea

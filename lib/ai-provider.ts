@@ -131,6 +131,19 @@ export async function generateCover(
     podcastHost,
     collection?.author,
   );
+  const size = collection
+    ? settings[`${collection.kind}CoverSize`]
+    : podcastHost !== undefined
+      ? settings.podcastCoverSize
+      : playlistCover
+        ? settings.playlistCoverSize
+        : filmDirector !== undefined
+          ? settings.filmCoverSize
+          : storyImage
+            ? undefined
+            : projectSubtitle === undefined
+              ? settings.coverSize
+              : settings.projectImageSize;
   const result = await providerRequest('images/generations', {
     model: settings.imageModel,
     prompt,
@@ -139,15 +152,7 @@ export async function generateCover(
     ...(settings.imageOutputFormat !== 'png'
       ? { output_compression: settings.imageCompression }
       : {}),
-    ...(collection
-      ? { size: collection.kind === 'book' ? '1024x1536' : '1536x1024' }
-      : podcastHost !== undefined
-        ? { size: '1536x1024' }
-        : filmDirector !== undefined
-          ? { size: '864x1536' }
-          : playlistCover
-            ? { size: '1024x1024' }
-            : {}),
+    ...(size ? { size } : {}),
   });
   const first = result.data?.[0];
   let bytes: Uint8Array;

@@ -83,7 +83,7 @@ export function AdminPlaylistCover({
             </button>
             <p className="admin-help">
               根据名称、简介与 AI
-              设置中的音乐配置生成方形封面。确认时会生成缺失或信息变更的封面；失败保留原图。
+              设置中的歌单配置生成方形封面。确认时会生成缺失或信息变更的封面；失败保留原图。
             </p>
             {list.coverGeneratedFor === playlistCoverInput(list) && (
               <small>已对应当前歌单信息。</small>

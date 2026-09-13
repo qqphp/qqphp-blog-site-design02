@@ -7,6 +7,15 @@ const settings = {
   filmCoverPrompt: 'FILM {{title}} / {{director}} / {{style}}',
   filmCoverStyle: 'PORTRAIT FILM',
   imageModel: 'test-image-model',
+  coverSize: '2048x1152',
+  projectImageSize: '1920x1088',
+  playlistCoverSize: '1280x1280',
+  filmCoverSize: '1024x1792',
+  podcastCoverSize: '1792x1024',
+  travelCoverSize: '2048x1024',
+  hobbyCoverSize: '1920x1280',
+  bookCoverSize: '1280x1920',
+  booklistCoverSize: '1536x864',
 };
 const stored = [];
 const requests = [];
@@ -72,7 +81,7 @@ try {
     result.generatedFor,
     JSON.stringify(['影片名称', '导演姓名', '9:16']),
   );
-  assert.equal(requests[0].size, '864x1536');
+  assert.equal(requests[0].size, settings.filmCoverSize);
   assert.equal(stored.length, 1);
   assert.deepEqual(stored[0].bytes, Buffer.from(png, 'base64'));
   assert.equal(stored[0].contentType, 'image/png');
@@ -85,7 +94,7 @@ try {
     undefined,
     true,
   );
-  assert.equal(requests[1].size, '1024x1024');
+  assert.equal(requests[1].size, settings.playlistCoverSize);
   assert.ok(requests[1].prompt.includes('歌单名称'));
   assert.ok(requests[1].prompt.includes('夜晚听的音乐'));
   assert.equal(
@@ -101,7 +110,7 @@ try {
     false,
     '主播姓名',
   );
-  assert.equal(requests[2].size, '1536x1024');
+  assert.equal(requests[2].size, settings.podcastCoverSize);
   for (const value of [
     '播客标题',
     '节目简介',
@@ -124,7 +133,7 @@ try {
   for (const kind of ['travel', 'hobby', 'book', 'booklist']) {
     const result = await generateCover('测试标题', kind === 'book' ? '' : '测试简介', undefined, false, undefined, false, undefined, { kind, author: '测试作者' });
     const request = requests.at(-1);
-    assert.equal(request.size, kind === 'book' ? '1024x1536' : '1536x1024');
+    assert.equal(request.size, settings[`${kind}CoverSize`]);
     assert.ok(request.prompt.includes('测试标题'));
     assert.ok(request.prompt.includes(kind === 'book' ? '测试作者' : '测试简介'));
     assert.ok(request.prompt.includes(settings[`${kind}CoverStyle`]));
@@ -134,6 +143,11 @@ try {
   await generateCover('仅书名', '', undefined, false, undefined, false, undefined, { kind: 'book' });
   assert.ok(requests.at(-1).prompt.includes('仅书名'));
   assert.ok(!requests.at(-1).prompt.includes('undefined'));
+  await generateCover('文章标题', '文章摘要');
+  assert.equal(requests.at(-1).size, settings.coverSize);
+  await generateCover('项目名称', '项目摘要', '项目副标题');
+  assert.equal(requests.at(-1).size, settings.projectImageSize);
+  console.log('PASS every configured image category uses its independent size');
   console.log('PASS travel/hobby/book prompts, optional author, image sizes and media storage');
   console.log(
     'PASS film cover settings, film title/director and playlist title/synopsis prompts with 9:16 and 1:1 sizes, model request, PNG storage and failed generation without retries (no paid calls)',

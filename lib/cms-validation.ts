@@ -17,6 +17,38 @@ export function isSection(key: string): key is Section {
   return Object.hasOwn(defaults, key);
 }
 
+const imageSizeFields = [
+  ['文章封面', 'coverSize'],
+  ['项目图片', 'projectImageSize'],
+  ['歌单封面', 'playlistCoverSize'],
+  ['电影封面', 'filmCoverSize'],
+  ['播客封面', 'podcastCoverSize'],
+  ['旅行封面', 'travelCoverSize'],
+  ['爱好封面', 'hobbyCoverSize'],
+  ['书籍封面', 'bookCoverSize'],
+  ['书单封面', 'booklistCoverSize'],
+] as const;
+
+function validImageSize(value: string) {
+  if (value === 'auto') return true;
+  const match = /^(\d+)x(\d+)$/.exec(value);
+  if (!match) return false;
+  const width = Number(match[1]);
+  const height = Number(match[2]);
+  const pixels = width * height;
+  return (
+    width > 0 &&
+    height > 0 &&
+    width <= 3840 &&
+    height <= 3840 &&
+    width % 16 === 0 &&
+    height % 16 === 0 &&
+    Math.max(width, height) / Math.min(width, height) <= 3 &&
+    pixels >= 655360 &&
+    pixels <= 8294400
+  );
+}
+
 export function validateContent(key: Section, value: unknown) {
   const walk = (
     input: unknown,
@@ -207,6 +239,11 @@ export function validateContent(key: Section, value: unknown) {
     }
   if (key === 'aiSettings') {
     const settings = value as typeof defaults.aiSettings;
+    for (const [label, field] of imageSizeFields)
+      if (!validImageSize(settings[field]))
+        throw new Error(
+          `${label}尺寸须为 auto 或宽x高；宽高需为 16 的倍数且不超过 3840，长宽比不超过 3:1，总像素数须在 655360 到 8294400 之间`,
+        );
     for (const kind of ['travel', 'hobby', 'book', 'booklist'] as const) {
       const fields = kind === 'book' ? ['title', 'author'] : ['title', 'excerpt'];
       if (!fields.every(field => settings[`${kind}CoverPrompt`].includes('{{' + field + '}}')))

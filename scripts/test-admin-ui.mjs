@@ -571,6 +571,7 @@ try {
   globalThis.fetch = async () => Response.json({ keyConfigured: true });
   function Settings() {
     const [value, set] = useState({
+      ...defaults.aiSettings,
       filmCoverStyle: '胶片',
       filmCoverPrompt: '{{title}} {{director}}',
       playlistCoverStyle: '唱片',
@@ -587,11 +588,15 @@ try {
   }
   render(h(Settings));
   await user.click(screen.getByRole('tab', { name: '写作配置' }));
+  assert.equal(screen.getByLabelText('文章封面尺寸').value, '1536x1024');
+  await user.clear(screen.getByLabelText('文章封面尺寸'));
+  await user.type(screen.getByLabelText('文章封面尺寸'), '2048x1152');
   await user.type(screen.getByLabelText('文章封面风格'), ' 新风格');
   await user.click(screen.getByRole('tab', { name: '模型配置' }));
   assert.ok(screen.getByLabelText('API Base URL'));
   await user.click(screen.getByRole('tab', { name: '写作配置' }));
   assert.equal(screen.getByLabelText('文章封面风格').value, '纸艺 新风格');
+  assert.equal(screen.getByLabelText('文章封面尺寸').value, '2048x1152');
   await user.click(screen.getByRole('tab', { name: '电影配置' }));
   await user.type(screen.getByLabelText('电影封面风格'), ' 黑白');
   await user.click(screen.getByRole('tab', { name: '模型配置' }));
@@ -601,18 +606,31 @@ try {
     .getAllByRole('tab')
     .map((node) => node.textContent);
   assert.equal(
-    settingTabs.indexOf('音乐配置'),
+    settingTabs.indexOf('歌单配置'),
     settingTabs.indexOf('项目配置') + 1,
   );
-  await user.click(screen.getByRole('tab', { name: '音乐配置' }));
+  await user.click(screen.getByRole('tab', { name: '歌单配置' }));
   await user.type(screen.getByLabelText('歌单封面风格'), ' 复古');
   await user.click(screen.getByRole('tab', { name: '电影配置' }));
-  await user.click(screen.getByRole('tab', { name: '音乐配置' }));
+  await user.click(screen.getByRole('tab', { name: '歌单配置' }));
   assert.equal(screen.getByLabelText('歌单封面风格').value, '唱片 复古');
+  for (const [tab, label, expected] of [
+    ['项目配置', '项目图片尺寸', '1536x1024'],
+    ['歌单配置', '歌单封面尺寸', '1024x1024'],
+    ['电影配置', '电影封面尺寸', '864x1536'],
+    ['播客配置', '播客封面尺寸', '1536x1024'],
+    ['旅行配置', '旅行封面尺寸', '1536x1024'],
+    ['爱好配置', '爱好封面尺寸', '1536x1024'],
+    ['书籍配置', '书籍封面尺寸', '1024x1536'],
+    ['书单配置', '书单封面尺寸', '1536x1024'],
+  ]) {
+    await user.click(screen.getByRole('tab', { name: tab }));
+    assert.equal(screen.getByLabelText(label).value, expected);
+  }
 
   cleanup();
   globalThis.fetch = originalFetch;
-  console.log('PASS settings tabs retain unsaved writing configuration');
+  console.log('PASS settings tabs expose independent sizes and retain unsaved configuration');
 
   function Categories() {
     const [value, set] = useState(categories);

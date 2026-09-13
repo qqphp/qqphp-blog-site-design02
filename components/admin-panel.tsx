@@ -480,6 +480,8 @@ export function AdminPanel() {
                           ) as unknown as Json;
                         if (section === 'stories' && Array.isArray(value))
                           value = migrateStories(value);
+                        if (section === 'aiSettings')
+                          value = { ...defaults.aiSettings, ...value };
                         validateContent(section, value);
                         if (discard()) {
                           setDraft(value);

@@ -39,17 +39,23 @@ export async function getDocuments() {
   }
   // Existing saved articles predate category IDs and cover generation settings.
   content.copy = migratePageCopy(content.copy);
+  const legacyFilmCoverSettings = !Object.hasOwn(
+    content.aiSettings,
+    'filmCoverSize',
+  );
   content.aiSettings = { ...defaults.aiSettings, ...content.aiSettings };
   const { travelCover: _oldTravelCover, ...pageSettings } = content.pageSettings as typeof content.pageSettings & { travelCover?: unknown };
   content.pageSettings = pageSettings;
-  if (content.aiSettings.filmCoverPrompt.includes('{{excerpt}}'))
-    content.aiSettings.filmCoverPrompt = defaults.aiSettings.filmCoverPrompt;
-  for (const field of ['filmCoverStyle', 'filmCoverPrompt'] as const) {
-    content.aiSettings[field] = content.aiSettings[field]
-      .replaceAll('16:9', '9:16')
-      .replaceAll('2:3', '9:16')
-      .replaceAll('横向', '竖向')
-      .replaceAll('横版', '竖版');
+  if (legacyFilmCoverSettings) {
+    if (content.aiSettings.filmCoverPrompt.includes('{{excerpt}}'))
+      content.aiSettings.filmCoverPrompt = defaults.aiSettings.filmCoverPrompt;
+    for (const field of ['filmCoverStyle', 'filmCoverPrompt'] as const) {
+      content.aiSettings[field] = content.aiSettings[field]
+        .replaceAll('16:9', '9:16')
+        .replaceAll('2:3', '9:16')
+        .replaceAll('横向', '竖向')
+        .replaceAll('横版', '竖版');
+    }
   }
   if (!results.some((row) => row.key === 'categories')) {
     const names = new Set([
