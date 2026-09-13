@@ -1383,6 +1383,9 @@ nav a:hover {
   margin-bottom: 37px;
   border-bottom: 1px solid var(--line);
 }
+.story-feed .content-pagination {
+  padding-left: 30px;
+}
 .post-avatar {
   width: 38px;
   height: 38px;
@@ -1533,6 +1536,9 @@ nav a:hover {
     border-left: 0;
   }
   .story-post {
+    padding-left: 0;
+  }
+  .story-feed .content-pagination {
     padding-left: 0;
   }
   .story-image {

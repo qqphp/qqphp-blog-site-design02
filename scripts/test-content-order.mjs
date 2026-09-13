@@ -176,6 +176,9 @@ try {
     ['最新项目', '旧数据项目', '旧项目'],
   );
   const { default: WritingPage } = await import('../app/writing/page.tsx');
+  const { ProjectShowcase } =
+    await import('../components/project-showcase.tsx');
+  const { default: StoriesPage } = await import('../app/notes/page.tsx');
   const { ContentProvider } =
     await import('../components/content-provider.tsx');
   render(
@@ -232,6 +235,97 @@ try {
   assert.deepEqual(publicTitles(), []);
   assert.ok(screen.getByText('没有找到匹配的文章，换个关键词试试。'));
   console.log('PASS public writing publication order, search order, empty results and unchanged source data');
+  cleanup();
+
+  const pagedArticles = Array.from({ length: 12 }, (_, index) => ({
+    ...defaults.writing[0],
+    slug: `paged-article-${index}`,
+    title: `分页文章 ${index}`,
+    date: `2026.09.${String(index + 1).padStart(2, '0')}`,
+  }));
+  render(
+    h(
+      ContentProvider,
+      {
+        content: { ...defaults, writing: pagedArticles },
+      },
+      h(WritingPage),
+    ),
+  );
+  assert.equal(document.querySelectorAll('.writing-list-item').length, 10);
+  const writingPagination = screen.getByRole('navigation', {
+    name: '文章分页',
+  });
+  assert.match(writingPagination.textContent, /第 1 \/ 2 页/);
+  await user.click(
+    within(writingPagination).getByRole('button', { name: '下一页' }),
+  );
+  assert.equal(document.querySelectorAll('.writing-list-item').length, 2);
+  assert.match(writingPagination.textContent, /第 2 \/ 2 页/);
+  await user.type(
+    screen.getByRole('textbox', { name: '搜索文章' }),
+    '分页文章',
+  );
+  assert.equal(document.querySelectorAll('.writing-list-item').length, 10);
+  assert.match(writingPagination.textContent, /第 1 \/ 2 页/);
+  cleanup();
+
+  const pagedProjects = {
+    ...structuredClone(defaults.projects),
+    items: Array.from({ length: 6 }, (_, index) => ({
+      ...structuredClone(defaults.projects.items[0]),
+      id: `paged-project-${index}`,
+      title: `分页项目 ${index}`,
+    })),
+  };
+  render(
+    h(
+      ContentProvider,
+      {
+        content: { ...defaults, projects: pagedProjects },
+      },
+      h(ProjectShowcase, { initialId: pagedProjects.items[0].id }),
+    ),
+  );
+  assert.equal(document.querySelectorAll('.folio-project').length, 5);
+  const projectPagination = screen.getByRole('navigation', {
+    name: '项目分页',
+  });
+  await user.click(
+    within(projectPagination).getByRole('button', { name: '下一页' }),
+  );
+  assert.equal(document.querySelectorAll('.folio-project').length, 1);
+  assert.equal(
+    document.querySelector('.folio-title h2').textContent,
+    '分页项目 5',
+  );
+  cleanup();
+
+  const pagedStories = Array.from({ length: 11 }, (_, index) => ({
+    ...structuredClone(defaults.stories[0]),
+    id: `paged-story-${index}`,
+    text: `分页说说 ${index}`,
+    date: `2026-09-${String(index + 1).padStart(2, '0')}T12:00:00+08:00`,
+  }));
+  render(
+    h(
+      ContentProvider,
+      {
+        content: { ...defaults, stories: pagedStories },
+      },
+      h(StoriesPage),
+    ),
+  );
+  assert.equal(document.querySelectorAll('.story-post').length, 10);
+  const storyPagination = screen.getByRole('navigation', { name: '说说分页' });
+  await user.click(
+    within(storyPagination).getByRole('button', { name: '下一页' }),
+  );
+  assert.equal(document.querySelectorAll('.story-post').length, 1);
+  assert.match(storyPagination.textContent, /第 2 \/ 2 页/);
+  console.log(
+    'PASS public writing, project and story pagination page sizes and navigation',
+  );
 } finally {
   cleanup();
   window.happyDOM.abort();

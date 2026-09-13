@@ -5,6 +5,9 @@
   padding: 24px 0 24px 32px;
   gap: 16px;
 }
+.writing-archive .content-pagination {
+  padding-left: 32px;
+}
 .writing-list-item {
   display: grid;
   grid-template-columns: minmax(160px, 32%) minmax(0, 1fr);
@@ -78,6 +81,7 @@
 }
 @media (max-width: 900px) {
   .writing-archive .archive-toolbar,
+  .writing-archive .content-pagination,
   .writing-list-item {
     padding-left: 0;
   }

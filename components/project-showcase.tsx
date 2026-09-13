@@ -2,6 +2,10 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CmsText } from '@/components/cms-text';
+import {
+  ContentPagination,
+  paginateItems,
+} from '@/components/content-pagination';
 
 import { useContent } from '@/components/content-provider';
 
@@ -19,11 +23,18 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
   const statuses = ['全部', ...new Set(projects.map(project => project.status))];
   const [status, setStatus] = useState('全部');
   const [selected, setSelected] = useState(initialId);
+  const [page, setPage] = useState(() => {
+    const initialIndex = projects.findIndex(
+      (project) => project.id === initialId,
+    );
+    return Math.floor(Math.max(initialIndex, 0) / 5) + 1;
+  });
   const [imageIndex, setImageIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const visible = projects.filter(
     (project) => status === '全部' || project.status === status,
   );
+  const paginated = paginateItems(visible, page, 5);
   const active =
     visible.find((project) => project.id === selected) ?? visible[0];
   if (!active) return <main className="site-shell"><SiteHeader /><p className="page-intro"><CmsText page="项目页" name="01 暂无已发布项目。" /></p><button type="button" onClick={() => setStatus('全部')}><CmsText page="项目页" name="02 查看全部项目" /></button><SiteFooter /></main>;
@@ -53,7 +64,12 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
               aria-pressed={status === item}
               onClick={() => {
                 setStatus(item);
+                const nextProjects = projects.filter(
+                  (project) => item === '全部' || project.status === item,
+                );
+                setSelected(nextProjects[0]?.id ?? '');
                 setImageIndex(0);
+                setPage(1);
               }}
             >
               {item}
@@ -74,7 +90,7 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
             <span>{String(visible.length).padStart(2, '0')}<CmsText page="项目页" name="05 ENTRIES" /></span>
           </div>
           <div className="folio-project-list">
-            {visible.map((project) => (
+            {paginated.items.map((project) => (
               <button
                 type="button"
                 className="folio-project"
@@ -110,6 +126,19 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
               </button>
             ))}
           </div>
+          <ContentPagination
+            ariaLabel="项目分页"
+            itemCount={visible.length}
+            itemLabel="个项目"
+            page={paginated.currentPage}
+            pageSize={5}
+            onPageChange={(nextPage) => {
+              const next = paginateItems(visible, nextPage, 5);
+              setPage(next.currentPage);
+              setSelected(next.items[0]?.id ?? '');
+              setImageIndex(0);
+            }}
+          />
           <div className="folio-note">
             <span className="folio-eyebrow"><CmsText page="项目页" name="06 ABOUT THIS INDEX" /></span>
             <h3><CmsText page="项目页" name="07 不只陈列结果，" /><br /><CmsText page="项目页" name="08 也留下思考。" /></h3>

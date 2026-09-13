@@ -1,5 +1,9 @@
 'use client';
 import { CmsText } from '@/components/cms-text';
+import {
+  ContentPagination,
+  paginateItems,
+} from '@/components/content-pagination';
 
 import { useContent } from '@/components/content-provider';
 
@@ -24,6 +28,7 @@ export default function StoriesPage() {
     () =>
       Number(latestDate.slice(0, 4)) * 12 + Number(latestDate.slice(5, 7)) - 1,
   );
+  const [page, setPage] = useState(1);
   const year = Math.floor(period / 12);
   const month = (period % 12) + 1;
   const calendar = monthSummary(
@@ -34,6 +39,8 @@ export default function StoriesPage() {
   const yearlyStories = stories.filter((story) =>
     story.date.startsWith(`${year}-`),
   );
+  const sortedStories = newestStoriesFirst(stories);
+  const paginated = paginateItems(sortedStories, page, 10);
 
   return (
     <main className="site-shell">
@@ -112,7 +119,7 @@ export default function StoriesPage() {
           </div>
         </aside>
         <div className="story-feed">
-          {newestStoriesFirst(stories).map((story) => (
+          {paginated.items.map((story) => (
             <article className="story-post" key={story.id}>
               <div className="post-avatar">A</div>
               <div className="post-body">
@@ -137,6 +144,14 @@ export default function StoriesPage() {
               </div>
             </article>
           ))}
+          <ContentPagination
+            ariaLabel="说说分页"
+            itemCount={sortedStories.length}
+            itemLabel="条说说"
+            page={paginated.currentPage}
+            pageSize={10}
+            onPageChange={setPage}
+          />
         </div>
       </section>
       <SiteFooter />

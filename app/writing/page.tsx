@@ -1,6 +1,10 @@
 'use client';
 import { WritingCategoryTree } from '@/components/writing-category-tree';
 import { CmsText } from '@/components/cms-text';
+import {
+  ContentPagination,
+  paginateItems,
+} from '@/components/content-pagination';
 
 import { useContent } from '@/components/content-provider';
 
@@ -18,6 +22,7 @@ export default function WritingPage() {
   const rows = categoryRows(categories);
   const [group, setGroup] = useState('');
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
   const branch = categoryBranch(categories, group);
   const filtered = writing.filter(
     (item) =>
@@ -30,6 +35,7 @@ export default function WritingPage() {
       (Date.parse(b.date.replaceAll('.', '-')) || 0) -
       (Date.parse(a.date.replaceAll('.', '-')) || 0),
   );
+  const paginated = paginateItems(filtered, page, 10);
   return (
     <main className="site-shell">
       <SiteHeader />
@@ -41,7 +47,10 @@ export default function WritingPage() {
         <div className="writing-search">
           <Input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
             placeholder="输入即搜索文章、主题或关键词"
             aria-label="搜索文章"
           />
@@ -61,6 +70,7 @@ export default function WritingPage() {
             type="button"
             onClick={() => {
               setGroup('');
+              setPage(1);
             }}
           >
             <CmsText page="写作页" name="03 全部文章" />
@@ -70,7 +80,10 @@ export default function WritingPage() {
             categories={categories}
             articles={writing}
             selected={group}
-            onSelect={setGroup}
+            onSelect={(categoryId) => {
+              setGroup(categoryId);
+              setPage(1);
+            }}
           />
         </aside>
         <div className="archive-main" id="all">
@@ -83,7 +96,7 @@ export default function WritingPage() {
               <CmsText page="写作页" name="04 按最新发布" />
             </span>
           </div>
-          {filtered.map((entry) => (
+          {paginated.items.map((entry) => (
             <article className="writing-list-item" key={entry.slug}>
               <Link
                 className="writing-list-cover"
@@ -122,6 +135,14 @@ export default function WritingPage() {
               />
             </div>
           )}
+          <ContentPagination
+            ariaLabel="文章分页"
+            itemCount={filtered.length}
+            itemLabel="篇文章"
+            page={paginated.currentPage}
+            pageSize={10}
+            onPageChange={setPage}
+          />
         </div>
       </section>
       <SiteFooter />
