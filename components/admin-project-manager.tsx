@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { Tabs } from '@base-ui/react/tabs';
 import {
@@ -27,6 +27,7 @@ export function AdminProjectManager({
   const [status, setStatus] = useState('');
   const [category, setCategory] = useState('');
   const [page, setPage] = useState(1);
+  const pristineNewId = useRef<string | null>(null);
   const data = resolveProjects(value);
   const current = editing === null ? undefined : data.items[editing];
   const filtered = data.items
@@ -43,12 +44,20 @@ export function AdminProjectManager({
     );
   const paginated = pageRows(filtered, page);
   const changeItems = (items: Project[]) => onChange({ ...value, items });
-  const edit = (updates: Partial<Project>) =>
+  const edit = (updates: Partial<Project>) => {
+    if (current?.id === pristineNewId.current) pristineNewId.current = null;
     changeItems(
       data.items.map((item, index) =>
         index === editing ? { ...item, ...updates } : item,
       ),
     );
+  };
+  function returnToList() {
+    if (current && pristineNewId.current === current.id)
+      changeItems(data.items.filter((item) => item.id !== current.id));
+    pristineNewId.current = null;
+    setEditing(null);
+  }
   function add() {
     const item: Project = {
       id: `project-${crypto.randomUUID().slice(0, 8)}`,
@@ -60,7 +69,7 @@ export function AdminProjectManager({
       category: value.categories[0]?.name ?? '',
       year: String(new Date().getFullYear()),
       createdAt: new Date().toISOString(),
-      role: '',
+      url: '',
       description: '',
       body: '',
       images: [
@@ -69,6 +78,7 @@ export function AdminProjectManager({
       tags: [],
       _published: false,
     };
+    pristineNewId.current = item.id;
     changeItems([...data.items, item]);
     setEditing(data.items.length);
   }
@@ -85,7 +95,7 @@ export function AdminProjectManager({
         {current ? (
           <section className="admin-project-edit">
             <div className="admin-section-heading">
-              <button type="button" onClick={() => setEditing(null)}>
+              <button type="button" onClick={returnToList}>
                 ← 返回项目表格
               </button>
               <span className="admin-help">修改会保留，统一保存栏目后生效</span>
@@ -122,14 +132,19 @@ export function AdminProjectManager({
                   ['title', '项目名称'],
                   ['subtitle', '副标题'],
                   ['year', '年份'],
-                  ['role', '工作范围'],
+                  ['url', '项目网址'],
                 ] as const
               ).map(([key, label]) => (
                 <div className="admin-field" key={key}>
                   <label htmlFor={`project-${key}`}>{label}</label>
                   <input
                     id={`project-${key}`}
+                    type={key === 'url' ? 'url' : 'text'}
                     value={current[key]}
+                    placeholder={
+                      key === 'url' ? 'https://example.com/project' : undefined
+                    }
+                    autoComplete={key === 'url' ? 'url' : undefined}
                     onChange={(e) => edit({ [key]: e.target.value })}
                   />
                 </div>

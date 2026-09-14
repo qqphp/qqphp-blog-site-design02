@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
 import {
   storyDate,
@@ -25,6 +25,7 @@ export function AdminStoryManager({
   const [status, setStatus] = useState('all');
   const [page, setPage] = useState(1);
   const [message, setMessage] = useState('');
+  const pristineNewId = useRef<string | null>(null);
   const story = stories.find((item) => item.id === editing);
   const filtered = newestStoriesFirst(stories).filter(
     (item) =>
@@ -35,11 +36,19 @@ export function AdminStoryManager({
   );
   const paginated = pageRows(filtered, page);
   function update(change: Partial<Story>) {
+    if (editing === pristineNewId.current) pristineNewId.current = null;
     onChange(
       stories.map((item) =>
         item.id === editing ? { ...item, ...change } : item,
       ),
     );
+  }
+  function returnToList() {
+    if (story && pristineNewId.current === story.id)
+      onChange(stories.filter((item) => item.id !== story.id));
+    pristineNewId.current = null;
+    setEditing(null);
+    setMessage('');
   }
   async function imageTask(task: () => Promise<{ src: string; alt: string }>) {
     onWorking(true);
@@ -59,10 +68,7 @@ export function AdminStoryManager({
       <div className="admin-form admin-story-editor">
         <button
           type="button"
-          onClick={() => {
-            setEditing(null);
-            setMessage('');
-          }}
+          onClick={returnToList}
         >
           ← 返回说说列表
         </button>
@@ -195,19 +201,27 @@ export function AdminStoryManager({
             update({ topics: normalizeStoryTopics(topics) })
           }
         />
-        <div className="admin-field admin-story-status">
-          <label htmlFor="story-status">发布状态</label>
-          <select
-            id="story-status"
-            value={story._published ? 'published' : 'draft'}
-            onChange={(e) =>
-              update({ _published: e.target.value === 'published' })
-            }
-          >
-            <option value="draft">草稿</option>
-            <option value="published">已发布</option>
-          </select>
-        </div>
+        <fieldset className="admin-choice admin-story-status">
+          <legend>发布状态</legend>
+          <label>
+            <input
+              type="radio"
+              name={`story-publication-${story.id}`}
+              checked={!story._published}
+              onChange={() => update({ _published: false })}
+            />
+            草稿
+          </label>
+          <label>
+            <input
+              type="radio"
+              name={`story-publication-${story.id}`}
+              checked={story._published}
+              onChange={() => update({ _published: true })}
+            />
+            发布到前台
+          </label>
+        </fieldset>
       </div>
     );
   return (
@@ -246,6 +260,7 @@ export function AdminStoryManager({
               images: [],
               _published: false,
             };
+            pristineNewId.current = item.id;
             onChange([...stories, item]);
             setEditing(item.id);
           }}

@@ -261,6 +261,10 @@ try {
   await user.click(
     screen.getAllByRole('button', { name: '编辑', exact: true })[0],
   );
+  assert.ok(screen.getByRole('radio', { name: '草稿', exact: true }));
+  assert.ok(
+    screen.getByRole('radio', { name: '发布到前台', exact: true }),
+  );
   await user.type(screen.getByLabelText('文字'), ' 说说草稿');
   assert.equal(
     screen.getByLabelText('发布日期（北京时间）').type,
@@ -322,11 +326,25 @@ try {
     '/api/media/generated.png',
   );
   assert.equal(screen.queryByRole('button', { name: '评论与回复' }), null);
+  const storyRowsBeforeEmptyDraft = screen.getAllByRole('row').length;
   await user.click(screen.getByRole('button', { name: '＋ 新增说说' }));
-  assert.equal(screen.getByLabelText('发布状态').value, 'draft');
-  await user.selectOptions(screen.getByLabelText('发布状态'), 'published');
-  assert.equal(screen.getByLabelText('发布状态').value, 'published');
-  await user.selectOptions(screen.getByLabelText('发布状态'), 'draft');
+  await user.click(screen.getByRole('button', { name: '← 返回说说列表' }));
+  assert.equal(screen.getAllByRole('row').length, storyRowsBeforeEmptyDraft);
+  await user.click(screen.getByRole('button', { name: '＋ 新增说说' }));
+  const draftPublication = screen.getByRole('radio', {
+    name: '草稿',
+    exact: true,
+  });
+  const publicPublication = screen.getByRole('radio', {
+    name: '发布到前台',
+    exact: true,
+  });
+  assert.equal(draftPublication.checked, true);
+  assert.equal(publicPublication.checked, false);
+  await user.click(publicPublication);
+  assert.equal(publicPublication.checked, true);
+  await user.click(draftPublication);
+  assert.equal(draftPublication.checked, true);
   await user.type(screen.getByLabelText('文字'), '新建默认草稿');
   fireEvent.change(screen.getByLabelText('发布日期（北京时间）'), {
     target: { value: '2030-01-01T00:00:01' },
@@ -352,7 +370,7 @@ try {
     'PASS default saved draft, newest-first admin rows, normalized topics and compact fields',
   );
   console.log(
-    'PASS story table, tabs, second precision, topics, images and removed comment entry',
+    'PASS story table, empty-new discard, tabs, second precision, topics, images and removed comment entry',
   );
   cleanup();
   globalThis.fetch = realFetch;
@@ -480,6 +498,8 @@ try {
     next: '旧下一步',
   };
   const migratedProjects = migrateProjects([legacyProject]);
+  assert.equal(migratedProjects.items[0].url, '');
+  assert.ok(!('role' in migratedProjects.items[0]));
   for (const key of ['number', 'question', 'decisions', 'steps', 'next'])
     assert.ok(!(key in migratedProjects.items[0]));
   function Projects() {
@@ -488,6 +508,21 @@ try {
   }
   render(h(Projects));
   assert.ok(screen.getByRole('table'));
+  const projectRowsBeforeEmptyDraft = screen.getAllByRole('row').length;
+  await user.click(screen.getByRole('button', { name: '＋ 新增项目' }));
+  await user.click(screen.getByRole('button', { name: '← 返回项目表格' }));
+  assert.equal(screen.getAllByRole('row').length, projectRowsBeforeEmptyDraft);
+  await user.click(screen.getByRole('button', { name: '＋ 新增项目' }));
+  await user.type(screen.getByLabelText('项目名称'), '应保留项目');
+  await user.click(screen.getByRole('button', { name: '← 返回项目表格' }));
+  const retainedProjectRow = screen
+    .getByRole('button', { name: '应保留项目' })
+    .closest('tr');
+  assert.ok(retainedProjectRow);
+  await user.click(
+    within(retainedProjectRow).getByRole('button', { name: '删除' }),
+  );
+  assert.equal(screen.getAllByRole('row').length, projectRowsBeforeEmptyDraft);
   await user.click(screen.getByRole('tab', { name: '项目状态' }));
   const statusInput = screen.getByLabelText('项目状态 1');
   await user.clear(statusInput);
@@ -504,7 +539,18 @@ try {
     migratedProjects.statuses[0].id,
   );
   assert.ok(screen.getByLabelText('项目分类'));
+  assert.ok(screen.getByLabelText('项目网址'));
   assert.ok(screen.getByLabelText('摘要'));
+  assert.equal(
+    screen.getByLabelText('已有素材地址').placeholder,
+    '/media/图片文件名，或完整 https:// 地址',
+  );
+  assert.ok(document.querySelector('.admin-project-upload-source'));
+  assert.ok(
+    document
+      .querySelector('.admin-project-image')
+      .firstElementChild.classList.contains('admin-section-heading'),
+  );
   assert.equal(screen.queryByLabelText('编号'), null);
   assert.equal(screen.queryByLabelText('起点问题'), null);
   await user.type(screen.getByLabelText('项目说明 Markdown'), '## 新项目说明');
@@ -524,7 +570,7 @@ try {
   assert.ok(screen.getByRole('cell', { name: '新分类' }));
   cleanup();
   console.log(
-    'PASS project table, taxonomy tabs/rename/deletion protection, simplified editor and Markdown draft retention',
+    'PASS project table, empty-new discard, taxonomy tabs/rename/deletion protection, simplified editor and Markdown draft retention',
   );
   function Models() {
     const [value, set] = useState('gpt-current');
@@ -708,6 +754,21 @@ try {
   }
   render(h(Writing));
   assert.equal(screen.getAllByRole('row').length, 3);
+  const writingRowsBeforeEmptyDraft = screen.getAllByRole('row').length;
+  await user.click(screen.getByRole('button', { name: '＋ 新增文章' }));
+  await user.click(screen.getByRole('button', { name: '← 返回文章表格' }));
+  assert.equal(screen.getAllByRole('row').length, writingRowsBeforeEmptyDraft);
+  await user.click(screen.getByRole('button', { name: '＋ 新增文章' }));
+  await user.type(screen.getByLabelText('文章标题'), '应保留文章');
+  await user.click(screen.getByRole('button', { name: '← 返回文章表格' }));
+  const retainedArticleRow = screen
+    .getByRole('button', { name: '应保留文章' })
+    .closest('tr');
+  assert.ok(retainedArticleRow);
+  await user.click(
+    within(retainedArticleRow).getByRole('button', { name: '删除' }),
+  );
+  assert.equal(screen.getAllByRole('row').length, writingRowsBeforeEmptyDraft);
   await user.selectOptions(
     screen.getByLabelText('按发布状态筛选文章'),
     'draft',
@@ -748,7 +809,7 @@ try {
   assert.equal(screen.getAllByRole('row').length, 1);
   cleanup();
   console.log(
-    'PASS article table filtering, editing, portalled date selection, return and publication action',
+    'PASS article table empty-new discard, filtering, editing, portalled date selection, return and publication action',
   );
   const { AdminDirectoryManager } =
     await import('../components/admin-directory-manager.tsx');
@@ -805,6 +866,12 @@ try {
       latest.categories[1].id,
     );
     assert.equal(screen.getAllByRole('row').length, 1);
+    const itemCountBeforeEmptyDraft = latest.items.length;
+    await user.click(screen.getByRole('button', { name: `＋ 新增${label}` }));
+    await user.click(
+      screen.getByRole('button', { name: `← 返回${label}表格` }),
+    );
+    assert.equal(latest.items.length, itemCountBeforeEmptyDraft);
     await user.click(screen.getByRole('button', { name: `＋ 新增${label}` }));
     await user.type(screen.getByLabelText(`${label}名称`), '新条目');
     await user.type(screen.getByLabelText('网站地址'), 'https://example.org');
@@ -822,7 +889,7 @@ try {
     cleanup();
   }
   console.log(
-    'PASS bookmark and friend tables, search, category filters, rename, protected deletion, creation and publication',
+    'PASS bookmark and friend tables, empty-new discard, search, category filters, rename, protected deletion, creation and publication',
   );
   const { AiNotebook } = await import('../components/ai-notebook.tsx');
   const { aiSkills, aiRelays, aiPlans } =

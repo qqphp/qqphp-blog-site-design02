@@ -321,6 +321,14 @@ export function validateContent(key: Section, value: unknown) {
     for (const item of document.items) {
       if (item.createdAt && (!Number.isFinite(Date.parse(item.createdAt)) || new Date(item.createdAt).toISOString() !== item.createdAt))
         throw new Error('请选择有效的项目创建时间');
+      if (item.url) {
+        try {
+          const url = new URL(item.url);
+          if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
+        } catch {
+          throw new Error('请填写完整的 http(s) 项目网址');
+        }
+      }
       if (item.images.some((image) => !['upload', 'ai'].includes(image.mode)))
         throw new Error('请选择项目图片来源');
       if (!document.statuses.some((option) => option.id === item.statusId))

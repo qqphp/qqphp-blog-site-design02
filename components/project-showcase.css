@@ -48,6 +48,9 @@
 .folio-facts { display:grid; grid-template-columns:1fr 2fr; border-block:1px solid var(--line); padding:19px 0; margin-bottom:28px; gap:20px; }
 .folio-facts dt { font-size:12px; color:var(--muted); margin-bottom:7px; }
 .folio-facts dd { font-size:14px; line-height:1.7; }
+.folio-project-url { color:var(--ink); text-decoration:underline; text-decoration-color:color-mix(in srgb,var(--lime) 70%,transparent); text-underline-offset:4px; overflow-wrap:anywhere; word-break:break-all; }
+.folio-project-url:hover { color:var(--lime); }
+.folio-project-url-empty { color:var(--muted); }
 .folio-question { position:relative; overflow:hidden; background:color-mix(in srgb,var(--lime) 7%,var(--navy)); border-left:3px solid var(--lime); padding:26px; margin-bottom:32px; }
 .folio-question h3 { position:relative; z-index:1; font-size:clamp(20px,2vw,26px); line-height:1.65; margin-top:10px; max-width:85%; }
 .folio-question-mark { position:absolute; right:15px; top:-20px; font-size:150px; line-height:1.2; font-weight:700; color:var(--lime); opacity:.12; }

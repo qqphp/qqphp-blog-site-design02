@@ -1,5 +1,6 @@
 import { ProjectShowcase } from '@/components/project-showcase';
 import { getPublicContent } from '@/lib/cms-server';
+import { newestProjectsFirst } from '@/lib/content-order';
 
 export default async function ProjectsPage({
   searchParams,
@@ -8,8 +9,8 @@ export default async function ProjectsPage({
 }) {
   const { projects: showcaseProjects } = await getPublicContent();
   const { project } = await searchParams;
+  const projects = newestProjectsFirst(showcaseProjects.items);
   const initialId =
-    showcaseProjects.items.find((item) => item.id === project)?.id ??
-    showcaseProjects.items[0]?.id ?? '';
+    projects.find((item) => item.id === project)?.id ?? projects[0]?.id ?? '';
   return <ProjectShowcase key={initialId} initialId={initialId} />;
 }

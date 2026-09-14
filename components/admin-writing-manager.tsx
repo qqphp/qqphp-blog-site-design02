@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import type { Content } from '@/lib/cms-defaults';
 import { categoryBranch, categoryRows } from '@/lib/article-categories';
@@ -24,6 +24,7 @@ export function AdminWritingManager({
   const [status, setStatus] = useState('all');
   const [category, setCategory] = useState('');
   const [page, setPage] = useState(1);
+  const pristineNewSlug = useRef<string | null>(null);
   const index = editing !== null && articles[editing] ? editing : -1;
   const rows = categoryRows(categories);
   const paths = new Map(rows.map((row) => [row.category.id, row.path]));
@@ -43,6 +44,13 @@ export function AdminWritingManager({
         (Date.parse(a.date.replaceAll('.', '-')) || 0),
     );
   const paginated = pageRows(filtered, page);
+  function returnToList() {
+    const article = index >= 0 ? articles[index] : undefined;
+    if (article && pristineNewSlug.current === article.slug)
+      onChange(articles.filter((_, itemIndex) => itemIndex !== index));
+    pristineNewSlug.current = null;
+    setEditing(null);
+  }
   function add() {
     const article: Article = {
       slug: `article-${crypto.randomUUID().slice(0, 8)}`,
@@ -57,6 +65,7 @@ export function AdminWritingManager({
       date: format(new Date(), 'yyyy.MM.dd'),
       _published: false,
     };
+    pristineNewSlug.current = article.slug;
     onChange([...articles, article]);
     setEditing(articles.length);
   }
@@ -64,7 +73,7 @@ export function AdminWritingManager({
     return (
       <section className="admin-article-edit">
         <div className="admin-section-heading">
-          <button type="button" onClick={() => setEditing(null)}>
+          <button type="button" onClick={returnToList}>
             ← 返回文章表格
           </button>
           <span className="admin-help">编辑会保留，点击“保存栏目”后生效</span>
@@ -75,6 +84,8 @@ export function AdminWritingManager({
           onWorking={onWorking}
           disabled={busy}
           onChange={(article) => {
+            if (pristineNewSlug.current === articles[index].slug)
+              pristineNewSlug.current = null;
             onChange(articles.map((old, i) => (i === index ? article : old)));
           }}
         />

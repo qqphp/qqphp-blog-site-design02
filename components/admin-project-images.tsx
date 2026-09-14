@@ -91,6 +91,45 @@ export function AdminProjectImages({
       </p>
       {project.images.map((item, index) => (
         <div className="admin-project-image" key={index}>
+          <div className="admin-section-heading">
+            <strong>
+              {index === 0 ? '项目封面' : `图片 ${index + 1}`}
+            </strong>
+            <div className="admin-row-actions">
+              {[-1, 1].map((direction) => (
+                <button
+                  key={direction}
+                  type="button"
+                  disabled={
+                    busy ||
+                    index + direction < 0 ||
+                    index + direction >= project.images.length
+                  }
+                  onClick={() => {
+                    const images = [...project.images];
+                    [images[index], images[index + direction]] = [
+                      images[index + direction],
+                      images[index],
+                    ];
+                    onChange(images);
+                  }}
+                >
+                  {direction < 0 ? '上移' : '下移'}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={busy}
+                className="admin-danger"
+                onClick={() => {
+                  if (window.confirm('移除此图片？原文件仍保留在素材库。'))
+                    onChange(project.images.filter((_, i) => i !== index));
+                }}
+              >
+                移除
+              </button>
+            </div>
+          </div>
           <div className="admin-cover-layout">
             <div className="admin-cover-image">
               {item.src ? (
@@ -106,45 +145,6 @@ export function AdminProjectImages({
               )}
             </div>
             <div className="admin-project-image-fields">
-              <div className="admin-section-heading">
-                <strong>
-                  {index === 0 ? '项目封面' : `图片 ${index + 1}`}
-                </strong>
-                <div className="admin-row-actions">
-                  {[-1, 1].map((direction) => (
-                    <button
-                      key={direction}
-                      type="button"
-                      disabled={
-                        busy ||
-                        index + direction < 0 ||
-                        index + direction >= project.images.length
-                      }
-                      onClick={() => {
-                        const images = [...project.images];
-                        [images[index], images[index + direction]] = [
-                          images[index + direction],
-                          images[index],
-                        ];
-                        onChange(images);
-                      }}
-                    >
-                      {direction < 0 ? '上移' : '下移'}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="admin-danger"
-                    onClick={() => {
-                      if (window.confirm('移除此图片？原文件仍保留在素材库。'))
-                        onChange(project.images.filter((_, i) => i !== index));
-                    }}
-                  >
-                    移除
-                  </button>
-                </div>
-              </div>
               <div className="admin-choice">
                 <label>
                   <input
@@ -193,7 +193,7 @@ export function AdminProjectImages({
                   </small>
                 </div>
               ) : (
-                <div className="admin-image-source">
+                <div className="admin-image-source admin-project-upload-source">
                   <label className="admin-file-button">
                     上传项目图片
                     <input
@@ -224,13 +224,20 @@ export function AdminProjectImages({
                       }}
                     />
                   </label>
+                  <span
+                    className="admin-project-source-separator"
+                    aria-hidden="true"
+                  >
+                    或
+                  </span>
                   <label
-                    className="admin-field"
+                    className="admin-field admin-project-source-field"
                     htmlFor={`project-image-src-${index}`}
                   >
-                    已有素材地址
+                    <span>已有素材地址</span>
                     <input
                       id={`project-image-src-${index}`}
+                      placeholder="/media/图片文件名，或完整 https:// 地址"
                       value={item.src}
                       onChange={(e) =>
                         updateImage(index, {

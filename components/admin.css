@@ -1345,14 +1345,17 @@ body:has(.admin-login) .music-dock {
 .admin-project-image + .admin-project-image {
   border-top: 1px solid #e4e9e0;
 }
+.admin-project-image > .admin-section-heading {
+  margin-bottom: 14px;
+}
+.admin-project-image > .admin-cover-layout {
+  margin-top: 0;
+}
 .admin-project-image-fields {
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-.admin-project-image-fields .admin-section-heading {
-  margin-bottom: 0;
 }
 .admin-image-source {
   display: flex;
@@ -1366,6 +1369,41 @@ body:has(.admin-login) .music-dock {
 .admin-image-source small {
   color: #718174;
   font-size: 12px;
+}
+.admin-project-upload-source {
+  display: grid;
+  grid-template-columns: max-content 28px minmax(0, 1fr);
+  align-items: end;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #dfe5dc;
+  border-radius: 4px;
+}
+.admin-project-upload-source .admin-file-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  width: fit-content;
+  font-weight: 600;
+}
+.admin-project-source-separator {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  color: #819083;
+  font-size: 12px;
+}
+.admin-project-source-field {
+  display: grid;
+  gap: 7px;
+}
+.admin-project-source-field > span {
+  color: #52665a;
+  font-size: 12px;
+  font-weight: 700;
+}
+.admin-project-source-field input {
+  min-height: 42px;
 }
 .admin-tag-input {
   display: flex;
@@ -1382,6 +1420,14 @@ body:has(.admin-login) .music-dock {
   list-style: none;
   margin: 10px 0 0;
   padding: 0;
+}
+@media (max-width: 700px) {
+  .admin-project-upload-source {
+    grid-template-columns: 1fr;
+  }
+  .admin-project-source-separator {
+    display: none;
+  }
 }
 .admin-tags li {
   display: flex;

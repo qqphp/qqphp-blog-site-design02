@@ -153,10 +153,21 @@ try {
   cleanup();
   const legacy = structuredClone(defaults.projects);
   delete legacy.items[0].createdAt;
-  assert.equal(resolveProjects(legacy).items[0].createdAt, '');
+  delete legacy.items[0].url;
+  legacy.items[0].role = '旧工作范围';
+  const resolvedLegacy = resolveProjects(legacy);
+  assert.equal(resolvedLegacy.items[0].createdAt, '');
+  assert.equal(resolvedLegacy.items[0].url, '');
+  assert.ok(!('role' in resolvedLegacy.items[0]));
   const invalid = structuredClone(defaults.projects);
   invalid.items[0].createdAt = 'not-a-date';
   assert.throws(() => validateContent('projects', invalid), /创建时间/);
+  const invalidProjectUrl = structuredClone(defaults.projects);
+  invalidProjectUrl.items[0].url = '/project';
+  assert.throws(
+    () => validateContent('projects', invalidProjectUrl),
+    /完整的 http\(s\) 项目网址/,
+  );
   const homeArticles = newestArticlesFirst([
     { title: '旧文章', date: '2024.01.01' },
     { title: '最新文章', date: '2026.09.12' },
@@ -236,6 +247,64 @@ try {
   assert.ok(screen.getByText('没有找到匹配的文章，换个关键词试试。'));
   console.log('PASS public writing publication order, search order, empty results and unchanged source data');
   cleanup();
+
+  const publicProjects = {
+    ...structuredClone(defaults.projects),
+    items: [
+      {
+        ...structuredClone(defaults.projects.items[0]),
+        id: 'old-project',
+        title: '旧项目',
+        category: '分类甲',
+        createdAt: '2024-01-01T00:00:00.000Z',
+      },
+      {
+        ...structuredClone(defaults.projects.items[0]),
+        id: 'new-project',
+        title: '最新项目',
+        category: '分类乙',
+        url: 'https://example.com/projects/new-project?view=full',
+        createdAt: '2026-09-12T00:00:00.000Z',
+      },
+      {
+        ...structuredClone(defaults.projects.items[0]),
+        id: 'middle-project',
+        title: '较新项目',
+        category: '分类甲',
+        createdAt: '2025-06-01T00:00:00.000Z',
+      },
+    ],
+  };
+  const publicProjectSourceOrder = structuredClone(publicProjects.items);
+  render(
+    h(
+      ContentProvider,
+      { content: { ...defaults, projects: publicProjects } },
+      h(ProjectShowcase, { initialId: 'new-project' }),
+    ),
+  );
+  const publicProjectTitles = () =>
+    Array.from(document.querySelectorAll('.folio-project h2'), (element) =>
+      element.textContent.replace('↗', ''),
+    );
+  assert.deepEqual(publicProjectTitles(), ['最新项目', '较新项目', '旧项目']);
+  assert.deepEqual(publicProjects.items, publicProjectSourceOrder);
+  assert.ok(screen.getByRole('region', { name: '项目分类筛选' }));
+  assert.ok(screen.getByText('项目分类'));
+  assert.equal(
+    screen.getByRole('link', {
+      name: 'https://example.com/projects/new-project?view=full',
+    }).href,
+    'https://example.com/projects/new-project?view=full',
+  );
+  assert.equal(screen.queryByRole('button', { name: /进行中/ }), null);
+  await user.click(screen.getByRole('button', { name: /分类甲\s*2/ }));
+  assert.deepEqual(publicProjectTitles(), ['较新项目', '旧项目']);
+  assert.equal(document.querySelector('.folio-title h2').textContent, '较新项目');
+  cleanup();
+  console.log(
+    'PASS public projects filter by category and render newest creation time first without mutating source data',
+  );
 
   const pagedArticles = Array.from({ length: 12 }, (_, index) => ({
     ...defaults.writing[0],

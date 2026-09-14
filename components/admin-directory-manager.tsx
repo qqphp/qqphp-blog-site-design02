@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Tabs } from '@base-ui/react/tabs';
 import {
   resolveDirectory,
@@ -23,16 +23,25 @@ export function AdminDirectoryManager({
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const [page, setPage] = useState(1);
+  const pristineNewId = useRef<string | null>(null);
   const data = resolveDirectory(value);
   const current = data.items.find((item) => item.id === editing);
   const change = (next: DirectoryDocument) => onChange(resolveDirectory(next));
   const changeItems = (items: DirectoryItem[]) => change({ ...data, items });
-  const edit = (updates: Partial<DirectoryItem>) =>
+  const edit = (updates: Partial<DirectoryItem>) => {
+    if (current?.id === pristineNewId.current) pristineNewId.current = null;
     changeItems(
       data.items.map((item) =>
         item.id === editing ? { ...item, ...updates } : item,
       ),
     );
+  };
+  function returnToList() {
+    if (current && pristineNewId.current === current.id)
+      changeItems(data.items.filter((item) => item.id !== current.id));
+    pristineNewId.current = null;
+    setEditing(null);
+  }
   const filtered = data.items.filter(
     (item) =>
       (!category || item.categoryId === category) &&
@@ -54,7 +63,7 @@ export function AdminDirectoryManager({
         {current ? (
           <section className="admin-project-edit">
             <div className="admin-section-heading">
-              <button type="button" onClick={() => setEditing(null)}>
+              <button type="button" onClick={returnToList}>
                 ← 返回{label}表格
               </button>
               <span className="admin-help">修改会保留，统一保存栏目后生效</span>
@@ -186,6 +195,7 @@ export function AdminDirectoryManager({
                     initials: '',
                     _published: false,
                   };
+                  pristineNewId.current = item.id;
                   changeItems([...data.items, item]);
                   setEditing(item.id);
                 }}

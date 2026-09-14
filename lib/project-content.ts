@@ -27,7 +27,7 @@ export type Project = {
   categoryId: string;
   year: string;
   createdAt: string;
-  role: string;
+  url: string;
   description: string;
   body: string;
   images: ProjectImage[];
@@ -44,6 +44,7 @@ type LegacyProject = Omit<
   'statusId' | 'categoryId' | 'body' | '_published' | 'images' | 'createdAt'
 > &
   Partial<Pick<Project, 'body' | '_published' | 'createdAt'>> & {
+    role?: string;
     images: { src: string; label: string; alt: string }[];
   };
 export function migrateProjects(items: LegacyProject[]): ProjectDocument {
@@ -64,7 +65,7 @@ export function migrateProjects(items: LegacyProject[]): ProjectDocument {
       categoryId: categoryId(item.category),
       year: item.year,
       createdAt: item.createdAt ?? '',
-      role: item.role,
+      url: item.url ?? '',
       description: item.description,
       body: item.body ?? '',
       images: item.images.map((image) => ({
@@ -80,20 +81,25 @@ export function migrateProjects(items: LegacyProject[]): ProjectDocument {
 export function resolveProjects(document: ProjectDocument): ProjectDocument {
   return {
     ...document,
-    items: document.items.map((item) => ({
-      ...item,
-      createdAt: item.createdAt ?? '',
-      images: item.images.map((image) => ({
-        ...image,
-        mode: image.mode ?? 'upload',
-        generatedFor: image.generatedFor ?? '',
-      })),
-      status:
-        document.statuses.find((option) => option.id === item.statusId)?.name ??
-        item.status,
-      category:
-        document.categories.find((option) => option.id === item.categoryId)
-          ?.name ?? item.category,
-    })),
+    items: document.items.map((item) => {
+      const normalized = { ...item } as Project & { role?: string };
+      delete normalized.role;
+      return {
+        ...normalized,
+        createdAt: normalized.createdAt ?? '',
+        url: normalized.url ?? '',
+        images: normalized.images.map((image) => ({
+          ...image,
+          mode: image.mode ?? 'upload',
+          generatedFor: image.generatedFor ?? '',
+        })),
+        status:
+          document.statuses.find((option) => option.id === item.statusId)
+            ?.name ?? item.status,
+        category:
+          document.categories.find((option) => option.id === item.categoryId)
+            ?.name ?? item.category,
+      };
+    }),
   };
 }

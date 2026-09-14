@@ -8,6 +8,7 @@ import {
 } from '@/components/content-pagination';
 
 import { useContent } from '@/components/content-provider';
+import { newestProjectsFirst } from '@/lib/content-order';
 
 import Image from 'next/image';
 import { useState } from 'react';
@@ -19,9 +20,12 @@ import '@/components/project-showcase.css';
 
 export function ProjectShowcase({ initialId }: { initialId: string }) {
   const { projects: projectDocument } = useContent();
-  const projects = projectDocument.items;
-  const statuses = ['全部', ...new Set(projects.map(project => project.status))];
-  const [status, setStatus] = useState('全部');
+  const projects = newestProjectsFirst(projectDocument.items);
+  const categories = [
+    '全部',
+    ...new Set(projects.map((project) => project.category)),
+  ];
+  const [category, setCategory] = useState('全部');
   const [selected, setSelected] = useState(initialId);
   const [page, setPage] = useState(() => {
     const initialIndex = projects.findIndex(
@@ -32,12 +36,12 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
   const [imageIndex, setImageIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const visible = projects.filter(
-    (project) => status === '全部' || project.status === status,
+    (project) => category === '全部' || project.category === category,
   );
   const paginated = paginateItems(visible, page, 5);
   const active =
     visible.find((project) => project.id === selected) ?? visible[0];
-  if (!active) return <main className="site-shell"><SiteHeader /><p className="page-intro"><CmsText page="项目页" name="01 暂无已发布项目。" /></p><button type="button" onClick={() => setStatus('全部')}><CmsText page="项目页" name="02 查看全部项目" /></button><SiteFooter /></main>;
+  if (!active) return <main className="site-shell"><SiteHeader /><p className="page-intro"><CmsText page="项目页" name="01 暂无已发布项目。" /></p><button type="button" onClick={() => setCategory('全部')}><CmsText page="项目页" name="02 查看全部项目" /></button><SiteFooter /></main>;
   const currentImage = active.images[imageIndex] ?? active.images[0];
   const previousImage = () =>
     setImageIndex(
@@ -53,19 +57,19 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
         title="从一个想法，到一件作品。"
         text="收录产品原型、设计探索与个人工具，记录每个项目的构思、实现与迭代。"
       />
-      <section className="folio-toolbar" aria-label="项目状态筛选">
+      <section className="folio-toolbar" aria-label="项目分类筛选">
         <span className="folio-eyebrow"><CmsText page="项目页" name="03 PROJECT INDEX /" />{String(projects.length).padStart(2, '0')}
         </span>
         <div>
-          {statuses.map((item) => (
+          {categories.map((item) => (
             <button
               type="button"
               key={item}
-              aria-pressed={status === item}
+              aria-pressed={category === item}
               onClick={() => {
-                setStatus(item);
+                setCategory(item);
                 const nextProjects = projects.filter(
-                  (project) => item === '全部' || project.status === item,
+                  (project) => item === '全部' || project.category === item,
                 );
                 setSelected(nextProjects[0]?.id ?? '');
                 setImageIndex(0);
@@ -76,7 +80,7 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
               <small>
                 {item === '全部'
                   ? projects.length
-                  : projects.filter((project) => project.status === item)
+                  : projects.filter((project) => project.category === item)
                       .length}
               </small>
             </button>
@@ -220,12 +224,25 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
           </div>
           <dl className="folio-facts">
             <div>
-              <dt><CmsText page="项目页" name="13 项目方向" /></dt>
+              <dt><CmsText page="项目页" name="13 项目分类" /></dt>
               <dd>{active.category}</dd>
             </div>
             <div>
-              <dt><CmsText page="项目页" name="14 工作范围" /></dt>
-              <dd>{active.role}</dd>
+              <dt><CmsText page="项目页" name="14 项目网址" /></dt>
+              <dd>
+                {active.url ? (
+                  <a
+                    className="folio-project-url"
+                    href={active.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {active.url}
+                  </a>
+                ) : (
+                  <span className="folio-project-url-empty">暂未提供</span>
+                )}
+              </dd>
             </div>
           </dl>
           {active.body && <section className="folio-markdown"><h3>项目说明</h3><ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>{active.body}</ReactMarkdown></section>}
