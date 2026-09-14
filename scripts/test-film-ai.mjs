@@ -9,6 +9,9 @@ const settings = {
   imageModel: 'test-image-model',
   coverSize: '2048x1152',
   projectImageSize: '1920x1088',
+  storyImageSize: '1792x1024',
+  storyImageStyle: 'STORY DOCUMENTARY',
+  storyImagePrompt: 'STORY TOPICS {{title}} / TEXT {{excerpt}} / STYLE {{style}}',
   playlistCoverSize: '1280x1280',
   filmCoverSize: '1024x1792',
   podcastCoverSize: '1792x1024',
@@ -147,6 +150,12 @@ try {
   assert.equal(requests.at(-1).size, settings.coverSize);
   await generateCover('项目名称', '项目摘要', '项目副标题');
   assert.equal(requests.at(-1).size, settings.projectImageSize);
+  await generateCover('话题一、话题二', '说说文字内容', undefined, true);
+  assert.equal(requests.at(-1).size, settings.storyImageSize);
+  assert.equal(
+    requests.at(-1).prompt,
+    'STORY TOPICS 话题一、话题二 / TEXT 说说文字内容 / STYLE STORY DOCUMENTARY',
+  );
   console.log('PASS every configured image category uses its independent size');
   console.log('PASS travel/hobby/book prompts, optional author, image sizes and media storage');
   console.log(

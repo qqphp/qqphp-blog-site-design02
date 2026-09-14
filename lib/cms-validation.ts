@@ -20,6 +20,7 @@ export function isSection(key: string): key is Section {
 const imageSizeFields = [
   ['文章封面', 'coverSize'],
   ['项目图片', 'projectImageSize'],
+  ['说说图片', 'storyImageSize'],
   ['歌单封面', 'playlistCoverSize'],
   ['电影封面', 'filmCoverSize'],
   ['播客封面', 'podcastCoverSize'],
@@ -290,6 +291,12 @@ export function validateContent(key: Section, value: unknown) {
       )
     )
       throw new Error('项目图片提示词须包含名称、副标题和摘要占位符');
+    if (
+      !['title', 'excerpt'].every((key) =>
+        settings.storyImagePrompt.includes('{{' + key + '}}'),
+      )
+    )
+      throw new Error('说说图片提示词须包含话题和文字占位符');
   }
   if (key === 'bookmarks' || key === 'friends') {
     const document = value as typeof defaults.bookmarks;

@@ -308,6 +308,8 @@ try {
       'PRIVATE_FILM_PROMPT {{title}} {{director}} {{style}} 16:9 横版',
     projectImagePrompt:
       'PRIVATE_PROJECT_PROMPT {{title}} {{subtitle}} {{excerpt}} {{style}}',
+    storyImagePrompt:
+      'PRIVATE_STORY_PROMPT {{title}} {{excerpt}} {{style}}',
   };
   await save('aiSettings', aiSettings);
   const savedAiSettings = (await request('/api/admin/content')).json().content
@@ -315,6 +317,7 @@ try {
   assert.equal(savedAiSettings.filmCoverSize, aiSettings.filmCoverSize);
   assert.equal(savedAiSettings.filmCoverStyle, aiSettings.filmCoverStyle);
   assert.equal(savedAiSettings.filmCoverPrompt, aiSettings.filmCoverPrompt);
+  assert.equal(savedAiSettings.storyImagePrompt, aiSettings.storyImagePrompt);
   for (const invalidSize of [
     '1024',
     '1025x1024',
@@ -361,6 +364,12 @@ try {
   await save(
     'aiSettings',
     { ...aiSettings, projectImagePrompt: 'no placeholders' },
+    revisions.aiSettings,
+    400,
+  );
+  await save(
+    'aiSettings',
+    { ...aiSettings, storyImagePrompt: 'missing topic and text placeholders' },
     revisions.aiSettings,
     400,
   );

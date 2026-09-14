@@ -82,6 +82,13 @@ export function AdminStoryManager({
             onChange={(e) => update({ text: e.target.value })}
           />
         </div>
+        <AdminTags
+          label="话题"
+          value={story.topics}
+          onChange={(topics) =>
+            update({ topics: normalizeStoryTopics(topics) })
+          }
+        />
         <section className="admin-story-images" aria-label="说说图片">
           <h3>图片</h3>
           <div className="admin-story-image-list">
@@ -94,19 +101,6 @@ export function AdminStoryManager({
                   height={160}
                   unoptimized
                 />
-                <label>
-                  图片说明
-                  <input
-                    value={image.alt}
-                    onChange={(e) =>
-                      update({
-                        images: story.images.map((item, i) =>
-                          i === index ? { ...item, alt: e.target.value } : item,
-                        ),
-                      })
-                    }
-                  />
-                </label>
                 <div className="admin-row-actions">
                   <button
                     type="button"
@@ -194,13 +188,6 @@ export function AdminStoryManager({
             }
           />
         </div>
-        <AdminTags
-          label="话题"
-          value={story.topics}
-          onChange={(topics) =>
-            update({ topics: normalizeStoryTopics(topics) })
-          }
-        />
         <fieldset className="admin-choice admin-story-status">
           <legend>发布状态</legend>
           <label>

@@ -1083,14 +1083,22 @@
   gap: 16px;
   margin: 16px 0;
 }
+.admin-story-image-list > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
 .admin-story-image-list img {
   width: 100%;
   height: 160px;
   object-fit: cover;
   margin-bottom: 8px;
 }
-.admin-story-image-list label {
-  font-size: 13px;
+.admin-story-image-list .admin-row-actions {
+  width: fit-content;
+  min-width: 0;
+  align-self: flex-end;
+  margin: 0;
 }
 .admin-page-list {
   display: flex;

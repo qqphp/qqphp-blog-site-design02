@@ -53,6 +53,11 @@ export const defaults = {
       '清晰的产品概念插画，简洁构图，突出项目核心用途，与博客视觉协调，横向构图。',
     projectImagePrompt:
       '为以下项目生成一张横向封面图。\n项目名称：{{title}}\n副标题：{{subtitle}}\n摘要：{{excerpt}}\n视觉风格：{{style}}\n用具体的物件、场景与空间关系表达项目用途，保持一个视觉焦点，留出裁切余量。不要文字、标志或水印。',
+    storyImageSize: '1536x1024',
+    storyImageStyle:
+      '自然纪实与编辑感结合的横版画面，真实光线、克制色彩，突出说说中的具体场景、情绪和关键意象。',
+    storyImagePrompt:
+      '为一条中文个人博客说说创作配图。\n说说话题：{{title}}\n说说文字：{{excerpt}}\n视觉风格：{{style}}\n根据话题和文字选择合适的场景与表现方式，用一个明确视觉焦点表达内容。画面自然、有叙事感，适合说说图片展示。不要添加文字、字母、数字、标志、水印或虚构截图。',
     baseUrl: 'https://api.teamorouter.com/v1',
     textModel: 'gpt-5.4-mini',
     imageModel: 'gpt-image-2',

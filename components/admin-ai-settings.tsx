@@ -9,6 +9,7 @@ type AiSettings = Content['aiSettings'];
 type ImageSizeField =
   | 'coverSize'
   | 'projectImageSize'
+  | 'storyImageSize'
   | 'playlistCoverSize'
   | 'filmCoverSize'
   | 'podcastCoverSize'
@@ -98,6 +99,7 @@ export function AdminAiSettings({
         <Tabs.Tab value="models">模型配置</Tabs.Tab>
         <Tabs.Tab value="writing">写作配置</Tabs.Tab>
         <Tabs.Tab value="projects">项目配置</Tabs.Tab>
+        <Tabs.Tab value="stories">说说配置</Tabs.Tab>
         <Tabs.Tab value="music">歌单配置</Tabs.Tab>
         <Tabs.Tab value="films">电影配置</Tabs.Tab>
         <Tabs.Tab value="podcasts">播客配置</Tabs.Tab>
@@ -304,6 +306,52 @@ export function AdminAiSettings({
             <small>
               {
                 '{{title}} = 项目名称；{{subtitle}} = 副标题；{{excerpt}} = 摘要；{{style}} = 图片风格。前三个占位符必须保留。'
+              }
+            </small>
+          </div>
+        </div>
+      </Tabs.Panel>
+      <Tabs.Panel value="stories">
+        <div className="admin-section-heading">
+          <div>
+            <h2>说说图片生成</h2>
+            <p className="admin-help">
+              使用“模型配置”中的图片模型，根据说说文字和话题生成合适的配图。
+            </p>
+          </div>
+        </div>
+        <div className="admin-fields">
+          <ImageSizeSetting
+            id="ai-story-size"
+            label="说说图片尺寸"
+            field="storyImageSize"
+            value={value}
+            onChange={onChange}
+          />
+          <div className="admin-field admin-wide">
+            <label htmlFor="ai-story-style">说说图片风格</label>
+            <textarea
+              id="ai-story-style"
+              rows={3}
+              value={value.storyImageStyle}
+              onChange={(event) =>
+                onChange({ ...value, storyImageStyle: event.target.value })
+              }
+            />
+          </div>
+          <div className="admin-field admin-wide">
+            <label htmlFor="ai-story-prompt">说说图片生成提示词</label>
+            <textarea
+              id="ai-story-prompt"
+              rows={9}
+              value={value.storyImagePrompt}
+              onChange={(event) =>
+                onChange({ ...value, storyImagePrompt: event.target.value })
+              }
+            />
+            <small>
+              {
+                '{{title}} = 话题；{{excerpt}} = 说说文字；{{style}} = 图片风格。话题和文字占位符必须保留。'
               }
             </small>
           </div>

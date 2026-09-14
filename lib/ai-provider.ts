@@ -109,7 +109,7 @@ export async function generateCover(
           : filmDirector !== undefined
             ? settings.filmCoverPrompt
             : storyImage
-              ? '为这条个人博客说说创作一张配图。话题：{{title}}。正文：{{excerpt}}。根据正文的情绪与场景构图，不添加文字、水印或虚构截图。'
+              ? settings.storyImagePrompt
               : projectSubtitle === undefined
                 ? settings.coverPrompt
                 : settings.projectImagePrompt,
@@ -123,9 +123,11 @@ export async function generateCover(
           ? settings.playlistCoverStyle
           : filmDirector !== undefined
             ? settings.filmCoverStyle
-            : projectSubtitle === undefined
-              ? settings.coverStyle
-              : settings.projectImageStyle,
+            : storyImage
+              ? settings.storyImageStyle
+              : projectSubtitle === undefined
+                ? settings.coverStyle
+                : settings.projectImageStyle,
     projectSubtitle,
     filmDirector,
     podcastHost,
@@ -140,7 +142,7 @@ export async function generateCover(
         : filmDirector !== undefined
           ? settings.filmCoverSize
           : storyImage
-            ? undefined
+            ? settings.storyImageSize
             : projectSubtitle === undefined
               ? settings.coverSize
               : settings.projectImageSize;

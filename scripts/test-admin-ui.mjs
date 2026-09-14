@@ -70,6 +70,7 @@ const { WritingCategoryTree } =
 const { migrateProjects } = await import('../lib/project-content.ts');
 const { AdminPanel } = await import('../components/admin-panel.tsx');
 const { ContentProvider } = await import('../components/content-provider.tsx');
+const { StoryGallery } = await import('../components/story-gallery.tsx');
 const { LifePageHeader } = await import('../components/life-page-header.tsx');
 const { AdminMarkdownEditor } =
   await import('../components/admin-markdown-editor.tsx');
@@ -277,6 +278,12 @@ try {
   await user.type(screen.getByLabelText('话题'), '##第二话题{Enter}');
   await user.type(screen.getByLabelText('话题'), '第三话题{Enter}');
   assert.ok(screen.getByRole('button', { name: '移除话题 第三话题' }));
+  const storyTopics = screen.getByLabelText('话题').closest('.admin-tags');
+  const storyImages = window.document.querySelector('.admin-story-images');
+  assert.ok(
+    storyTopics.compareDocumentPosition(storyImages) &
+      window.Node.DOCUMENT_POSITION_FOLLOWING,
+  );
   assert.equal(
     window.getComputedStyle(
       screen.getByLabelText('发布日期（北京时间）').parentElement,
@@ -289,11 +296,16 @@ try {
     ).maxWidth,
     '420px',
   );
+  assert.equal(screen.queryByLabelText('图片说明'), null);
+  const storyImageItem = storyImages.querySelector(
+    '.admin-story-image-list > div',
+  );
+  const storyImageActions = storyImageItem.querySelector('.admin-row-actions');
+  assert.equal(window.getComputedStyle(storyImageItem).display, 'flex');
+  assert.equal(window.getComputedStyle(storyImageActions).alignSelf, 'flex-end');
   assert.equal(
-    window.document
-      .querySelector('.admin-story-editor > .admin-field')
-      .nextElementSibling.getAttribute('aria-label'),
-    '说说图片',
+    Number.parseFloat(window.getComputedStyle(storyImageActions).minWidth),
+    0,
   );
   await user.upload(
     screen.getByLabelText('上传图片'),
@@ -308,7 +320,10 @@ try {
   assert.ok(
     calls.some(
       (call) =>
-        call.action === 'story-image' && call.excerpt.includes('说说草稿'),
+        call.action === 'story-image' &&
+        call.title.includes('第二话题') &&
+        call.title.includes('第三话题') &&
+        call.excerpt.includes('说说草稿'),
     ),
   );
   await user.click(screen.getByRole('tab', { name: '说说封面' }));
@@ -374,6 +389,25 @@ try {
   );
   cleanup();
   globalThis.fetch = realFetch;
+  render(
+    h(
+      ContentProvider,
+      { content: defaults },
+      h(StoryGallery, {
+        images: [{ src: '/story-test.png', alt: '不应作为说明展示' }],
+      }),
+    ),
+  );
+  await user.click(
+    screen.getByRole('button', { name: '放大查看：不应作为说明展示' }),
+  );
+  const storyDialog = await screen.findByRole('dialog');
+  assert.equal(within(storyDialog).queryByText('不应作为说明展示'), null);
+  assert.ok(within(storyDialog).getByText('1 / 1', { selector: 'output' }));
+  cleanup();
+  console.log(
+    'PASS story image descriptions stay hidden in admin and public gallery',
+  );
   console.log(
     'PASS merged writing tabs retain drafts; project tags and frameless images; automatic AI generation on save',
   );
@@ -627,6 +661,8 @@ try {
       imageModel: 'image',
       projectImageStyle: '项目纸艺',
       projectImagePrompt: '{{title}} {{subtitle}} {{excerpt}}',
+      storyImageStyle: '说说纪实',
+      storyImagePrompt: '{{title}} {{excerpt}} {{style}}',
       coverStyle: '纸艺',
       coverPrompt: '{{title}} {{excerpt}}',
     });
@@ -652,8 +688,21 @@ try {
     .getAllByRole('tab')
     .map((node) => node.textContent);
   assert.equal(
-    settingTabs.indexOf('歌单配置'),
+    settingTabs.indexOf('说说配置'),
     settingTabs.indexOf('项目配置') + 1,
+  );
+  assert.equal(
+    settingTabs.indexOf('歌单配置'),
+    settingTabs.indexOf('说说配置') + 1,
+  );
+  await user.click(screen.getByRole('tab', { name: '说说配置' }));
+  await user.type(screen.getByLabelText('说说图片风格'), ' 自然光');
+  await user.click(screen.getByRole('tab', { name: '项目配置' }));
+  await user.click(screen.getByRole('tab', { name: '说说配置' }));
+  assert.equal(screen.getByLabelText('说说图片风格').value, '说说纪实 自然光');
+  assert.match(
+    screen.getByLabelText('说说图片生成提示词').value,
+    /\{\{title\}\}.*\{\{excerpt\}\}/,
   );
   await user.click(screen.getByRole('tab', { name: '歌单配置' }));
   await user.type(screen.getByLabelText('歌单封面风格'), ' 复古');
@@ -662,6 +711,7 @@ try {
   assert.equal(screen.getByLabelText('歌单封面风格').value, '唱片 复古');
   for (const [tab, label, expected] of [
     ['项目配置', '项目图片尺寸', '1536x1024'],
+    ['说说配置', '说说图片尺寸', '1536x1024'],
     ['歌单配置', '歌单封面尺寸', '1024x1024'],
     ['电影配置', '电影封面尺寸', '864x1536'],
     ['播客配置', '播客封面尺寸', '1536x1024'],
