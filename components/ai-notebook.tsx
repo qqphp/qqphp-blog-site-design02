@@ -1,10 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Tabs } from '@base-ui/react/tabs';
 import {
-  ArrowDown,
   ArrowUpRight,
   Check,
   Copy,
@@ -21,6 +20,211 @@ import {
   aiSkills,
 } from '@/lib/ai-resources';
 import './ai-notebook.css';
+
+const PITCHES = [
+  'C',
+  'C♯',
+  'D',
+  'D♯',
+  'E',
+  'F',
+  'F♯',
+  'G',
+  'G♯',
+  'A',
+  'A♯',
+  'B',
+] as const;
+const BLACK_PITCHES = new Set([1, 3, 6, 8, 10]);
+
+type PianoKey = {
+  midi: number;
+  name: string;
+  pitch: string;
+  octave: number;
+  frequency: number;
+  black: boolean;
+  column: number;
+};
+
+function pianoKeys(start = 60, end = 84): PianoKey[] {
+  const keys: PianoKey[] = [];
+  let column = 0;
+  for (let midi = start; midi <= end; midi += 1) {
+    const pitchClass = midi % 12;
+    const black = BLACK_PITCHES.has(pitchClass);
+    if (!black) column += 1;
+    const octave = Math.floor(midi / 12) - 1;
+    const pitch = PITCHES[pitchClass];
+    keys.push({
+      midi,
+      name: `${pitch}${octave}`,
+      pitch,
+      octave,
+      frequency: 440 * 2 ** ((midi - 69) / 12),
+      black,
+      column,
+    });
+  }
+  return keys;
+}
+
+const piano = pianoKeys();
+const whiteKeyCount = piano.filter((key) => !key.black).length;
+
+let sharedAudio: AudioContext | null = null;
+let hammerNoise: AudioBuffer | null = null;
+
+function audioContext() {
+  const Ctx =
+    window.AudioContext ||
+    (window as Window & { webkitAudioContext?: typeof AudioContext })
+      .webkitAudioContext;
+  if (!Ctx) return null;
+  try {
+    sharedAudio ??= new Ctx();
+    return sharedAudio;
+  } catch {
+    return null;
+  }
+}
+
+function hammerBuffer(ctx: AudioContext) {
+  if (hammerNoise && hammerNoise.sampleRate === ctx.sampleRate) return hammerNoise;
+  const length = Math.floor(ctx.sampleRate * 0.04);
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let index = 0; index < length; index += 1) {
+    const fade = (1 - index / length) ** 2;
+    data[index] = (Math.random() * 2 - 1) * fade;
+  }
+  hammerNoise = buffer;
+  return buffer;
+}
+
+function playPianoNote(frequency: number) {
+  const ctx = audioContext();
+  if (!ctx) return;
+  try {
+    void ctx.resume().catch(() => {});
+    soundPiano(ctx, frequency);
+  } catch {
+    // The key still lights if this browser cannot start audio.
+  }
+}
+
+function soundPiano(ctx: AudioContext, frequency: number) {
+  const now = ctx.currentTime;
+  const output = ctx.createGain();
+  output.gain.setValueAtTime(0.22, now);
+  output.connect(ctx.destination);
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(Math.min(frequency * 8, 8000), now);
+  filter.frequency.exponentialRampToValueAtTime(
+    Math.max(140, frequency * 2.4),
+    now + 0.42,
+  );
+  filter.Q.value = 0.7;
+  filter.connect(output);
+
+  const partials: Array<[number, OscillatorType, number, number]> = [
+    [1, 'triangle', 0.9, 1.28],
+    [2, 'sine', 0.34, 0.86],
+    [3, 'sine', 0.15, 0.5],
+    [4.01, 'sine', 0.07, 0.32],
+    [5.08, 'sine', 0.035, 0.2],
+  ];
+  for (const [ratio, type, level, decay] of partials) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = frequency * ratio;
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(level, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+    osc.connect(gain);
+    gain.connect(filter);
+    osc.start(now);
+    osc.stop(now + decay + 0.04);
+  }
+
+  const noise = ctx.createBufferSource();
+  noise.buffer = hammerBuffer(ctx);
+  const noiseFilter = ctx.createBiquadFilter();
+  noiseFilter.type = 'highpass';
+  noiseFilter.frequency.value = 1600;
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.setValueAtTime(0.1, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+  noise.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(output);
+  noise.start(now);
+  noise.stop(now + 0.05);
+}
+
+function PianoBoard() {
+  const [heard, setHeard] = useState<PianoKey | null>(null);
+  const struckAt = useRef(0);
+
+  function strike(key: PianoKey) {
+    playPianoNote(key.frequency);
+    setHeard(key);
+  }
+
+  return (
+    <section className="ai-piano" aria-label="钢琴键盘">
+      <div className="ai-piano-bar">
+        <img src="/ai/music-theme-piano-banner.webp" alt="音符随五线谱飘过远山" />
+      </div>
+      <div className="ai-piano-status">
+        <span>PIANO / 01</span>
+        <p className="ai-piano-readout">
+          <span>琴键</span>
+          <output aria-label="当前音符">
+            {heard
+              ? `${heard.name} · ${heard.frequency.toFixed(1)} Hz`
+              : '点按弹奏'}
+          </output>
+        </p>
+      </div>
+      <fieldset className="ai-keys-scroll">
+        <legend>钢琴键盘</legend>
+        <div
+          className="ai-keys"
+          style={{
+            gridTemplateColumns: `repeat(${whiteKeyCount}, minmax(0, 1fr))`,
+          }}
+        >
+          {piano.map((key) => (
+            <button
+              key={key.midi}
+              type="button"
+              className={`ai-key ${key.black ? 'ai-key-black' : 'ai-key-white'}`}
+              style={{ gridColumn: key.column }}
+              aria-label={`${key.name} ${key.frequency.toFixed(1)} 赫兹`}
+              onPointerDown={(event) => {
+                if (event.button !== 0) return;
+                struckAt.current = performance.now();
+                strike(key);
+              }}
+              onClick={() => {
+                if (performance.now() - struckAt.current < 400) return;
+                strike(key);
+              }}
+            >
+              <span className="ai-key-name">
+                {key.pitch === 'C' && !key.black ? key.name : key.pitch}
+              </span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
+    </section>
+  );
+}
 
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [state, setState] = useState<'idle' | 'copied' | 'error'>('idle');
@@ -123,28 +327,24 @@ export function AiNotebook() {
     {
       id: 'ai-journal',
       name: 'AI资讯',
-      en: 'AI NEWS',
       count: aiNotes.length,
       results: notes.length,
     },
     {
       id: 'ai-skills',
       name: 'Skills 工具箱',
-      en: 'REUSABLE METHODS',
       count: aiSkills.length,
       results: skills.length,
     },
     {
       id: 'ai-relays',
       name: '中转站',
-      en: 'MODEL CONNECTIONS',
       count: aiRelays.length,
       results: relays.length,
     },
     {
       id: 'ai-plans',
       name: 'Token Plan',
-      en: 'USAGE & PLANS',
       count: aiPlans.length,
       results: plans.length,
     },
@@ -157,74 +357,14 @@ export function AiNotebook() {
       onValueChange={(value) => choose(String(value))}
     >
       <header className="ai-field-header">
-        <p className="ai-eyebrow">
-          <span className="ai-status-dot" />
-          ALEI / AI FIELD NOTES
-        </p>
-        <span>观察 · 实践 · 留下方法</span>
+        <h1 id="ai-page-title">AI 实验档案 · 观察、实践、留下方法</h1>
       </header>
-      <section className="ai-field-hero" aria-labelledby="ai-page-title">
-        <div className="ai-hero-copy">
-          <p className="ai-eyebrow">一个持续生长的 AI 实验档案</p>
-          <h1 id="ai-page-title">
-            与 AI 一起，
-            <br />
-            把想法<span>向前推进。</span>
-          </h1>
-          <p className="ai-hero-description">
-            记录值得留下的文字，收集可复用的 Skills，
-            <br className="ai-desktop-break" />
-            也聊聊模型的入口与每一份 Token 的去向。
-          </p>
-          <a
-            className="ai-primary-link"
-            href="#ai-content"
-            onClick={() => choose('ai-journal')}
-          >
-            浏览AI资讯 <ArrowDown size={16} />
-          </a>
-        </div>
-        <div className="ai-hero-field">
-          <div className="ai-field-meta">
-            <span>HUMAN × MACHINE</span>
-            <span>探索进行时</span>
-          </div>
-          <div className="ai-type-study" aria-hidden="true">
-            AI<span>+</span>
-          </div>
-          <p className="ai-field-caption">
-            好奇心是输入，
-            <br />
-            自己的判断是最后一步。
-          </p>
-          <ol className="ai-process" aria-label="AI 实践路径">
-            <li>
-              想法 <span>01</span>
-            </li>
-            <li>
-              方法 <span>02</span>
-            </li>
-            <li>
-              模型 <span>03</span>
-            </li>
-            <li>
-              验证 <span>04</span>
-            </li>
-          </ol>
-        </div>
-      </section>
-      <Tabs.List className="ai-index" aria-label="AI 栏目切换">
-        {navigation.map((item, index) => (
+      <PianoBoard />
+      <Tabs.List className="ai-tabs" aria-label="AI 栏目切换">
+        {navigation.map((item) => (
           <Tabs.Tab value={item.id} key={item.id} aria-label={item.name}>
-            <span className="ai-index-top">
-              0{index + 1}
-              <ArrowUpRight size={16} />
-            </span>
-            <strong>
-              {item.name}
-              <small>{String(item.count).padStart(2, '0')}</small>
-            </strong>
-            <span className="ai-index-en">{item.en}</span>
+            {item.name}
+            <small>{String(item.count).padStart(2, '0')}</small>
           </Tabs.Tab>
         ))}
       </Tabs.List>

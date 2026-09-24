@@ -1050,8 +1050,16 @@ try {
     within(planRegion).getAllByRole('article').length,
     aiPlans.length,
   );
-  // The hero shortcut must return to news even from another section.
-  await user.click(screen.getByRole('link', { name: '浏览AI资讯' }));
+  assert.equal(
+    screen.getAllByRole('button', { name: /赫兹$/ }).length,
+    25,
+  );
+  await user.click(screen.getByRole('button', { name: /^C4 / }));
+  assert.match(
+    screen.getByRole('status', { name: '当前音符' }).textContent ?? '',
+    /C4 · 261\.6 Hz/,
+  );
+  await user.click(screen.getByRole('tab', { name: 'AI资讯', exact: true }));
   assert.equal(
     within(activeRegion('AI资讯')).getAllByRole('article').length,
     defaults.aiNotes.length,
@@ -1095,7 +1103,7 @@ try {
   );
   cleanup();
   console.log(
-    'PASS AI news default, exclusive sections, keyboard tabs, per-section search, hero return, copy and empty content',
+    'PASS AI news default, exclusive sections, keyboard tabs, piano keys, per-section search, copy and empty content',
   );
 
   const { AdminFilmManager } =
