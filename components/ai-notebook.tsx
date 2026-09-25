@@ -5,7 +5,11 @@ import { Tabs } from '@base-ui/react/tabs';
 import Image from 'next/image';
 import {
   ArrowUpRight,
+  Bot,
   ChevronDown,
+  Database,
+  Network,
+  Puzzle,
   Sparkles,
 } from 'lucide-react';
 import {
@@ -438,21 +442,25 @@ export function AiNotebook() {
       id: 'ai-models',
       name: '大模型数据',
       count: modelCount,
+      icon: Database,
     },
     {
       id: 'ai-agents',
       name: '智能体',
       count: aiAgents.length,
+      icon: Bot,
     },
     {
       id: 'ai-skills',
       name: '技能 Skills',
       count: aiSkills.length,
+      icon: Puzzle,
     },
     {
       id: 'ai-relays',
       name: '中转站 API',
       count: aiRelays.length,
+      icon: Network,
     },
   ];
   return (
@@ -465,6 +473,7 @@ export function AiNotebook() {
       <Tabs.List className="ai-tabs" aria-label="AI 栏目切换">
         {navigation.map((item) => (
           <Tabs.Tab value={item.id} key={item.id} aria-label={item.name}>
+            <item.icon className="ai-tab-icon" size={17} strokeWidth={1.7} aria-hidden="true" />
             {item.name}
             <small>{String(item.count).padStart(2, '0')}</small>
           </Tabs.Tab>

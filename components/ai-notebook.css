@@ -240,6 +240,10 @@
   font-size: 0.9375rem;
   line-height: normal;
 }
+.ai-tabs > button .ai-tab-icon {
+  flex: 0 0 auto;
+  color: var(--ai-accent);
+}
 .ai-tabs > button:last-child {
   border-right: 0;
 }
