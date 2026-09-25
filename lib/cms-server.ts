@@ -18,6 +18,7 @@ export function bindings() {
     DB: D1Database;
     ADMIN_PASSWORD?: string;
     TEAMOROUTER_KEY?: string;
+    AA_API_KEY?: string;
     LOCAL_AI_TRANSPORT?: string;
     LOCAL_AI_TOKEN?: string;
     LOCAL_MEDIA_STORAGE?: string;

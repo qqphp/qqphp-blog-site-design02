@@ -15,6 +15,13 @@
       "when": 1788865892732,
       "tag": "0001_cooing_rafael_vega",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790267986237,
+      "tag": "0002_unknown_living_lightning",
+      "breakpoints": true
     }
   ]
 }

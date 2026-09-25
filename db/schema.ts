@@ -27,3 +27,18 @@ export const storyComments = sqliteTable(
     index('idx_story_comments_story_date').on(table.storyId, table.createdAt),
   ],
 );
+
+export const aaLanguageModelSnapshots = sqliteTable(
+  'aa_language_model_snapshots',
+  {
+    key: text('key').primaryKey(),
+    payload: text('payload').notNull(),
+    storedAt: text('stored_at').notNull(),
+  },
+);
+
+export const apiIntegrationKeys = sqliteTable('api_integration_keys', {
+  service: text('service').primaryKey(),
+  apiKey: text('api_key').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});

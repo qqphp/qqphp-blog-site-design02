@@ -4,6 +4,7 @@ import type { Content } from '@/lib/cms-defaults';
 import { Tabs } from '@base-ui/react/tabs';
 import { AdminModelSelect } from './admin-model-select';
 import { api } from './admin-fields';
+import { AdminApiSettings } from './admin-api-settings';
 
 type AiSettings = Content['aiSettings'];
 type ImageSizeField =
@@ -97,6 +98,7 @@ export function AdminAiSettings({
     <Tabs.Root defaultValue="models" className="admin-ai-settings">
       <Tabs.List className="admin-settings-tabs" aria-label="AI 功能配置">
         <Tabs.Tab value="models">模型配置</Tabs.Tab>
+        <Tabs.Tab value="api">API 接口设置</Tabs.Tab>
         <Tabs.Tab value="writing">写作配置</Tabs.Tab>
         <Tabs.Tab value="projects">项目配置</Tabs.Tab>
         <Tabs.Tab value="stories">说说配置</Tabs.Tab>
@@ -214,6 +216,9 @@ export function AdminAiSettings({
             <output>{message}</output>
           </div>
         </div>
+      </Tabs.Panel>
+      <Tabs.Panel value="api">
+        <AdminApiSettings />
       </Tabs.Panel>
       <Tabs.Panel value="writing">
         <div className="admin-section-heading">

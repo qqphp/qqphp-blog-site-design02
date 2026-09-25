@@ -3,7 +3,7 @@ import { AiNotebook } from '@/components/ai-notebook';
 export const metadata = {
   title: 'AI 实验档案 · 开发阿雷',
   description:
-    'AI资讯、Skills 工具箱、中转站和 Token Plan。记录 AI 实践，收集可复用的方法与资源。',
+    '大模型数据、智能体、技能与中转站 API。记录 AI 实践，收集可复用的方法与资源。',
 };
 export default function AiPage() {
   return (

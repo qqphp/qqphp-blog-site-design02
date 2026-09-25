@@ -3,3 +3,7 @@ ADMIN_PASSWORD=
 
 # Teamorouter / OpenAI 兼容中转站密钥，仅供服务端使用。
 TEAMOROUTER_KEY=
+
+# Artificial Analysis Data API 密钥；服务端请求使用 x-api-key，不会发送到浏览器。
+# 后台“AI 大模型设置 → API 接口设置”保存的密钥优先于此环境变量。
+AA_API_KEY=

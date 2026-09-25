@@ -726,7 +726,33 @@ try {
 
   cleanup();
   globalThis.fetch = originalFetch;
-  console.log('PASS settings tabs expose independent sizes and retain unsaved configuration');
+  const { AdminApiSettings } =
+    await import('../components/admin-api-settings.tsx');
+  let credentialStatus = { configured: true, source: 'environment' };
+  let savedCredential = '';
+  globalThis.fetch = async (url, init = {}) => {
+    assert.equal(url, '/api/admin/api-settings');
+    if (init.method === 'PUT') {
+      savedCredential = JSON.parse(init.body).apiKey;
+      credentialStatus = { configured: true, source: 'admin' };
+    } else if (init.method === 'DELETE') {
+      credentialStatus = { configured: true, source: 'environment' };
+    }
+    return Response.json({ artificialAnalysis: credentialStatus });
+  };
+  render(h(AdminApiSettings));
+  await waitFor(() => assert.match(document.body.textContent, /AA_API_KEY 环境变量已配置/));
+  await user.type(screen.getByLabelText('API 密钥'), 'test-key-only');
+  await user.click(screen.getByRole('button', { name: '保存密钥' }));
+  await waitFor(() => assert.equal(savedCredential, 'test-key-only'));
+  assert.equal(screen.getByLabelText('API 密钥').value, '');
+  assert.match(document.body.textContent, /后台密钥已配置/);
+  assert.doesNotMatch(document.body.textContent, /test-key-only/);
+  await user.click(screen.getByRole('button', { name: '清除后台密钥' }));
+  await waitFor(() => assert.match(document.body.textContent, /AA_API_KEY 环境变量已配置/));
+  cleanup();
+  globalThis.fetch = originalFetch;
+  console.log('PASS AI settings tabs, write-only API key input, environment fallback and retained unsaved image configuration');
 
   function Categories() {
     const [value, set] = useState(categories);
@@ -942,170 +968,110 @@ try {
     'PASS bookmark and friend tables, empty-new discard, search, category filters, rename, protected deletion, creation and publication',
   );
   const { AiNotebook } = await import('../components/ai-notebook.tsx');
-  const { aiSkills, aiRelays, aiPlans } =
+  const { aiAgents, aiSkills, aiRelays } =
     await import('../lib/ai-resources.ts');
-  const aiView = render(
-    h(ContentProvider, { content: defaults }, h(AiNotebook)),
+  const originalAiFetch = globalThis.fetch;
+  let modelRequests = 0;
+  const sampleModel = (id, name) => ({
+    id,
+    name,
+    releaseDate: '2026-09-24',
+    intelligence: 71.2,
+    coding: 64.3,
+    agentic: 58.1,
+    inputPrice: 0.4,
+    outputPrice: 2,
+    outputSpeed: 120,
+  });
+  const smallProviderSet = [
+    { provider: 'OpenAI', models: [sampleModel('gpt6-low', 'GPT-6 Sol (low)')] },
+    { provider: 'Anthropic', models: [sampleModel('claude', 'Claude Example')] },
+  ];
+  const largeProviderSet = Array.from({ length: 9 }, (_, index) => ({
+    provider: `厂商 ${index + 1}`,
+    models: [sampleModel(`vendor-${index + 1}`, `Vendor Model ${index + 1}`)],
+  }));
+  globalThis.fetch = async (url, init) => {
+    assert.equal(url, '/api/ai/models');
+    assert.equal(init.cache, 'no-store');
+    modelRequests += 1;
+    return Response.json({
+      groups: modelRequests === 1 ? smallProviderSet : largeProviderSet,
+      fetchedAt: '2026-09-24T16:45:17.263Z',
+      stale: false,
+      refreshFailed: false,
+      modelCount: modelRequests === 1 ? 2 : 9,
+    });
+  };
+  const aiView = render(h(AiNotebook));
+  const aiNames = ['大模型数据', '智能体', '技能 Skills', '中转站 API'];
+  assert.deepEqual(
+    screen.getAllByRole('tab').map((tab) => tab.getAttribute('aria-label')),
+    aiNames,
   );
-  const aiNames = ['AI资讯', 'Skills 工具箱', '中转站', 'Token Plan'];
+  assert.equal(
+    screen.queryByRole('tab', { name: '模型价格', exact: true }),
+    null,
+  );
   function activeRegion(name) {
     assert.equal(screen.getAllByRole('tabpanel').length, 1);
     assert.equal(
-      screen
-        .getByRole('tab', { name, exact: true })
-        .getAttribute('aria-selected'),
+      screen.getByRole('tab', { name, exact: true }).getAttribute('aria-selected'),
       'true',
     );
-    for (const other of aiNames.filter((item) => item !== name))
-      assert.equal(
-        screen.queryByRole('region', { name: other, exact: true }),
-        null,
-      );
-    return screen.getByRole('region', { name, exact: true });
+    const regionName = name === '智能体' ? '智能体 AI Agent' : name;
+    return screen.getByRole('region', { name: regionName, exact: true });
   }
   async function switchAi(name) {
     await user.click(screen.getByRole('tab', { name, exact: true }));
     return activeRegion(name);
   }
-  const aiNotesRegion = activeRegion('AI资讯');
+  const modelRegion = activeRegion('大模型数据');
+  await waitFor(() => {
+    assert.equal(modelRequests, 1);
+    assert.equal(
+      within(modelRegion).getAllByText('GPT-6 Sol (low)').length,
+      2,
+    );
+  });
+  assert.ok(within(modelRegion).getByRole('navigation', { name: '厂商列表' }));
+  await user.click(within(modelRegion).getByRole('button', { name: /Anthropic/ }));
+  assert.equal(within(modelRegion).getAllByText('Claude Example').length, 2);
+  await user.click(within(modelRegion).getByRole('button', { name: /OpenAI/ }));
+  assert.match(within(modelRegion).getByText(/数据更新于/).textContent, /数据更新于/);
   assert.equal(
-    within(aiNotesRegion).getAllByRole('article').length,
-    defaults.aiNotes.length,
+    within(modelRegion).getByText('按厂商整理的模型基准、发布日期、价格与输出速度。').textContent,
+    '按厂商整理的模型基准、发布日期、价格与输出速度。',
   );
-  assert.equal(screen.queryByText('文字与思考'), null);
-  const firstNote = within(aiNotesRegion).getAllByRole('article')[0];
-  await user.click(within(firstNote).getByText('展开阅读'));
-  assert.equal(firstNote.querySelector('details').open, true);
-  await user.click(
-    screen.getByRole('button', { name: '用法笔记', exact: true }),
-  );
-  assert.equal(
-    within(aiNotesRegion).getAllByRole('article').length,
-    defaults.aiNotes.filter((note) => note.kind === '用法笔记').length,
-  );
-  await user.type(screen.getByLabelText('搜索AI资讯'), '没有这条资讯');
-  assert.equal(within(aiNotesRegion).queryAllByRole('article').length, 0);
-  const skillRegion = await switchAi('Skills 工具箱');
-  assert.equal(
-    screen.getByLabelText('搜索Skills 工具箱').value,
-    '',
-    'Switching sections clears previous search',
-  );
-  assert.equal(
-    within(skillRegion).getAllByRole('article').length,
-    aiSkills.length,
-  );
-  await user.type(
-    screen.getByLabelText('搜索Skills 工具箱'),
-    'frontend-design',
-  );
-  assert.equal(within(skillRegion).getAllByRole('article').length, 1);
-  const clipboardWrite = navigator.clipboard.writeText.bind(
-    navigator.clipboard,
-  );
-  let copiedText = '';
-  navigator.clipboard.writeText = async (text) => {
-    copiedText = text;
-  };
-  const firstSkill = within(skillRegion).getAllByRole('article')[0];
-  await user.click(within(firstSkill).getByText('怎么用'));
-  await user.click(
-    within(firstSkill).getByRole('button', {
-      name: `复制 ${aiSkills[0].name} 指令`,
-    }),
-  );
-  assert.equal(copiedText, aiSkills[0].prompt);
-  const relayRegion = await switchAi('中转站');
-  assert.equal(
-    within(relayRegion).getAllByRole('article').length,
-    aiRelays.length,
-  );
-  await user.type(screen.getByLabelText('搜索中转站'), 'OPENROUTER');
-  assert.equal(within(relayRegion).getAllByRole('article').length, 1);
-  assert.match(
-    document.querySelector('.ai-search-result').textContent,
-    /找到.*1.*条内容/,
-  );
-  const firstRelay = within(relayRegion).getAllByRole('article')[0];
-  await user.click(within(firstRelay).getByText('API 地址'));
-  await user.click(
-    within(firstRelay).getByRole('button', {
-      name: `复制 ${aiRelays[0].name} 地址`,
-    }),
-  );
-  assert.equal(copiedText, aiRelays[0].endpoint);
-  const planRegion = await switchAi('Token Plan');
-  assert.equal(
-    within(planRegion).getAllByRole('article').length,
-    aiPlans.length,
-  );
-  await user.click(
-    screen.getByRole('button', { name: 'API 按量', exact: true }),
-  );
-  assert.equal(within(planRegion).getAllByRole('article').length, 1);
-  await user.type(screen.getByLabelText('搜索Token Plan'), '没有这条资料');
-  assert.equal(within(planRegion).queryAllByRole('article').length, 0);
-  await user.click(screen.getByRole('button', { name: '清空 AI 搜索' }));
-  assert.equal(
-    within(planRegion).getAllByRole('article').length,
-    aiPlans.length,
-  );
-  assert.equal(
-    screen.getAllByRole('button', { name: /赫兹$/ }).length,
-    25,
-  );
+  assert.equal(within(modelRegion).queryByRole('link', { name: /Artificial Analysis/ }), null);
+  assert.equal(within(modelRegion).queryByRole('button', { name: '重新读取大模型数据' }), null);
+  const agentRegion = await switchAi('智能体');
+  assert.equal(within(agentRegion).getAllByRole('article').length, aiAgents.length);
+  const skillRegion = await switchAi('技能 Skills');
+  assert.equal(within(skillRegion).getAllByRole('article').length, aiSkills.length);
+  const relayRegion = await switchAi('中转站 API');
+  assert.equal(within(relayRegion).getAllByRole('article').length, aiRelays.length);
+  const refreshedModelRegion = await switchAi('大模型数据');
+  await waitFor(() => {
+    assert.equal(modelRequests, 2);
+    assert.ok(within(refreshedModelRegion).getByLabelText('选择模型厂商'));
+  });
+  const providerSelect = within(refreshedModelRegion).getByLabelText('选择模型厂商');
+  assert.equal(providerSelect.options.length, 9);
+  await user.selectOptions(providerSelect, '厂商 2');
+  assert.equal(within(refreshedModelRegion).getAllByText('Vendor Model 2').length, 2);
+  assert.equal(screen.getAllByRole('button', { name: /赫兹$/ }).length, 25);
   await user.click(screen.getByRole('button', { name: /^C4 / }));
   assert.match(
     screen.getByRole('status', { name: '当前音符' }).textContent ?? '',
     /C4 · 261\.6 Hz/,
   );
-  await user.click(screen.getByRole('tab', { name: 'AI资讯', exact: true }));
-  assert.equal(
-    within(activeRegion('AI资讯')).getAllByRole('article').length,
-    defaults.aiNotes.length,
-  );
-  await user.click(
-    screen.getByRole('button', { name: '复制提示词', exact: true }),
-  );
-  assert.equal(copiedText, defaults.prompt.text);
-  navigator.clipboard.writeText = async () => {
-    throw new Error('Clipboard denied');
-  };
-  await user.click(
-    screen.getByRole('button', { name: '复制提示词 · 已复制', exact: true }),
-  );
-  assert.ok(screen.getByText('复制失败，请展开内容手动复制。'));
-  navigator.clipboard.writeText = clipboardWrite;
-  await user.click(screen.getByRole('tab', { name: 'AI资讯', exact: true }));
-  await user.keyboard('{ArrowRight}');
-  assert.equal(
-    document.activeElement,
-    screen.getByRole('tab', { name: 'Skills 工具箱', exact: true }),
-  );
-  activeRegion('AI资讯');
-  await user.keyboard('{Enter}');
-  activeRegion('Skills 工具箱');
-  await user.keyboard('{End}{Enter}');
-  activeRegion('Token Plan');
-  await user.keyboard('{Home}{Enter}');
-  activeRegion('AI资讯');
-  aiView.rerender(
-    h(
-      ContentProvider,
-      { content: { ...defaults, aiNotes: [] } },
-      h(AiNotebook),
-    ),
-  );
-  assert.ok(screen.getByText('还没有公开资讯，新的发现会出现在这里。'));
-  assert.equal(
-    within(await switchAi('Skills 工具箱')).getAllByRole('article').length,
-    aiSkills.length,
-  );
+  aiView.unmount();
+  globalThis.fetch = originalAiFetch;
   cleanup();
   console.log(
-    'PASS AI news default, exclusive sections, keyboard tabs, piano keys, per-section search, copy and empty content',
+    'PASS model data first, pricing tab removed, concise heading, responsive model fields, refresh on every visit, remaining AI tabs and piano',
   );
-
   const { AdminFilmManager } =
     await import('../components/admin-film-manager.tsx');
   const { AdminActivityManager } = await import('../components/admin-activity-manager.tsx');
