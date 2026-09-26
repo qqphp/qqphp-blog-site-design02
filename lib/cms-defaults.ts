@@ -206,7 +206,7 @@ export type PublicContent = Omit<Content, 'aiSettings'>;
 export type Section = keyof Content;
 export const sectionLabels: Record<Section, string> = {
   aiSettings: 'AI 大模型设置',
-  site: '站点与导航',
+  site: '网站设置',
   home: '首页',
   writing: '写作',
   categories: '文章分类',

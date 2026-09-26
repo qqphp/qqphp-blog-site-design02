@@ -132,6 +132,34 @@ try {
   };
   const site = await request('/api/admin/config/site/root');
   assert.equal(site.data.value.title, 'ISOLATED_GRANULAR_TEST', '测试服务必须连接独立数据库');
+  const savedSite = await request('/api/admin/config/site/root', 'PUT', {
+    value: { ...site.data.value, name: '网站设置持久化测试', footer: '网站设置页脚测试' },
+    revision: site.data.revision,
+  });
+  assert.equal(savedSite.status, 200, JSON.stringify(savedSite.data));
+  for (const key of ['links', 'sites', 'life'])
+    assert.deepEqual(savedSite.data.value[key], site.data.value[key], '站点保存必须保留导航');
+  const savedNavigation = await request('/api/admin/config/site/root', 'PUT', {
+    value: { ...savedSite.data.value, links: [...savedSite.data.value.links,
+      { name: '导航持久化测试', href: '/about#profile-contact' }] },
+    revision: savedSite.data.revision,
+  });
+  assert.equal(savedNavigation.status, 200, JSON.stringify(savedNavigation.data));
+  assert.equal(savedNavigation.data.value.name, '网站设置持久化测试');
+  assert.equal(savedNavigation.data.value.footer, '网站设置页脚测试');
+  const staleSite = await request('/api/admin/config/site/root', 'PUT', {
+    value: savedSite.data.value, revision: savedSite.data.revision,
+  });
+  assert.equal(staleSite.status, 409, '站点和导航共用版本，旧版本不能覆盖新导航');
+  const reloadedSite = await request('/api/admin/config/site/root');
+  assert.deepEqual(reloadedSite.data.value, savedNavigation.data.value);
+  assert.equal(reloadedSite.data.revision, savedNavigation.data.revision);
+  const settingsDb = new pg.Client({ connectionString: testUrl.toString() });
+  await settingsDb.connect();
+  try {
+    const persisted = await settingsDb.query("SELECT value FROM cms_sections WHERE section='site'");
+    assert.deepEqual(persisted.rows[0].value, savedNavigation.data.value);
+  } finally { await settingsDb.end(); }
   for (const path of [
     ...['writing', 'projects', 'films', 'podcasts', 'travel', 'hobbies', 'investing', 'aiCover', 'travelCover', 'root'].map((scope) => `/api/admin/config/pageSettings/${scope}`),
     ...['home', 'writing', 'projects', 'stories', 'about', 'bookmarks', 'friends', 'books', 'life', 'player', 'navigation', 'ai', 'investing', 'root'].map((scope) => `/api/admin/config/copy/${scope}`),
@@ -223,11 +251,19 @@ try {
   assert.equal(largeList.data.items.length, 20);
   const page = await request('/api/admin/config/home/root');
   const pageSaved = await request('/api/admin/config/home/root', 'PUT',
-    { value: page.data.value, revision: page.data.revision });
+    { value: { ...page.data.value, title: '网站设置首页持久化测试' }, revision: page.data.revision });
   assert.equal(pageSaved.status, 200, JSON.stringify(pageSaved.data));
   const pageStale = await request('/api/admin/config/home/root', 'PUT',
     { value: page.data.value, revision: page.data.revision });
   assert.equal(pageStale.status, 409);
+  const reloadedHome = await request('/api/admin/config/home/root');
+  assert.deepEqual(reloadedHome.data.value, pageSaved.data.value);
+  assert.equal(reloadedHome.data.revision, pageSaved.data.revision);
+  assert.deepEqual((await request('/api/admin/config/site/root')).data, reloadedSite.data,
+    '首页保存不能改变站点和导航');
+  const homeHtml = await (await fetch(origin + '/')).text();
+  for (const text of ['网站设置持久化测试', '网站设置页脚测试', '导航持久化测试', '网站设置首页持久化测试'])
+    assert.ok(homeHtml.includes(text), `前台应读取实际保存的${text}`);
   const categoryPath = '/api/admin/records/writing/categories/' + categoryId;
   const currentCategory = await request(categoryPath);
   const blocked = await request(categoryPath,

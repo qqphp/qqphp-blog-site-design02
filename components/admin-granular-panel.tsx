@@ -38,7 +38,12 @@ const sidebarSections: { label?: string; sections: Section[] }[] = [
   { sections: ['writing', 'projects', 'stories', 'ai', 'investing', 'profile'] },
   { label: '网站', sections: ['bookmarks', 'friends'] },
   { label: '生活', sections: ['tracks', 'films', 'podcasts', 'travel', 'hobbies', 'books'] },
-  { label: '设置', sections: ['aiSettings', 'site', 'home'] },
+  { label: '设置', sections: ['aiSettings', 'site'] },
+];
+const websiteTabs = [
+  { id: 'site', label: '站点', keys: ['name', 'mark', 'title', 'description', 'footer', 'copyright', 'footerLink', 'footerUrl'] },
+  { id: 'navigation', label: '导航', keys: ['links', 'sites', 'life'] },
+  { id: 'home', label: '首页', keys: ['eyebrow', 'title', 'description', 'noteTitle', 'noteText'] },
 ];
 const EMPTY_COLLECTIONS: readonly string[] = [];
 const destinations: Partial<Record<Section, string>> = {
@@ -163,9 +168,11 @@ export function AdminGranularPanel() {
   const listRequest = useRef(0);
   const collections = useMemo(() => section === 'stories' ? ['root', 'covers'] : adminCollections[section] ?? EMPTY_COLLECTIONS, [section]);
   const recordSection = section === 'stories' && tab === 'covers' ? 'slides' : section;
-  const scopes = configScopes(section);
+  const scopes = section === 'site' ? websiteTabs : configScopes(section);
   const activeCollection = collections.includes(tab) ? tab === 'covers' ? 'root' : tab : null;
   const activeScope = !activeCollection && scopes.some((scope) => scope.id === tab) ? tab : null;
+  const configSection = section === 'site' && tab === 'home' ? 'home' : section;
+  const configScope = section === 'site' ? 'root' : activeScope;
   const dirty = Boolean((edit && JSON.stringify(edit.value) !== edit.original) ||
     (config && JSON.stringify(config.value) !== config.original));
   const confirmDiscard = () => !dirty || window.confirm('有未提交的修改，确定放弃吗？');
@@ -227,18 +234,18 @@ export function AdminGranularPanel() {
   useEffect(() => {
     if (!loggedIn || !activeScope) return;
     let current = true;
-    void api<{ value: Json; revision: number }>(configUrl(section, activeScope))
+    void api<{ value: Json; revision: number }>(configUrl(configSection, configScope!))
       .then((result) => { if (current) setConfig({ id: activeScope, value: result.value,
         revision: result.revision, original: JSON.stringify(result.value) }); })
       .catch((error) => { if (current) setMessage(String(error)); });
     return () => { current = false; };
-  }, [loggedIn, section, activeScope]);
+  }, [loggedIn, configSection, configScope, activeScope]);
 
   function changeSection(next: Section) {
     if (next === section || !confirmDiscard()) return;
     listRequest.current++;
     setSection(next);
-    setTab(adminCollections[next]?.[0] ?? configScopes(next)[0]?.id ?? 'root');
+    setTab(next === 'site' ? websiteTabs[0].id : adminCollections[next]?.[0] ?? configScopes(next)[0]?.id ?? 'root');
     setEdit(null); setConfig(null); setList(null); setOptions({}); setPage(1); setQuery('');
     setStatus('all'); setCategoryId(''); setMessage('');
   }
@@ -284,7 +291,7 @@ export function AdminGranularPanel() {
           await refreshOptions();
         setMessage(result.failedMedia?.length ? '已保存，但部分旧素材清理失败。' : '已保存，内容已入库。');
       } else if (activeScope && config) {
-        const result = await api<{ value: Json; revision: number }>(configUrl(section, activeScope), {
+        const result = await api<{ value: Json; revision: number }>(configUrl(configSection, configScope!), {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ value: config.value, revision: config.revision }),
         });
@@ -360,7 +367,11 @@ export function AdminGranularPanel() {
     <p role="alert">{message}</p><Link href="/">← 返回博客</Link>
   </form></main>;
 
-  const configSample = activeScope ? sampleConfig(section) : null;
+  const configSample = activeScope ? sampleConfig(configSection) : null;
+  const websiteTab = section === 'site' ? websiteTabs.find((item) => item.id === tab) : undefined;
+  const configValue = websiteTab && config
+    ? asJson(Object.fromEntries(Object.entries(config.value as Item).filter(([key]) => websiteTab.keys.includes(key))))
+    : config?.value;
   const recordSample = activeCollection ? sampleRecord(recordSection, activeCollection, options) : null;
   const canPublish = activeCollection && !['categories', 'statuses', 'scenes', 'sections'].includes(activeCollection)
     && !(section === 'writing' && activeCollection === 'categories');
@@ -400,6 +411,7 @@ export function AdminGranularPanel() {
           {collections.map((name) => <button key={name} type="button" role="tab"
             aria-selected={tab === name} onClick={() => changeTab(name)}>{collectionName(section, name)}</button>)}
           {scopes.map((scope) => <button key={scope.id} type="button" role="tab"
+            disabled={busy || working}
             aria-selected={tab === scope.id} onClick={() => changeTab(scope.id)}>{scope.label}</button>)}
         </div>
         {activeCollection && (edit ? <section className="admin-form" aria-label="内容表单">
@@ -485,8 +497,9 @@ export function AdminGranularPanel() {
             <AdminAiSettings value={config.value as unknown as typeof defaults.aiSettings}
               dirty={dirty} onChange={(value) => setConfig({ ...config, value: asJson(value) })} /> :
             <Field path={`${section}.${activeScope}`} label={scopes.find((scope) => scope.id === activeScope)?.label ?? sectionLabels[section]}
-              value={config.value} sample={configSample ?? config.value}
-              onChange={(value) => setConfig({ ...config, value })} />}
+              value={configValue!} sample={configSample ?? config.value}
+              onChange={(value) => setConfig({ ...config,
+                value: websiteTab ? asJson({ ...config.value as Item, ...value as Item }) : value })} />}
           <div className="admin-form-actions"><button type="button" className="admin-primary"
             disabled={busy || working || !dirty} onClick={() => void save()}>
             {busy ? '提交中…' : '确认提交'}
