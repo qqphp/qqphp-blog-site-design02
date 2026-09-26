@@ -1,0 +1,206 @@
+.investment-heading {
+  position: relative;
+  height: 190px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.investment-pond-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.investment-pond {
+  --pond-deep: #143b40;
+  --pond-water: #20575a;
+  --pond-light: #427871;
+  --pond-ripple: #aed4c0;
+  --lotus-pad: #467b60;
+  --lotus-edge: #8eb897;
+  --lotus-vein: #b1ce9f;
+  --lotus-petal-back: #ca8497;
+  --lotus-petal: #f2c7cf;
+  --lotus-petal-edge: #b4778c;
+  --lotus-heart: #ebcf86;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 16% 16%, color-mix(in srgb, var(--pond-light) 62%, transparent), transparent 48%),
+    radial-gradient(ellipse at 82% 82%, color-mix(in srgb, var(--pond-light) 46%, transparent), transparent 44%),
+    linear-gradient(115deg, var(--pond-water), var(--pond-deep) 62%, var(--pond-water));
+}
+
+.fresh-theme .investment-pond {
+  --pond-deep: #bbded6;
+  --pond-water: #cee8df;
+  --pond-light: #edf2d9;
+  --pond-ripple: #6b9d91;
+  --lotus-pad: #72a77c;
+  --lotus-edge: #4b8560;
+  --lotus-vein: #b9d59c;
+  --lotus-petal-back: #d78fa4;
+  --lotus-petal: #fff0ec;
+  --lotus-petal-edge: #c68d9a;
+  --lotus-heart: #dba64c;
+}
+
+.investment-pond::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 48% 48%, transparent 18%, color-mix(in srgb, var(--pond-deep) 35%, transparent));
+}
+
+.pond-water-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: var(--pond-ripple);
+  stroke-width: .8;
+  opacity: .18;
+  animation: pond-water-drift 18s ease-in-out infinite alternate;
+}
+
+.pond-ripple {
+  position: absolute;
+  width: 102px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--pond-ripple);
+  opacity: 0;
+  animation: pond-ripple-expand 9s ease-out infinite;
+}
+.pond-ripple-one { left: 25%; top: 62%; }
+.pond-ripple-two { left: 64%; top: 19%; animation-delay: -3s; }
+.pond-ripple-three { left: 84%; top: 75%; animation-delay: -6s; }
+
+.pond-lotus {
+  position: absolute;
+  z-index: 2;
+  width: 100px;
+  aspect-ratio: 4 / 3;
+  animation: pond-lotus-float 11s ease-in-out infinite alternate;
+  filter: drop-shadow(0 4px 3px #102f3330);
+}
+.pond-lotus svg, .pond-koi svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.pond-lotus-one { left: 2%; top: 9%; width: 114px; rotate: -18deg; }
+.pond-lotus-two { left: 31%; bottom: 2%; width: 72px; rotate: 29deg; animation-delay: -6s; }
+.pond-lotus-three { left: 48%; top: -2%; width: 92px; rotate: 18deg; animation-duration: 14s; animation-delay: -3s; }
+.pond-lotus-four { right: 22%; bottom: 4%; width: 84px; rotate: -32deg; animation-delay: -8s; }
+.pond-lotus-five { right: 2%; top: 20%; width: 117px; rotate: 16deg; animation-duration: 13s; animation-delay: -5s; }
+
+.pond-koi {
+  --koi-base: #f5e4c6;
+  --koi-highlight: #fff9e9;
+  --koi-shade: #d6bfa1;
+  --koi-fin: #ead7bb;
+  --koi-edge: #aa8f77;
+  --koi-line: #b18b72;
+  --koi-eye: #223638;
+  --koi-mark: #d85d47;
+  --koi-dark-mark: #384746;
+  --koi-travel: 1;
+  position: absolute;
+  z-index: 1;
+  width: 146px;
+  aspect-ratio: 24 / 11;
+  filter: drop-shadow(0 7px 4px #052d363d);
+  transform-origin: center;
+}
+.pond-koi-coral { left: 15%; top: 26%; transform: rotate(-20deg); animation: pond-koi-swim-one 27s linear infinite; }
+.pond-koi-gold {
+  --koi-base: #f2dd9e;
+  --koi-highlight: #fff5cb;
+  --koi-shade: #cda96a;
+  --koi-fin: #e6c480;
+  --koi-edge: #ad8a55;
+  --koi-line: #b3915b;
+  --koi-mark: #d69936;
+  width: 154px;
+  left: 46%;
+  top: 37%;
+  transform: rotate(190deg);
+  animation: pond-koi-swim-two 32s linear infinite;
+  animation-delay: -13s;
+}
+.pond-koi-blue {
+  --koi-base: #d9e7e5;
+  --koi-highlight: #f2f9f4;
+  --koi-shade: #9cb9bb;
+  --koi-fin: #c1d9d4;
+  --koi-edge: #719495;
+  --koi-line: #749698;
+  --koi-mark: #427f8d;
+  width: 136px;
+  left: 70%;
+  top: 27%;
+  transform: rotate(-25deg);
+  animation: pond-koi-swim-three 24s linear infinite;
+  animation-delay: -8s;
+}
+.pond-koi-tail {
+  transform-box: view-box;
+  transform-origin: 42px 55px;
+  animation: pond-tail-sway 1.6s ease-in-out infinite alternate;
+}
+.pond-koi-gold .pond-koi-tail { animation-duration: 1.9s; animation-delay: -.7s; }
+.pond-koi-blue .pond-koi-tail { animation-duration: 1.4s; animation-delay: -.4s; }
+.fresh-theme .pond-koi { filter: drop-shadow(0 5px 3px #47867c35); }
+.fresh-theme .pond-koi-coral { --koi-mark: #c74f3d; --koi-edge: #b39076; }
+.fresh-theme .pond-koi-gold { --koi-mark: #c38a2d; --koi-dark-mark: #354443; }
+.fresh-theme .pond-koi-blue { --koi-mark: #3a7182; --koi-edge: #66898d; }
+
+@keyframes pond-water-drift { to { transform: translateY(7px); opacity: .28; } }
+@keyframes pond-ripple-expand { 0% { transform: scale(.35); opacity: 0; } 15% { opacity: .22; } 100% { transform: scale(1.7); opacity: 0; } }
+@keyframes pond-lotus-float { from { transform: translateY(-2px) rotate(-1deg); } to { transform: translateY(3px) rotate(2deg); } }
+@keyframes pond-tail-sway { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+@keyframes pond-koi-swim-one {
+  0% { transform: translate(0, 10px) rotate(-20deg); }
+  25% { transform: translate(calc(35px * var(--koi-travel)), -12px) rotate(5deg); }
+  50% { transform: translate(calc(65px * var(--koi-travel)), 10px) rotate(100deg); }
+  75% { transform: translate(calc(30px * var(--koi-travel)), 27px) rotate(190deg); }
+  100% { transform: translate(0, 10px) rotate(340deg); }
+}
+@keyframes pond-koi-swim-two {
+  0% { transform: translate(0, -12px) rotate(190deg); }
+  25% { transform: translate(calc(-40px * var(--koi-travel)), -30px) rotate(220deg); }
+  50% { transform: translate(calc(-60px * var(--koi-travel)), -5px) rotate(310deg); }
+  75% { transform: translate(calc(-25px * var(--koi-travel)), 0) rotate(365deg); }
+  100% { transform: translate(0, -12px) rotate(550deg); }
+}
+@keyframes pond-koi-swim-three {
+  0% { transform: translate(0, 0) rotate(-25deg); }
+  25% { transform: translate(calc(10px * var(--koi-travel)), 23px) rotate(95deg); }
+  50% { transform: translate(calc(-30px * var(--koi-travel)), 29px) rotate(180deg); }
+  75% { transform: translate(calc(-46px * var(--koi-travel)), 3px) rotate(260deg); }
+  100% { transform: translate(0, 0) rotate(335deg); }
+}
+
+@media (max-width: 700px) {
+  .pond-koi { --koi-travel: .25; }
+  .pond-koi-coral { left: 4%; top: 43%; width: clamp(88px, 29vw, 110px); }
+  .pond-koi-gold { left: 34%; top: 35%; width: clamp(82px, 26vw, 100px); }
+  .pond-koi-blue { left: 64%; top: 46%; width: clamp(76px, 24vw, 96px); }
+  .pond-lotus-one { left: 0; top: 5%; width: 78px; }
+  .pond-lotus-two { left: 24%; bottom: 1%; width: 51px; }
+  .pond-lotus-three { left: 53%; top: 2%; width: 61px; }
+  .pond-lotus-four { right: 2%; bottom: 1%; width: 57px; }
+  .pond-lotus-five { right: 0; top: 12%; width: 74px; }
+  .pond-ripple { width: 62px; height: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .investment-pond *, .investment-pond *::before, .investment-pond *::after { animation: none !important; }
+  .pond-ripple { opacity: .15; }
+}

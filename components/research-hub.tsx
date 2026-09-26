@@ -1,6 +1,7 @@
 'use client';
 
 import { CmsText } from '@/components/cms-text';
+import { InvestmentPond } from '@/components/investment-pond';
 import { useContent } from '@/components/content-provider';
 import { researchContent, type ResearchSection } from '@/lib/research-content';
 import { Activity, ArrowDown, BookOpen, ChartNoAxesCombined, FlaskConical, MessageCircle, Search, X } from 'lucide-react';
@@ -53,8 +54,8 @@ export function ResearchHub({ type }: { type: 'ai' | 'investing' }) {
       {type === 'investing' ? (
         <>
           <header className="investment-heading">
-            <div><p>INVESTING / RESEARCH NOTES</p><h1>投资研究</h1></div>
-            <span>把观察、指标与策略假设整理成可以回看的笔记。</span>
+            <h1 className="investment-pond-sr-only">投资研究</h1>
+            <InvestmentPond />
           </header>
           <nav className="research-topic-grid investment-topic-grid" aria-label="投资研究栏目">
             {investmentCategories.map((item, index) => {

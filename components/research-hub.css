@@ -49,10 +49,6 @@
 
 /* Investing page */
 .research-investing { max-width: 1240px; padding-bottom: 56px; }
-.investment-heading { display: flex; align-items: end; justify-content: space-between; gap: 32px; padding: 50px 0 30px; border-bottom: 1px solid var(--line); }
-.investment-heading > div > p { margin: 0 0 13px; color: var(--lime); font: .65rem ui-monospace, monospace; letter-spacing: .12em; }
-.investment-heading h1 { margin: 0; font-size: clamp(2.3rem, 5vw, 3.5rem); font-weight: 500; letter-spacing: -.07em; }
-.investment-heading > span { max-width: 380px; padding-bottom: 5px; color: var(--muted); font-size: .82rem; line-height: 1.8; }
 .research-investing .investment-topic-grid { gap: 0; margin: 26px 0 48px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .research-investing .investment-topic { min-height: 90px; display: flex; align-items: center; gap: 14px; padding: 17px 20px; text-align: left; color: var(--ink); border: 0; border-right: 1px solid var(--line); background: transparent; cursor: pointer; transition: background-color .18s ease; }
 .research-investing .investment-topic:first-child { border-left: 1px solid var(--line); }
@@ -99,8 +95,6 @@
 }
 @media (max-width: 700px) {
   .research-investing { padding: 0 22px 42px; }
-  .investment-heading { display: block; padding: 34px 0 22px; }
-  .investment-heading > span { display: block; margin-top: 12px; }
   .research-investing .investment-topic-grid { margin: 19px 0 36px; }
   .research-investing .investment-topic { min-height: 76px; gap: 10px; padding: 12px; }
   .investment-topic-copy strong { font-size: .78rem; }
