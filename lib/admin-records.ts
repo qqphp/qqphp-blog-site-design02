@@ -5,12 +5,19 @@ import { validateContent } from './cms-validation';
 import { adminCollections, configKeys, validCollection } from './admin-sections';
 import { migratePageCopy } from './page-copy';
 import { deleteLocalMedia } from './local-media';
+import { recordTimes } from './content-times';
 
 type Item = Record<string, unknown>;
 type RecordKey = { section: Section; collection: string; id: string };
 type ListOptions = { page: number; size: number; q: string; status: string; categoryId: string };
 export class AdminConflict extends Error {}
 export class AdminNotFound extends Error {}
+
+function recordInput(section: Section, collection: string, value: Item, createdAt: string | null) {
+  if (section === 'writing' && collection === 'categories') return value;
+  const { createdAt: _createdAt, updatedAt: _updatedAt, ...fields } = value;
+  return section === 'projects' && collection === 'items' ? { ...fields, createdAt: createdAt ?? '' } : fields;
+}
 
 function assertCollection(section: Section, collection: string) {
   if (!validCollection(section, collection)) throw new Error('栏目或列表无效');
@@ -67,10 +74,10 @@ export async function listAdminRecords(section: Section, collection: string, inp
       const total = await db.query<{ count: number }>(`SELECT count(*)::int AS count FROM articles a WHERE ${where}`, params);
       const rows = await db.query(`SELECT a.slug AS id, a.title, a.excerpt, a.category_id AS "categoryId",
         c.name AS category, a.published, to_char(a.published_on, 'YYYY.MM.DD') AS date,
-        a.position, a.revision FROM articles a JOIN article_categories c ON c.id = a.category_id
+        a.position, a.revision, a.created_at AS "createdAt", a.updated_at AS "updatedAt" FROM articles a JOIN article_categories c ON c.id = a.category_id
         WHERE ${where} ORDER BY a.published_on DESC, a.slug LIMIT $5 OFFSET $6`,
       [...params, size, (page - 1) * size]);
-      return { items: rows.rows, total: total.rows[0].count, page, size };
+      return { items: rows.rows.map((row) => ({ ...row, ...recordTimes(row) })), total: total.rows[0].count, page, size };
     }
     if (section === 'writing' && collection === 'categories') {
       const where = `($1 = '' OR name ILIKE $2 ESCAPE '\\')`;
@@ -84,13 +91,15 @@ export async function listAdminRecords(section: Section, collection: string, inp
       AND ($5 = 'all' OR published = ($5 = 'published')) AND ($6 = '' OR category_id = $6)`;
     const params = [section, collection, q, pattern, input.status, input.categoryId];
     const total = await db.query<{ count: number }>(`SELECT count(*)::int AS count FROM cms_entries WHERE ${where}`, params);
-    const order = (section === 'stories' || (section === 'investing' && collection === 'entries'))
-      ? 'occurred_at DESC NULLS LAST, position, id' : 'position, id';
+    const order = section === 'investing' && collection === 'entries'
+      ? 'created_at DESC NULLS LAST, position, id'
+      : section === 'stories' ? 'occurred_at DESC NULLS LAST, position, id' : 'position, id';
     const rows = await db.query(`SELECT id, title, left(search_text, 160) AS excerpt,
-      category_id AS "categoryId", published, occurred_at AS date, position, revision
+      category_id AS "categoryId", published, occurred_at AS date, position, revision,
+      created_at AS "createdAt", updated_at AS "updatedAt"
       FROM cms_entries WHERE ${where} ORDER BY ${order} LIMIT $7 OFFSET $8`,
     [...params, size, (page - 1) * size]);
-    return { items: rows.rows, total: total.rows[0].count, page, size };
+    return { items: rows.rows.map((row) => ({ ...row, ...recordTimes(row) })), total: total.rows[0].count, page, size };
   });
 }
 
@@ -101,11 +110,12 @@ async function readRecord(db: Client, key: RecordKey) {
       a.category_id AS "categoryId", c.name AS category,
       to_char(a.published_on, 'YYYY.MM.DD') AS date, a.published AS "_published",
       a.cover_url AS cover, a.cover_mode AS "coverMode",
-      a.cover_generated_for AS "coverGeneratedFor", a.revision
+      a.cover_generated_for AS "coverGeneratedFor", a.revision,
+      a.created_at AS "createdAt", a.updated_at AS "updatedAt"
       FROM articles a JOIN article_categories c ON c.id = a.category_id WHERE a.slug = $1`, [id]);
     if (!row.rowCount) return null;
     const { revision, ...value } = row.rows[0];
-    return { value, revision: Number(revision) };
+    return { value: { ...value, ...recordTimes(value) }, revision: Number(revision) };
   }
   if (section === 'writing' && collection === 'categories') {
     const row = await db.query(`SELECT id, name, description, coalesce(parent_id, '') AS "parentId", revision
@@ -114,14 +124,16 @@ async function readRecord(db: Client, key: RecordKey) {
     const { revision, ...value } = row.rows[0];
     return { value, revision: Number(revision) };
   }
-  const row = await db.query<{ payload: Item; category_id: string | null; revision: number }>(
-    'SELECT payload, category_id, revision FROM cms_entries WHERE section = $1 AND collection = $2 AND id = $3',
+  const row = await db.query<{ payload: Item; category_id: string | null; revision: number; createdAt: Date | null; updatedAt: Date }>(
+    'SELECT payload, category_id, revision, created_at AS "createdAt", updated_at AS "updatedAt" FROM cms_entries WHERE section = $1 AND collection = $2 AND id = $3',
     [section, collection, id]);
   if (!row.rowCount) return null;
   const result = row.rows[0];
   return {
-    value: section === 'investing' && collection === 'entries'
-      ? { ...result.payload, sectionId: result.category_id } : result.payload,
+    value: { ...result.payload,
+      ...(section === 'investing' && collection === 'entries' ? { sectionId: result.category_id } : {}),
+      ...recordTimes(result),
+    },
     revision: result.revision,
   };
 }
@@ -261,10 +273,10 @@ async function validateRecord(db: Client, key: Omit<RecordKey, 'id'>, value: Ite
         sections: [{ ...value, entries: [] }],
       });
     } else {
-      if (typeof value.sectionId !== 'string') throw new Error('请选择研究分组');
+      if (typeof value.sectionId !== 'string') throw new Error('请选择栏目');
       const parent = await db.query('SELECT 1 FROM cms_entries WHERE section = $1 AND collection = $2 AND id = $3',
         ['investing', 'sections', value.sectionId]);
-      if (!parent.rowCount) throw new Error('研究分组不存在');
+      if (!parent.rowCount) throw new Error('栏目不存在');
       const { sectionId: _sectionId, ...entry } = value;
       validateContent('investing', {
         ...defaults.investing,
@@ -273,7 +285,7 @@ async function validateRecord(db: Client, key: Omit<RecordKey, 'id'>, value: Ite
     }
     return;
   }
-  if (['stories', 'slides', 'aiNotes'].includes(section)) {
+  if (['stories', 'slides'].includes(section)) {
     validateContent(section, [value]);
     return;
   }
@@ -346,6 +358,8 @@ export async function createAdminRecord(section: Section, collection: string, va
   return withDatabase(async (db) => {
     await db.query('BEGIN');
     try {
+      const clock = await db.query<{ now: Date }>('SELECT now()');
+      value = recordInput(section, collection, value, clock.rows[0].now.toISOString());
       await validateRecord(db, { section, collection }, value);
       if (section === 'writing' && collection === 'articles') {
         await db.query(`INSERT INTO articles (slug, title, excerpt, body, category_id, published_on,
@@ -368,8 +382,9 @@ export async function createAdminRecord(section: Section, collection: string, va
       }
       await db.query(`INSERT INTO cms_sections (section, value) VALUES ($1, '{}'::jsonb)
         ON CONFLICT DO NOTHING`, [section]);
+      const saved = await readRecord(db, { section, collection, id });
       await db.query('COMMIT');
-      return { id, value, revision: 1 };
+      return { id, ...saved! };
     } catch (error) {
       await db.query('ROLLBACK');
       if ((error as { code?: string }).code === '23505') throw new AdminConflict('标识或名称已存在');
@@ -390,6 +405,7 @@ export async function updateAdminRecord(key: RecordKey, value: Item, revision: n
       const previous = await readRecord(db, key);
       if (!previous) throw new AdminNotFound('记录不存在');
       if (previous.revision !== revision) throw new AdminConflict('此记录已在另一窗口修改');
+      value = recordInput(key.section, key.collection, value, previous.value.createdAt as string | null);
       await validateRecord(db, key, value, key.id);
       let updated;
       if (key.section === 'writing' && key.collection === 'articles') {
@@ -411,16 +427,17 @@ export async function updateAdminRecord(key: RecordKey, value: Item, revision: n
           key.section, key.collection, key.id, revision]);
       }
       if (!updated.rowCount) throw new AdminConflict('此记录已在另一窗口修改');
+      const saved = await readRecord(db, { ...key, id });
       await db.query('COMMIT');
-      return previous.value;
+      return { previous: previous.value, saved: saved! };
     } catch (error) {
       await db.query('ROLLBACK');
       if ((error as { code?: string }).code === '23505') throw new AdminConflict('标识或名称已存在');
       throw error;
     }
   });
-  const failedMedia = await cleanupUnreferencedMedia(before, value);
-  return { id, value, revision: revision + 1, failedMedia };
+  const failedMedia = await cleanupUnreferencedMedia(before.previous, value);
+  return { id, ...before.saved, failedMedia };
 }
 
 export async function deleteAdminRecord(key: RecordKey, revision: number) {
@@ -473,6 +490,7 @@ export async function setAdminPublication(key: RecordKey, published: boolean, re
 
 export async function moveAdminRecord(key: RecordKey, direction: -1 | 1, revision: number) {
   assertCollection(key.section, key.collection);
+  if (key.section === 'investing' && key.collection === 'entries') throw new Error('投资文章按添加时间排序');
   if (![-1, 1].includes(direction) || !Number.isInteger(revision) || revision < 1)
     throw new Error('排序请求无效');
   return withDatabase(async (db) => {

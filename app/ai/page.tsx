@@ -8,7 +8,7 @@ export const metadata = {
 };
 export default function AiPage() {
   return (
-    <SectionContent sections={['aiNotes', 'prompt']}><main className="site-shell">
+    <SectionContent sections={['ai']}><main className="site-shell">
       <SiteHeader />
       <AiNotebook />
       <SiteFooter />

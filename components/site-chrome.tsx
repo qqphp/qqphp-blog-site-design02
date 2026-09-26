@@ -52,8 +52,5 @@ export function SiteHeader() {
 
 export function SiteFooter() { const { site } = useContent(); return <footer className="site-footer"><p>{site.footer}</p><Link href={site.footerUrl}>{site.footerLink}</Link><small>{site.copyright}</small></footer>; }
 export function PageIntro({ title, text }: { title: string; text: string }) {
-  const path = usePathname();
-  const { pageSettings } = useContent();
-  const page = path === '/writing' ? pageSettings.writing : path === '/projects' ? pageSettings.projects : { title, text };
-  return <section className="page-intro"><h1>{page.title}</h1><p>{page.text}</p></section>;
+  return <section className="page-intro"><h1>{title}</h1><p>{text}</p></section>;
 }

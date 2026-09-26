@@ -18,6 +18,9 @@ import { createFilmCover } from './admin-film-manager';
 import { createPodcastCover } from './admin-podcast-manager';
 import { createPlaylistCover } from './admin-playlist-cover';
 import { AdminAiSettings } from './admin-ai-settings';
+import { AdminAiResources } from './admin-ai-resources';
+import { AdminInvestmentEditor } from './admin-investment-editor';
+import { formatRecordTime } from '@/lib/content-times';
 import { api, asJson, Field, fresh } from './admin-fields';
 import './admin.css';
 
@@ -25,21 +28,22 @@ type Item = Record<string, unknown>;
 type Summary = {
   id: string; title: string; excerpt?: string; categoryId?: string;
   published?: boolean; date?: string; revision: number; position: number;
+  createdAt?: string | null; updatedAt?: string;
 };
 type Page = { items: Summary[]; total: number; page: number; size: number };
 type Edit = { id: string | null; value: Json; revision: number; original: string };
 type Option = { id: string; name: string; parentId?: string; title?: string };
 
 const sidebarSections: { label?: string; sections: Section[] }[] = [
-  { sections: ['writing', 'projects', 'stories', 'slides', 'profile', 'aiNotes', 'prompt', 'investing'] },
+  { sections: ['writing', 'projects', 'stories', 'ai', 'investing', 'profile'] },
   { label: '网站', sections: ['bookmarks', 'friends'] },
   { label: '生活', sections: ['tracks', 'films', 'podcasts', 'travel', 'hobbies', 'books'] },
-  { label: '设置', sections: ['aiSettings', 'pageSettings', 'copy', 'site', 'home'] },
+  { label: '设置', sections: ['aiSettings', 'copy', 'site', 'home'] },
 ];
 const EMPTY_COLLECTIONS: readonly string[] = [];
 const destinations: Partial<Record<Section, string>> = {
   home: '/', site: '/', writing: '/writing', projects: '/projects', stories: '/notes',
-  slides: '/notes', profile: '/about', aiNotes: '/ai', prompt: '/ai',
+  slides: '/notes', profile: '/about', ai: '/ai',
   investing: '/investing', bookmarks: '/bookmarks', friends: '/friends',
   books: '/books', tracks: '/music', films: '/films', podcasts: '/podcasts',
   travel: '/travel', hobbies: '/hobbies',
@@ -47,9 +51,8 @@ const destinations: Partial<Record<Section, string>> = {
 const collectionName = (section: Section, collection: string) => {
   if (section === 'writing' && collection === 'articles') return '文章管理';
   if (section === 'writing' && collection === 'categories') return '文章分类';
-  if (section === 'stories') return '说说列表';
+  if (section === 'stories') return collection === 'covers' ? '说说封面' : '说说';
   if (section === 'slides') return '说说封面';
-  if (section === 'aiNotes') return 'AI 手记';
   return collectionLabels[collection] ?? collection;
 };
 const recordUrl = (section: Section, collection: string, id?: string) =>
@@ -81,13 +84,13 @@ function sampleRecord(section: Section, collection: string, options: Record<stri
   if (!sample) throw new Error('此列表没有可用的表单模板');
   const value = fresh(asJson(sample)) as Item;
   value.id = crypto.randomUUID();
-  if (section === 'investing' && collection === 'sections') value.entries = [];
+  if (section === 'investing' && collection === 'sections') delete value.entries;
+  if (section === 'ai' && collection === 'agents') value.status = 'active';
   if (section === 'stories') value.date = storyDate(new Date());
   return value as Json;
 }
 
 function sampleConfig(section: Section, scope: string): Json {
-  if (section === 'pageSettings') return { [scope]: defaults.pageSettings[scope as keyof typeof defaults.pageSettings] } as Json;
   if (section === 'copy') {
     const keys = copyGroups.find((group) => group.id === scope)?.keys ?? [];
     return Object.fromEntries(keys.map((key) => [key, defaults.copy[key as keyof typeof defaults.copy]])) as Json;
@@ -162,9 +165,10 @@ export function AdminGranularPanel() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const listRequest = useRef(0);
-  const collections = useMemo(() => adminCollections[section] ?? EMPTY_COLLECTIONS, [section]);
+  const collections = useMemo(() => section === 'stories' ? ['root', 'covers'] : adminCollections[section] ?? EMPTY_COLLECTIONS, [section]);
+  const recordSection = section === 'stories' && tab === 'covers' ? 'slides' : section;
   const scopes = configScopes(section);
-  const activeCollection = collections.includes(tab) ? tab : null;
+  const activeCollection = collections.includes(tab) ? tab === 'covers' ? 'root' : tab : null;
   const activeScope = !activeCollection && scopes.some((scope) => scope.id === tab) ? tab : null;
   const dirty = Boolean((edit && JSON.stringify(edit.value) !== edit.original) ||
     (config && JSON.stringify(config.value) !== config.original));
@@ -196,16 +200,16 @@ export function AdminGranularPanel() {
   useEffect(() => {
     if (!loggedIn || !collections.length) return;
     let current = true;
-    void api<Record<string, Option[]>>(`/api/admin/options/${section}`)
+    void api<Record<string, Option[]>>(`/api/admin/options/${recordSection}`)
       .then((result) => { if (current) setOptions(result); })
       .catch((error) => { if (current) setMessage(String(error)); });
     return () => { current = false; };
-  }, [loggedIn, section, collections]);
+  }, [loggedIn, recordSection, collections]);
 
   const refreshOptions = useCallback(async () => {
     if (collections.length)
-      setOptions(await api<Record<string, Option[]>>(`/api/admin/options/${section}`));
-  }, [section, collections]);
+      setOptions(await api<Record<string, Option[]>>(`/api/admin/options/${recordSection}`));
+  }, [recordSection, collections]);
 
   const refreshList = useCallback(async () => {
     if (!activeCollection) return;
@@ -214,11 +218,11 @@ export function AdminGranularPanel() {
     const request = ++listRequest.current;
     setLoading(true);
     try {
-      const result = await api<Page>(`${recordUrl(section, activeCollection)}?${params}`);
+      const result = await api<Page>(`${recordUrl(recordSection, activeCollection)}?${params}`);
       if (request === listRequest.current) setList(result);
     } catch (error) { if (request === listRequest.current) setMessage(String(error)); }
     finally { if (request === listRequest.current) setLoading(false); }
-  }, [section, activeCollection, page, query, status, categoryId]);
+  }, [recordSection, activeCollection, page, query, status, categoryId]);
   useEffect(() => {
     if (!loggedIn || !activeCollection) return;
     const task = setTimeout(() => void refreshList(), 0);
@@ -252,7 +256,7 @@ export function AdminGranularPanel() {
     if (!confirmDiscard() || !activeCollection) return;
     setBusy(true); setMessage('');
     try {
-      const result = await api<{ value: Json; revision: number }>(recordUrl(section, activeCollection, id));
+      const result = await api<{ value: Json; revision: number }>(recordUrl(recordSection, activeCollection, id));
       if (!result) throw new Error('记录不存在');
       setEdit({ id, value: result.value, revision: result.revision,
         original: JSON.stringify(result.value) });
@@ -262,7 +266,7 @@ export function AdminGranularPanel() {
   function addRecord() {
     if (!activeCollection || !confirmDiscard()) return;
     try {
-      const value = sampleRecord(section, activeCollection, options);
+      const value = sampleRecord(recordSection, activeCollection, options);
       setEdit({ id: null, value, revision: 0, original: JSON.stringify(value) });
       setMessage('');
     } catch (error) { setMessage(String(error)); }
@@ -271,9 +275,9 @@ export function AdminGranularPanel() {
     setBusy(true); setMessage('');
     try {
       if (activeCollection && edit) {
-        const prepared = await prepareMedia(section, activeCollection, edit.value, setMessage);
+        const prepared = await prepareMedia(recordSection, activeCollection, edit.value, setMessage);
         setEdit((current) => current ? { ...current, value: prepared } : current);
-        const url = recordUrl(section, activeCollection, edit.id ?? undefined);
+        const url = recordUrl(recordSection, activeCollection, edit.id ?? undefined);
         const result = await api<{ revision: number; failedMedia?: string[] }>(url, {
           method: edit.id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ value: prepared, revision: edit.revision }),
@@ -300,7 +304,7 @@ export function AdminGranularPanel() {
     if (action === 'delete' && !window.confirm(`确定删除「${item.title || item.id}」？此操作立即生效。`)) return;
     setBusy(true); setMessage('');
     try {
-      const base = recordUrl(section, activeCollection, item.id);
+      const base = recordUrl(recordSection, activeCollection, item.id);
       const method = action === 'publish' ? 'PATCH' : action === 'delete' ? 'DELETE' : 'POST';
       const body = action === 'publish' ? { published: !item.published, revision: item.revision }
         : action === 'delete' ? { revision: item.revision }
@@ -361,11 +365,14 @@ export function AdminGranularPanel() {
   </form></main>;
 
   const configSample = activeScope ? sampleConfig(section, activeScope) : null;
-  const recordSample = activeCollection ? sampleRecord(section, activeCollection, options) : null;
+  const recordSample = activeCollection ? sampleRecord(recordSection, activeCollection, options) : null;
   const canPublish = activeCollection && !['categories', 'statuses', 'scenes', 'sections'].includes(activeCollection)
     && !(section === 'writing' && activeCollection === 'categories');
-  const canGenerate = Boolean(edit && ((section === 'travel' || section === 'hobbies' || section === 'stories')
+  const canGenerate = Boolean(edit && ((recordSection === 'travel' || recordSection === 'hobbies' || recordSection === 'stories')
     || (section === 'books' && ['items', 'lists'].includes(activeCollection ?? ''))));
+  const showTimes = (section === 'writing' && activeCollection === 'articles') ||
+    (section === 'projects' && activeCollection === 'items') || (section === 'investing' && activeCollection === 'entries');
+  const canMove = !['writing', 'stories'].includes(recordSection) && !(section === 'investing' && activeCollection === 'entries');
   return <main className="admin-shell">
     <aside className="admin-sidebar">
       <div className="admin-brand"><span>ALEI ADMIN</span><strong>后台管理系统</strong></div>
@@ -403,13 +410,21 @@ export function AdminGranularPanel() {
           <div className="admin-section-heading"><button type="button" onClick={() => {
             if (confirmDiscard()) { setEdit(null); setMessage(''); }
           }}>← 返回列表</button><span>{edit.id ? '编辑内容' : '新增内容'}</span></div>
+          {showTimes && <dl className="admin-record-times">
+            <div><dt>{section === 'investing' ? '添加时间' : '创建时间'}</dt><dd>{edit.id ? formatRecordTime((edit.value as Item).createdAt as string | null) : '首次保存时自动记录'}</dd></div>
+            <div><dt>最后更新时间</dt><dd>{edit.id ? formatRecordTime((edit.value as Item).updatedAt as string) : '首次保存时自动记录'}</dd></div>
+          </dl>}
           <fieldset disabled={busy || working}>
             {section === 'writing' && activeCollection === 'articles' ?
               <AdminWritingEditor article={edit.value as unknown as Article}
                 categories={(options.categories ?? []) as Content['categories']}
                 onWorking={setWorking} disabled={busy || working}
                 onChange={(value) => setEdit({ ...edit, value: asJson(value) })} /> :
-              <Field path={`${section}.${activeCollection}`} label={collectionName(section, activeCollection)}
+              section === 'ai' ? <AdminAiResources collection={activeCollection} value={edit.value} sample={recordSample!}
+                onChange={(value) => setEdit({ ...edit, value })} /> :
+              section === 'investing' && activeCollection === 'entries' ? <AdminInvestmentEditor value={edit.value} sample={recordSample!}
+                columns={optionFields.sectionId} onChange={(value) => setEdit({ ...edit, value })} /> :
+              <Field path={`${recordSection}.${activeCollection}`} label={collectionName(recordSection, activeCollection)}
                 value={edit.value} sample={recordSample ?? edit.value} options={optionFields}
                 immutableIdentity={Boolean(edit.id)}
                 onChange={(value) => setEdit({ ...edit, value })} />}
@@ -437,25 +452,26 @@ export function AdminGranularPanel() {
                 {(section === 'investing' ? options.sections : options.categories)?.map((item) =>
                   <option value={item.id} key={item.id}>{item.title ?? item.name}</option>)}
               </select> : null}
-            <button className="admin-primary" type="button" onClick={addRecord}>＋ 新增{collectionName(section, activeCollection)}</button>
+            <button className="admin-primary" type="button" onClick={addRecord}>＋ 新增{collectionName(section, tab)}</button>
           </div>
           <div className="admin-table-scroll"><table className="admin-data-table">
             <caption>共 {list?.total ?? 0} 条；每页最多 20 条</caption>
-            <thead><tr><th scope="col">内容</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead>
+            <thead><tr><th scope="col">内容</th>{showTimes && <><th scope="col">{section === 'investing' ? '添加时间' : '创建时间'}</th><th scope="col">最后更新时间</th></>}<th scope="col">状态</th><th scope="col">操作</th></tr></thead>
             <tbody>{list?.items.map((item, index) => <tr key={item.id}>
               <td><button type="button" className="admin-table-title" onClick={() => void openRecord(item.id)}>
                 {item.title || item.excerpt || item.id}</button>
                 <small>{item.excerpt?.slice(0, 100) || item.id}</small></td>
+              {showTimes && <><td>{formatRecordTime(item.createdAt)}</td><td>{item.updatedAt ? formatRecordTime(item.updatedAt) : '—'}</td></>}
               <td>{canPublish ? <span className={`admin-status-badge ${item.published ? 'published' : ''}`}>
                 {item.published ? '已发布' : '草稿'}</span> : '—'}</td>
               <td><div className="admin-row-actions">
                 <button type="button" disabled={busy} onClick={() => void openRecord(item.id)}>编辑</button>
                 {canPublish && <button type="button" disabled={busy}
                   onClick={() => void quickAction(item, 'publish')}>{item.published ? '转草稿' : '发布'}</button>}
-                <button type="button" disabled={busy || (index === 0 && page === 1) || Boolean(query) || ['writing', 'stories'].includes(section)}
+                {canMove && <><button type="button" disabled={busy || (index === 0 && page === 1) || Boolean(query)}
                   onClick={() => void quickAction(item, 'up')}>上移</button>
-                <button type="button" disabled={busy || (index === (list?.items.length ?? 0) - 1 && page >= Math.ceil((list?.total ?? 0) / 20)) || Boolean(query) || ['writing', 'stories'].includes(section)}
-                  onClick={() => void quickAction(item, 'down')}>下移</button>
+                <button type="button" disabled={busy || (index === (list?.items.length ?? 0) - 1 && page >= Math.ceil((list?.total ?? 0) / 20)) || Boolean(query)}
+                  onClick={() => void quickAction(item, 'down')}>下移</button></>}
                 <button type="button" className="admin-danger" disabled={busy}
                   onClick={() => void quickAction(item, 'delete')}>删除</button>
               </div></td>

@@ -1,4 +1,4 @@
-export type ResearchEntry = { title: string; tag: string; description: string; paragraphs: string[] };
+export type ResearchEntry = { title: string; tag: string; description: string; paragraphs: string[]; createdAt?: string | null };
 export type ResearchSection = { id: string; title: string; description: string; entries: ResearchEntry[] };
 
 // 编辑示例；后续可由后台内容替换，不代表已完成实验或实际投资结果。
@@ -27,11 +27,11 @@ export const researchContent: Record<'ai' | 'investing', { title: string; label:
   investing: {
     title: '投资研究', label: 'INVESTING / RESEARCH NOTES', description: '技术分析、技术指标、量化策略与投资分享。',
     sections: [
-      { id: 'trends', title: '趋势分析', description: '先明确观察对象和时间尺度，再组织证据。', entries: [
+      { id: 'trends', title: '技术分析', description: '先明确观察对象和时间尺度，再组织证据。', entries: [
         { title: '一份趋势观察记录应该包含什么', tag: '观察模板', description: '把事实、解释和假设分开存放。', paragraphs: ['记录对象、观察区间、数据来源及更新日期。不同区间可能呈现不同形态，因此先固定研究范围，再描述看到的变化。', '把记录分为三栏：直接观察到的事实、可能的解释、需要更多证据的假设。不要把解释写成已经确认的结论。', '最后写一条复查条件：什么新信息会让原来的解释不再适用。本条为研究模板示例，不描述当前市场趋势。'] },
         { title: '用多个观察窗口检查一个判断', tag: '研究问题', description: '短期波动与较长周期的变化，分别回答什么问题。', paragraphs: ['先列出想研究的问题，再选择对应的数据窗口。比较窗口时保持数据口径一致，记录缺失值与异常值的处理。', '如果两个窗口给出不同的描述，保留差异并寻找原因，不为了得到一致结论而随意改变参数。', '输出应包含观察范围和不确定性，不把历史形态直接转化为未来收益判断。这里仅演示笔记结构。'] },
       ] },
-      { id: 'indicators', title: '策略指标', description: '记清定义、口径和适用边界，避免只记一个数字。', entries: [
+      { id: 'indicators', title: '技术指标', description: '记清定义、口径和适用边界，避免只记一个数字。', entries: [
         { title: '为每个指标建立一张说明卡', tag: '指标档案', description: '从计算口径到使用目的，保留完整上下文。', paragraphs: ['说明卡包含：指标名称、计算公式、输入数据、观察周期、缺失值规则与来源。即使名称相同，不同数据口径也可能产生不同结果。', '增加“这个指标没有回答什么”一栏。例如，描述历史波动的统计量，并不能单独解释企业经营情况。', '在真实数据接入前，本栏目只保留说明模板，不展示实时数值或买卖信号。'] },
         { title: '区分信号、阈值与执行规则', tag: '规则拆解', description: '一个指标变化，还不是一套完整策略。', paragraphs: ['把研究记录拆为三部分：怎样计算观察信号，什么条件触发进一步检查，之后如何记录模拟执行。', '同时写明例外情况：数据中断、样本不足和无法执行时如何处理。没有约定的情况先暂停判断，不用回看结果补写规则。', '本条用于说明策略文档的组织方式，不给出具体阈值或交易建议。'] },
       ] },

@@ -1514,3 +1514,8 @@ body:has(.admin-login) .music-dock {
 .admin-podcast-audio-preview audio { width:320px; max-width:100%; height:40px; margin:0; }
 .admin-podcast-audio-preview button { flex-shrink:0; }
 @media(max-width:700px) { .admin-podcast-cover { grid-template-columns:1fr; } .admin-podcast-poster { max-width:300px; width:100%; } }
+
+.admin-record-times { display: flex; flex-wrap: wrap; gap: 16px 32px; margin: 16px 0; font-size: 13px; }
+.admin-record-times div { display: grid; gap: 4px; }
+.admin-record-times dt { color: #68776e; }
+.admin-record-times dd { margin: 0; font-variant-numeric: tabular-nums; }

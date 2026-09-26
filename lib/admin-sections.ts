@@ -1,12 +1,12 @@
-import { defaults, sectionLabels, type Section } from './cms-defaults';
+import { defaults, type Section } from './cms-defaults';
 
 export const adminCollections: Partial<Record<Section, readonly string[]>> = {
   writing: ['articles', 'categories'],
   projects: ['items', 'statuses', 'categories'],
   stories: ['root'],
   slides: ['root'],
-  aiNotes: ['root'],
-  investing: ['sections', 'entries'],
+  ai: ['agents', 'skills', 'relays'],
+  investing: ['entries', 'sections'],
   bookmarks: ['items', 'categories'],
   friends: ['items', 'categories'],
   books: ['items', 'categories', 'lists'],
@@ -19,7 +19,8 @@ export const adminCollections: Partial<Record<Section, readonly string[]>> = {
 
 export const collectionLabels: Record<string, string> = {
   articles: '文章', categories: '分类', items: '内容', statuses: '项目状态',
-  root: '内容', sections: '研究分组', entries: '研究条目', lists: '书单',
+  root: '内容', sections: '栏目', entries: '文章', lists: '书单',
+  agents: '智能体', skills: '技能 Skills', relays: '中转站 API',
   scenes: '音乐场景', playlists: '歌单',
 };
 
@@ -28,8 +29,6 @@ export const copyGroups = [
   { id: 'writing', label: '写作页', keys: ['写作页'] },
   { id: 'projects', label: '项目页', keys: ['项目页'] },
   { id: 'stories', label: '说说页', keys: ['说说页', '说说图库'] },
-  { id: 'ai', label: 'AI 手记', keys: ['AI页面'] },
-  { id: 'investing', label: '投资研究', keys: ['投资页'] },
   { id: 'about', label: '关于页', keys: ['关于页'] },
   { id: 'bookmarks', label: '书签页', keys: ['书签页'] },
   { id: 'friends', label: '友链页', keys: ['友链页'] },
@@ -40,10 +39,8 @@ export const copyGroups = [
 ] as const;
 
 export function configScopes(section: Section) {
+  if (section === 'ai' || section === 'investing') return [];
   if (section === 'copy') return copyGroups.map(({ id, label }) => ({ id, label }));
-  if (section === 'pageSettings')
-    return Object.keys(defaults.pageSettings).map((id) => ({ id,
-      label: id === 'aiCover' ? 'AI 配图' : sectionLabels[id as Section] ?? id }));
   const value = defaults[section];
   const collections = adminCollections[section] ?? [];
   const metadata = value && typeof value === 'object' && !Array.isArray(value)
@@ -53,8 +50,6 @@ export function configScopes(section: Section) {
 
 export function configKeys(section: Section, scope: string): readonly string[] | null {
   if (section === 'copy') return copyGroups.find((group) => group.id === scope)?.keys ?? null;
-  if (section === 'pageSettings')
-    return Object.hasOwn(defaults.pageSettings, scope) ? [scope] : null;
   return scope === 'root' && configScopes(section).length ? [] : null;
 }
 

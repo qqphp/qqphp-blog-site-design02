@@ -31,9 +31,9 @@ try {
     const db = new pg.Client({ connectionString: testUrl.toString() });
     await db.connect();
     try {
-      const articles = await db.query('SELECT slug, position, published, cover_url, body FROM articles ORDER BY slug');
+      const articles = await db.query('SELECT slug, position, published, cover_url, body, updated_at FROM articles ORDER BY slug');
       const categories = await db.query('SELECT id, position, parent_id FROM article_categories ORDER BY id');
-      const entries = await db.query('SELECT section, collection, id, position, published, payload FROM cms_entries ORDER BY section, collection, id');
+      const entries = await db.query('SELECT section, collection, id, position, published, payload, updated_at FROM cms_entries ORDER BY section, collection, id');
       const sections = await db.query('SELECT section, value FROM cms_sections ORDER BY section');
       return { articles: articles.rows, categories: categories.rows,
         entries: entries.rows, sections: sections.rows };
@@ -61,13 +61,24 @@ try {
       const { id: _id, ...payload } = after.payload;
       assert.deepEqual(payload, entry.payload);
       assert.equal(after.payload.id, entry.id);
-    } else assert.deepEqual(after.payload, entry.payload);
+    } else {
+      const renamed = entry.section === 'investing' && entry.collection === 'sections'
+        ? ({ trends: ['趋势分析', '技术分析'], indicators: ['策略指标', '技术指标'] })[entry.id] : null;
+      assert.deepEqual(after.payload, renamed && entry.payload.title === renamed[0]
+        ? { ...entry.payload, title: renamed[1] } : entry.payload);
+    }
+    assert.deepEqual(after.updated_at, entry.updated_at, '迁移不能改变历史更新时间');
   }
-  for (const section of original.sections.filter((item) => item.section !== 'investing'))
+  const expectedSections = original.sections.filter((section) => section.section !== 'pageSettings').map((section) => {
+    const value = { ...section.value };
+    if (section.section === 'copy') { delete value['AI页面']; delete value['投资页']; }
+    return { ...section, value };
+  });
+  for (const section of expectedSections.filter((item) => item.section !== 'investing'))
     assert.deepEqual(migrated.sections.find((item) => item.section === section.section)?.value,
-      section.value, `${section.section} 设置应保留`);
+      section.value, `${section.section} 其余设置应保留`);
   const media = (state) => new Set(JSON.stringify(state).match(/\/api\/media\/[a-f0-9-]+\.(?:png|jpg|gif|webp|mp3|wav)/g) ?? []);
-  for (const url of media(original)) assert.ok(media(migrated).has(url), `迁移后缺少素材引用 ${url}`);
+  for (const url of media({ ...original, sections: expectedSections })) assert.ok(media(migrated).has(url), `迁移后缺少素材引用 ${url}`);
   assert.equal(migrated.entries.filter((item) => item.section === 'investing' &&
     item.collection === 'sections').length, defaults.investing.sections.length);
   assert.equal(migrated.entries.filter((item) => item.section === 'investing' &&
@@ -76,6 +87,14 @@ try {
   const testDb = new pg.Client({ connectionString: testUrl.toString() });
   await testDb.connect();
   try {
+    assert.equal((await testDb.query("SELECT count(*)::int AS n FROM cms_sections WHERE section='pageSettings'")).rows[0].n, 0, '迁移和初始化不能恢复已删除配置');
+    assert.equal((await testDb.query("SELECT count(*)::int AS n FROM cms_section_parts WHERE section='pageSettings' OR (section='copy' AND scope IN ('ai','investing'))")).rows[0].n, 0);
+    assert.equal((await testDb.query('SELECT count(*)::int AS n FROM articles WHERE created_at IS NOT NULL')).rows[0].n, 0);
+    assert.equal((await testDb.query("SELECT count(*)::int AS n FROM cms_entries WHERE section='investing' AND collection='entries' AND created_at IS NOT NULL")).rows[0].n, 0);
+    for (const item of original.entries.filter((row) => row.section === 'projects' && row.collection === 'items')) {
+      const date = (await testDb.query("SELECT created_at FROM cms_entries WHERE section='projects' AND collection='items' AND id=$1", [item.id])).rows[0].created_at;
+      assert.equal(date?.toISOString() ?? null, item.payload.createdAt ? new Date(item.payload.createdAt).toISOString() : null);
+    }
     await testDb.query(`INSERT INTO cms_sections (section, value)
       VALUES ('site', '{"title":"ISOLATED_GRANULAR_TEST"}'::jsonb)
       ON CONFLICT (section) DO UPDATE SET value = jsonb_set(cms_sections.value,
@@ -117,6 +136,13 @@ try {
   };
   const site = await request('/api/admin/config/site/root');
   assert.equal(site.data.value.title, 'ISOLATED_GRANULAR_TEST', '测试服务必须连接独立数据库');
+  for (const path of [
+    ...['writing', 'projects', 'films', 'podcasts', 'travel', 'hobbies', 'investing', 'aiCover', 'travelCover', 'root'].map((scope) => `/api/admin/config/pageSettings/${scope}`),
+    '/api/admin/config/copy/ai', '/api/admin/config/copy/investing',
+  ]) {
+    assert.equal((await request(path)).status, 400);
+    assert.equal((await request(path, 'PUT', { value: {}, revision: 0 })).status, 400);
+  }
   for (const [section, collections] of Object.entries(adminCollections))
     for (const collection of collections) {
       const list = await request(`/api/admin/records/${section}/${collection}?size=1`);
@@ -215,6 +241,8 @@ try {
     headers: { cookie, origin, 'content-type': 'application/json' },
     body: JSON.stringify({ key: 'home', value: defaults.home, revision: 1 }) });
   assert.notEqual(oldBulk.status, 200, '旧整栏目写入接口必须停用');
+  const { checkContentManagement } = await import('./test-content-management.mjs');
+  await checkContentManagement({ request, origin, testUrl, defaults });
   console.log('PASS isolated PostgreSQL record lists, detail, single-record writes, conflicts, publication, move, delete, category references, config scopes and 1000-row pagination');
 } finally {
   if (worker && worker.exitCode === null) {

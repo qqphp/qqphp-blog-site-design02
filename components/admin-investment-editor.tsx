@@ -1,0 +1,22 @@
+'use client';
+import type { Json } from '@/lib/cms-validation';
+import { Field } from './admin-fields';
+import { AdminMarkdownEditor } from './admin-markdown-editor';
+
+export function AdminInvestmentEditor({ value, sample, columns, onChange }: {
+  value: Json; sample: Json; columns: { id: string; name: string }[];
+  onChange: (value: Json) => void;
+}) {
+  const record = value as Record<string, Json>;
+  const template = sample as Record<string, Json>;
+  const keys = ['title', 'description', 'sectionId', '_published'];
+  return <>
+    <Field path="investing.entries" label="文章信息"
+      value={Object.fromEntries(keys.map((key) => [key, record[key]]))}
+      sample={Object.fromEntries(keys.map((key) => [key, template[key]]))}
+      options={{ sectionId: columns }}
+      onChange={(next) => onChange({ ...record, ...(next as Record<string, Json>) })} />
+    <AdminMarkdownEditor label="正文" value={(record.paragraphs as string[]).join('\n\n')}
+      onChange={(markdown) => onChange({ ...record, paragraphs: [markdown] })} />
+  </>;
+}

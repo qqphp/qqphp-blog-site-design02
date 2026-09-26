@@ -710,7 +710,7 @@ try {
       modelCount: modelRequests === 1 ? 2 : 9,
     });
   };
-  const aiView = render(h(AiNotebook));
+  const aiView = render(h(ContentProvider, { content: defaults }, h(AiNotebook)));
   const aiNames = ['大模型数据', '智能体', '技能 Skills', '中转站 API'];
   assert.deepEqual(
     screen.getAllByRole('tab').map((tab) => tab.getAttribute('aria-label')),
@@ -774,6 +774,55 @@ try {
     /C4 · 261\.6 Hz/,
   );
   aiView.unmount();
+  const managedAi = { agents: [], skills: [{ ...defaults.ai.skills[0], id: 'custom-skill', title: '后台技能', category: '后台分类', subcategory: '自定义子类' }], relays: [{ ...defaults.ai.relays[0], id: 'custom-relay', name: '后台中转站', logo: '/missing-logo.png', mark: 'TEST', href: 'https://example.com/' + 'long-path/'.repeat(30) }] };
+  const managedView = render(h(ContentProvider, { content: { ...defaults, ai: managedAi } }, h(AiNotebook)));
+  await switchAi('智能体');
+  assert.ok(screen.getByText('暂无智能体内容。'));
+  await switchAi('技能 Skills');
+  assert.ok(screen.getByText('后台分类', { exact: true }));
+  assert.ok(screen.getByText('后台技能'));
+  assert.ok(screen.getByRole('link', { name: '查看技能' }));
+  await switchAi('中转站 API');
+  const relayCard = screen.getByRole('article');
+  assert.ok(within(relayCard).getByText('后台中转站'));
+  const website = relayCard.querySelector('.ai-relay-url');
+  assert.equal(website.title, managedAi.relays[0].href);
+  assert.equal(website.href, within(relayCard).getByRole('link', { name: '前往 后台中转站' }).href);
+  fireEvent.error(relayCard.querySelector('img'));
+  assert.ok(within(relayCard).getByText('TEST'));
+  managedView.unmount();
+  const { ResearchHub } = await import('../components/research-hub.tsx');
+  const oldEntry = { ...defaults.investing.sections[0].entries[0], id: 'old', title: '同名文章', createdAt: null, paragraphs: ['历史正文'] };
+  const firstEntry = { ...oldEntry, id: 'first', createdAt: '2026-09-25T00:00:00.000Z', paragraphs: ['## 完整正文\n\n| 列一 | 列二 |\n| --- | --- |\n| A | B |\n\n- 列表项目\n\n> 引用内容\n\n```js\nconst value = 1;\n```\n\n<script>alert(1)</script>'] };
+  const newestEntry = { ...oldEntry, id: 'newest', createdAt: '2026-09-26T00:00:00.000Z', paragraphs: ['最新正文'] };
+  const investingDoc = { ...defaults.investing, sections: [
+    { id: 'trends', title: '改名后的栏目', description: '', entries: [oldEntry, firstEntry] },
+    { id: 'review', title: '投资分享', description: '', entries: [newestEntry] },
+    { id: 'new-column', title: '新栏目', description: '', entries: [] },
+  ] };
+  render(h(ContentProvider, { content: { ...defaults, investing: investingDoc } }, h(ResearchHub, { type: 'investing' })));
+  const reader = () => document.querySelector('#investment-article');
+  const listButtons = () => within(screen.getByRole('navigation', { name: '投资文章列表' })).getAllByRole('button');
+  assert.ok(reader().textContent.includes('最新正文'));
+  assert.equal(listButtons()[0].getAttribute('aria-pressed'), 'true');
+  await user.click(listButtons()[1]);
+  assert.ok(reader().querySelector('table'));
+  assert.ok(reader().querySelector('blockquote'));
+  assert.ok(reader().querySelector('ul'));
+  assert.ok(reader().querySelector('pre code'));
+  assert.equal(reader().querySelector('script'), null);
+  await user.click(listButtons()[2]);
+  assert.ok(reader().textContent.includes('历史正文'), '同名文章依靠 ID 切换');
+  await user.click(screen.getByRole('button', { name: /改名后的栏目/ }));
+  assert.ok(reader().querySelector('table'), '栏目内默认选择时间最新的一篇');
+  await user.click(screen.getByRole('button', { name: /改名后的栏目/ }));
+  assert.ok(reader().textContent.includes('最新正文'));
+  await user.click(screen.getByRole('button', { name: /新栏目/ }));
+  assert.equal(reader().textContent, '暂无文章');
+  assert.equal(reader().querySelector('h2'), null);
+  assert.equal(screen.queryByRole('button', { name: '同名文章', exact: true }), null);
+  cleanup();
+  console.log('PASS managed AI resources/categories/empty/logo fallback and investing dynamic columns/newest order/same-title selection/Markdown/empty filter');
   globalThis.fetch = originalAiFetch;
   cleanup();
   console.log(

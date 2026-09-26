@@ -12,7 +12,7 @@ import { bookmarks, friends } from './directory-data';
 import { books, booklists } from './books';
 import { tracks } from './music';
 import { lifeContent } from './life-content';
-import { aiNotes, promptRecipe } from './ai-notebook';
+import { aiAgents, aiSkills, aiRelays } from './ai-resources';
 import { researchContent } from './research-content';
 import pageCopy from './page-copy.json';
 import articleSeed from './article-seed.json';
@@ -72,39 +72,6 @@ export const defaults = {
   categories: [...new Set(writing.map((item) => item.category))].map(
     (name) => ({ id: categoryId(name), name, description: '', parentId: '' }),
   ),
-  pageSettings: {
-    writing: {
-      title: '记录思考，分享实践。',
-      text: '分享实践中的经验、方法与观察，也记录那些值得继续探讨的问题。',
-    },
-    projects: {
-      title: '从一个想法，到一件作品。',
-      text: '收录产品原型、设计探索与个人工具，记录每个项目的构思、实现与迭代。',
-    },
-    aiCover: {
-      src: '/notes/paper-v2.png',
-      alt: '本站说说封面的 AI 纸艺山水实验',
-      href: '#ai-note-cover',
-    },
-    films: {
-      description: '四个虚构短片的故事提案，从城市、生活、声音到实验影像。',
-    },
-    podcasts: {
-      description:
-        '四篇虚构对话文字稿，从创作、技术聊到阅读与日常。暂未提供节目音频。',
-    },
-    travel: { description: '三条想象中的路线，收集海风、水面与树影。' },
-    hobbies: { description: '从五分钟开始，在写字、摄影和聆听里找回手感。' },
-    investing: {
-      eyebrow: '从观察到验证',
-      title: '把判断，写成可以复查的过程。',
-      steps: ['趋势观察', '指标定义', '策略假设', '验证复盘'],
-      description: '趋势、指标、量化与复盘，保留每一步的上下文。',
-      note: '研究示例 · 无实时行情或回测收益',
-      disclosure:
-        '本页为投资研究框架示例，仅用于学习与交流，不构成投资建议。未接入行情、账户或交易系统。',
-    },
-  },
   copy: pageCopy,
   site: {
     name: '开发阿雷',
@@ -201,14 +168,7 @@ export const defaults = {
     },
   ]),
   profile,
-  aiNotes: publish(
-    aiNotes.map((item) => ({
-      ...item,
-      href: item.href ?? '',
-      link: item.link ?? '',
-    })),
-  ),
-  prompt: { text: promptRecipe },
+  ai: { agents: publish(aiAgents), skills: publish(aiSkills), relays: publish(aiRelays) },
   investing: {
     ...researchContent.investing,
     sections: researchContent.investing.sections.map((section) => ({
@@ -248,7 +208,6 @@ export type PublicContent = Omit<Content, 'aiSettings'>;
 export type Section = keyof Content;
 export const sectionLabels: Record<Section, string> = {
   aiSettings: 'AI 大模型设置',
-  pageSettings: '页面标题与配图',
   copy: '页面固定文案',
   site: '站点与导航',
   home: '首页',
@@ -258,9 +217,8 @@ export const sectionLabels: Record<Section, string> = {
   stories: '说说',
   slides: '说说封面',
   profile: '关于',
-  aiNotes: 'AI 手记',
-  prompt: '提示词便签',
-  investing: '投资研究',
+  ai: 'AI',
+  investing: '投资',
   bookmarks: '书签',
   friends: '友链',
   books: '书籍',

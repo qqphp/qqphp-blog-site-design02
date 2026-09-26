@@ -12,11 +12,7 @@ import {
   Puzzle,
   Sparkles,
 } from 'lucide-react';
-import {
-  aiAgents,
-  aiRelays,
-  aiSkills,
-} from '@/lib/ai-resources';
+import { useContent } from '@/components/content-provider';
 import { AiModelDataSection } from '@/components/ai-model-data';
 import './ai-notebook.css';
 
@@ -245,7 +241,8 @@ const STATUS_LABEL: Record<string, string> = {
 /* ------------------------------------------------------------------ */
 
 function AgentSection() {
-  const agents = aiAgents;
+  const { ai: { agents } } = useContent();
+  const [failedLogos, setFailedLogos] = useState<string[]>([]);
 
   return (
     <section id="ai-agents" className="ai-section" aria-label="智能体 AI Agent">
@@ -254,7 +251,9 @@ function AgentSection() {
           <article className="ai-agent-card" key={agent.id}>
             <div className="ai-agent-top">
               <span className="ai-agent-logo" aria-hidden="true">
-                {agent.logo}
+                {/^(\/|https?:)/.test(agent.logo) && !failedLogos.includes(agent.id) ? (
+                  <Image src={agent.logo} alt="" width={36} height={36} unoptimized onError={() => setFailedLogos((ids) => [...ids, agent.id])} />
+                ) : /^(\/|https?:)/.test(agent.logo) || !agent.logo ? <Bot size={26} /> : agent.logo}
               </span>
               <span
                 className={`ai-agent-status ai-status-${agent.status}`}
@@ -293,10 +292,11 @@ function AgentSection() {
 /* ------------------------------------------------------------------ */
 
 function SkillsSection() {
+  const { ai: { skills: aiSkills } } = useContent();
   const [categoryFilter, setCategoryFilter] = useState('全部');
   const allCategories = useMemo(
     () => [...new Set(aiSkills.map((s) => s.category))],
-    [],
+    [aiSkills],
   );
   const allSubcategories = useMemo(() => {
     const map = new Map<string, Set<string>>();
@@ -305,7 +305,7 @@ function SkillsSection() {
       map.get(s.category)!.add(s.subcategory);
     }
     return map;
-  }, []);
+  }, [aiSkills]);
 
   const skills = aiSkills.filter(
     (skill) =>
@@ -373,7 +373,7 @@ function SkillsSection() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              官方 Skill <ArrowUpRight size={16} />
+              查看技能 <ArrowUpRight size={16} />
             </a>
           </article>
         ))}
@@ -381,9 +381,6 @@ function SkillsSection() {
       {!skills.length && (
         <p className="ai-empty">当前分类下暂无技能。</p>
       )}
-      <p className="ai-source-note">
-        收录自 Anthropic 官方技能库 · 适配环境与依赖见原仓库
-      </p>
     </section>
   );
 }
@@ -393,7 +390,7 @@ function SkillsSection() {
 /* ------------------------------------------------------------------ */
 
 function RelaysSection() {
-  const relays = aiRelays;
+  const { ai: { relays } } = useContent();
   const [failedLogos, setFailedLogos] = useState<string[]>([]);
 
   return (
@@ -403,7 +400,7 @@ function RelaysSection() {
           <article className="ai-relay-card" key={relay.id}>
             <div className="ai-relay-top">
               <span className="ai-relay-mark" aria-hidden="true">
-                {failedLogos.includes(relay.id) ? relay.mark : (
+                {failedLogos.includes(relay.id) || !relay.logo ? relay.mark || 'API' : (
                   <Image src={relay.logo} alt="" width={40} height={40} unoptimized onError={() => setFailedLogos((ids) => ids.includes(relay.id) ? ids : [...ids, relay.id])} />
                 )}
               </span>
@@ -429,6 +426,7 @@ function RelaysSection() {
 /* ------------------------------------------------------------------ */
 
 export function AiNotebook() {
+  const { ai: { agents: aiAgents, skills: aiSkills, relays: aiRelays } } = useContent();
   const [active, setActive] = useState('ai-models');
   const [modelCount, setModelCount] = useState(0);
 

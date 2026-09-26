@@ -28,11 +28,12 @@ const names: Record<string, string> = {
   categoryId: '分类',
   statusId: '状态',
   moodId: '场景',
-  sectionId: '研究分组',
+  sectionId: '栏目',
   parentId: '上级分类',
   coverMode: '封面来源',
   mode: '图片来源',
   createdAt: '创建时间',
+  creator: '作者 / 团队', logo: 'Logo', subcategory: '子分类',
   audio: '音频地址',
   cover: '封面地址',
   slug: '文章路径标识',
@@ -283,7 +284,7 @@ export function Field({
         <h3>{label}</h3>
         <div className="admin-fields">
           {Object.entries(value).filter(([key]) =>
-            !['id', 'coverGeneratedFor', 'generatedFor'].includes(key) &&
+            !['id', 'coverGeneratedFor', 'generatedFor', 'createdAt', 'updatedAt'].includes(key) &&
             !(key === 'category' && Object.hasOwn(value, 'categoryId')) &&
             !(key === 'status' && Object.hasOwn(value, 'statusId')) &&
             !(key === 'mood' && Object.hasOwn(value, 'moodId')),
@@ -316,7 +317,7 @@ export function Field({
       </label>
     );
   const field = path.split('.').at(-1)!;
-  const asset = /^(src|cover|image|audio|publicAccountQr)$/.test(field) || /\.album\.\d+$/.test(path);
+  const asset = /^(src|cover|image|audio|publicAccountQr|logo)$/.test(field) || /\.album\.\d+$/.test(path);
   const long =
     typeof value === 'string' &&
     ((typeof sample === 'string' &&

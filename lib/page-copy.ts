@@ -4,6 +4,8 @@ import pageCopy from './page-copy.json';
 export function migratePageCopy(value: Record<string, Record<string, string>>) {
   const copy = { ...value };
   delete copy['说说封面'];
+  delete copy['AI页面'];
+  delete copy['投资页'];
   for (const page of ['说说页', '项目页', '书签页', '友链页', '书籍页'] as const) {
     const saved = value[page] ?? {};
     copy[page] = Object.fromEntries(

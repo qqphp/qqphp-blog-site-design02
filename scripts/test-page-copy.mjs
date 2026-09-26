@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { defaults } from '../lib/cms-defaults.ts';
 import { migratePageCopy } from '../lib/page-copy.ts';
-import { validateContent } from '../lib/cms-validation.ts';
+import { isSection, validateContent } from '../lib/cms-validation.ts';
+import { configKeys, configScopes } from '../lib/admin-sections.ts';
 
 const removed = {
   说说页: ['04', '07', '09', '10'],
@@ -9,6 +10,8 @@ const removed = {
 };
 const legacy = structuredClone(defaults.copy);
 legacy['说说封面'] = { '01 / AI 生成': '旧封面标记' };
+legacy['AI页面'] = { title: '旧 AI 页面配置' };
+legacy['投资页'] = { title: '旧投资固定文案' };
 delete legacy.说说页['08 发布名称'];
 legacy.说说页['08 开发阿雷'] = '自定义发布者';
 legacy.说说页['03 条说说 ·'] = '条说说 ·';
@@ -19,6 +22,16 @@ const original = structuredClone(legacy);
 const migrated = migratePageCopy(legacy);
 assert.deepEqual(legacy, original);
 assert.equal('说说封面' in migrated, false);
+for (const key of ['AI页面', '投资页']) {
+  assert.equal(key in defaults.copy, false);
+  assert.equal(key in migrated, false);
+  assert.throws(() => validateContent('copy', { ...migrated, [key]: legacy[key] }), /不支持的字段/);
+}
+assert.equal('pageSettings' in defaults, false);
+assert.equal(isSection('pageSettings'), false);
+assert.equal(configKeys('copy', 'ai'), null);
+assert.equal(configKeys('copy', 'investing'), null);
+assert.equal(configScopes('copy').some((scope) => ['ai', 'investing'].includes(scope.id)), false);
 assert.throws(() => validateContent('copy', { ...migrated, 说说封面: legacy['说说封面'] }), /不支持的字段/);
 assert.equal(migrated.说说页['08 发布名称'], '自定义发布者');
 assert.equal(migrated.说说页['03 条说说 ·'], '条说说');
@@ -59,6 +72,7 @@ try {
     section: 'copy', value: migrated, sample: defaults.copy, saved: migrated,
     onChange: () => {},
   }));
+  assert.equal(screen.queryByRole('button', { name: /AI 手记|投资研究/ }), null);
   fireEvent.click(screen.getByRole('button', { name: /说说页/ }));
   assert.equal(screen.queryByText('说说封面'), null);
   assert.equal(screen.getByLabelText('08 发布名称').value, '自定义发布者');

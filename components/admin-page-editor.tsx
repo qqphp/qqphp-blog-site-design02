@@ -10,51 +10,6 @@ type PageGroup = {
   description: string;
   keys: string[];
 };
-const settingsPages: PageGroup[] = [
-  {
-    name: '写作页',
-    href: '/writing',
-    description: '页面标题与简介',
-    keys: ['writing'],
-  },
-  {
-    name: '项目页',
-    href: '/projects',
-    description: '页面标题与简介',
-    keys: ['projects'],
-  },
-  {
-    name: 'AI 手记',
-    href: '/ai',
-    description: '重点配图与跳转链接',
-    keys: ['aiCover'],
-  },
-  {
-    name: '投资研究',
-    href: '/investing',
-    description: '标题、研究步骤与说明',
-    keys: ['investing'],
-  },
-  { name: '电影页', href: '/films', description: '栏目介绍', keys: ['films'] },
-  {
-    name: '播客页',
-    href: '/podcasts',
-    description: '栏目介绍',
-    keys: ['podcasts'],
-  },
-  {
-    name: '旅行页',
-    href: '/travel',
-    description: '栏目介绍',
-    keys: ['travel'],
-  },
-  {
-    name: '爱好页',
-    href: '/hobbies',
-    description: '栏目介绍',
-    keys: ['hobbies'],
-  },
-];
 const copyPages: PageGroup[] = [
   {
     name: '首页',
@@ -79,18 +34,6 @@ const copyPages: PageGroup[] = [
     href: '/notes',
     description: '个人介绍与图库',
     keys: ['说说页', '说说图库'],
-  },
-  {
-    name: 'AI 手记',
-    href: '/ai',
-    description: '介绍、便签与使用说明',
-    keys: ['AI页面'],
-  },
-  {
-    name: '投资研究',
-    href: '/investing',
-    description: '研究目录与提示语',
-    keys: ['投资页'],
   },
   {
     name: '关于页',
@@ -135,17 +78,6 @@ const copyPages: PageGroup[] = [
     keys: ['导航菜单'],
   },
 ];
-const groupLabels: Record<string, string> = {
-  writing: '标题与简介',
-  projects: '标题与简介',
-  aiCover: '重点配图',
-  investing: '研究介绍',
-  films: '栏目介绍',
-  podcasts: '栏目介绍',
-  travel: '栏目介绍',
-  travelCover: '重点配图',
-  hobbies: '栏目介绍',
-};
 
 export function AdminPageEditor({
   section,
@@ -154,14 +86,14 @@ export function AdminPageEditor({
   saved,
   onChange,
 }: {
-  section: 'pageSettings' | 'copy';
+  section: 'copy';
   value: Record<string, Json>;
   sample: Record<string, Json>;
   saved: Record<string, Json>;
   onChange: (value: Json) => void;
 }) {
   const [selected, setSelected] = useState(0);
-  const pages = section === 'pageSettings' ? settingsPages : copyPages;
+  const pages = copyPages;
   const page = pages[selected];
   return (
     <div className="admin-page-editor">
@@ -212,7 +144,7 @@ export function AdminPageEditor({
           <Field
             key={`${section}.${key}`}
             path={`${section}.${key}`}
-            label={groupLabels[key] || key}
+            label={key}
             value={value[key]}
             sample={sample[key]}
             onChange={(next) => onChange({ ...value, [key]: next })}

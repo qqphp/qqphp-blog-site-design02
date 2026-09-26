@@ -63,7 +63,8 @@ export function validateContent(key: Section, value: unknown) {
     if (Array.isArray(sample)) {
       if (!Array.isArray(input)) fail('需要列表');
       const list = input as unknown[];
-      const growingCollection = path === key || path === `${key}.items` || path === `${key}.lists`;
+      const growingCollection = path === key || path === `${key}.items` || path === `${key}.lists` ||
+        (key === 'ai' && ['ai.agents', 'ai.skills', 'ai.relays'].includes(path));
       if (list.length > (growingCollection ? 10000 : 500))
         fail(growingCollection ? '最多 10000 项' : '最多 500 项');
       const itemSample = sample[0] ?? '';
@@ -89,7 +90,7 @@ export function validateContent(key: Section, value: unknown) {
     } else {
       if (typeof input !== typeof sample) fail(`需要 ${typeof sample}`);
       if (typeof input === 'string') {
-        if (input.length > (field === 'body' ? 200000 : 30000))
+        if (input.length > (field === 'body' || (key === 'investing' && path.includes('.paragraphs[')) ? 200000 : 30000))
           fail('文字过长');
         if (['id', 'slug', 'title', 'name'].includes(field) && !input.trim())
           fail('不能为空');
@@ -154,6 +155,27 @@ export function validateContent(key: Section, value: unknown) {
           : key === 'travel' || key === 'hobbies' ? activitySample : key === 'books' ? bookSample : defaults[key],
     key,
   );
+  if (key === 'ai') {
+    const document = value as typeof defaults.ai;
+    for (const item of [...document.agents, ...document.skills, ...document.relays]) {
+      try {
+        const url = new URL(item.href);
+        if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
+      } catch { throw new Error('资源链接必须是有效的 HTTP/HTTPS 地址'); }
+    }
+    for (const item of document.agents) {
+      if (!['active', 'beta', 'coming'].includes(item.status)) throw new Error('智能体状态无效');
+    }
+    for (const item of [...document.agents, ...document.relays]) {
+      const isEmoji = document.agents.includes(item as typeof document.agents[number]) &&
+        /^\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\uFE0F|\u200D\p{Extended_Pictographic})*$/u.test(item.logo);
+      if (item.logo && !isEmoji && (!/^(https?:\/\/|\/(?!\/))/i.test(item.logo) || /[\s\\]/.test(item.logo)))
+        throw new Error('Logo 请使用图片地址、本站素材路径或智能体 Emoji');
+      if (/^https?:/i.test(item.logo)) {
+        try { new URL(item.logo); } catch { throw new Error('Logo 地址无效'); }
+      }
+    }
+  }
   if (key === 'travel' || key === 'hobbies' || key === 'books') {
     const doc = value as ActivityDocument | BookDocument;
     const names = doc.categories.map(item => item.name.trim());

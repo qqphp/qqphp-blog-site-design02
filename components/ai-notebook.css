@@ -1040,3 +1040,5 @@
     transform: translateX(calc(50% + var(--key-gap) / 2));
   }
 }
+
+.ai-agent-logo img { width: 36px; height: 36px; object-fit: contain; }

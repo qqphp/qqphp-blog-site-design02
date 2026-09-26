@@ -9,6 +9,7 @@ import { env } from 'cloudflare:workers';
 import { withDatabase } from './postgres';
 import { defaults, type PublicContent, type Section } from './cms-defaults';
 import { publishedOnly } from './cms-validation';
+import { recordTimes } from './content-times';
 import { migrateProjects, resolveProjects } from './project-content';
 import { categoryId, stripArticleExtras } from './article-categories';
 import { migrateStories, newestStoriesFirst } from './story-content';
@@ -48,7 +49,7 @@ const entryCollections = {
   projects: ['statuses', 'categories', 'items'],
   stories: ['root'],
   slides: ['root'],
-  aiNotes: ['root'],
+  ai: ['agents', 'skills', 'relays'],
   bookmarks: ['categories', 'items'],
   friends: ['categories', 'items'],
   books: ['categories', 'items', 'lists'],
@@ -106,7 +107,7 @@ export async function getDocuments(sections?: Section[]) {
         db.query<{ section: Section; value: unknown; revision: number }>('SELECT section, value, revision FROM cms_sections WHERE $1::text[] IS NULL OR section = ANY($1::text[])', [selected]),
         db.query<{ id: string; name: string; description: string; parent_id: string | null }>('SELECT id, name, description, parent_id FROM article_categories WHERE $1::boolean ORDER BY position', [!selected || selected.includes('categories')]),
         db.query<{ slug: string; title: string; excerpt: string; body: string; category_id: string; date: string; published: boolean; cover_url: string; cover_mode: string; cover_generated_for: string }>(`SELECT slug, title, excerpt, body, category_id, to_char(published_on, 'YYYY.MM.DD') AS date, published, cover_url, cover_mode, cover_generated_for FROM articles WHERE $1::boolean ORDER BY position`, [!selected || selected.includes('writing')]),
-        db.query<{ section: Section; collection: string; category_id: string | null; payload: unknown }>('SELECT section, collection, category_id, payload FROM cms_entries WHERE $1::text[] IS NULL OR section = ANY($1::text[]) ORDER BY section, collection, position', [selected]),
+        db.query<{ section: Section; collection: string; category_id: string | null; payload: unknown; createdAt: Date | null; updatedAt: Date }>('SELECT section, collection, category_id, payload, created_at AS "createdAt", updated_at AS "updatedAt" FROM cms_entries WHERE $1::text[] IS NULL OR section = ANY($1::text[]) ORDER BY section, collection, position, id', [selected]),
       ]);
       await db.query('COMMIT');
       return { results: sectionResult.rows, categories: categories.rows, articles: articles.rows, entries: entries.rows };
@@ -123,6 +124,7 @@ export async function getDocuments(sections?: Section[]) {
       revisions[row.section] = row.revision;
     }
   }
+  if (revisions.ai === undefined) content.ai = { agents: [], skills: [], relays: [] };
   if (revisions.categories !== undefined)
     content.categories = categories.map((row) => ({ id: row.id, name: row.name, description: row.description, parentId: row.parent_id ?? '' }));
   if (revisions.writing !== undefined)
@@ -137,21 +139,20 @@ export async function getDocuments(sections?: Section[]) {
     if (key === 'investing') {
       const sections = entries.filter((row) => row.section === key && row.collection === 'sections');
       const researchEntries = entries.filter((row) => row.section === key && row.collection === 'entries');
-      if (sections.length) {
-        content.investing = {
+      content.investing = {
           ...content.investing,
           sections: sections.map((section) => ({
             ...(section.payload as typeof content.investing.sections[number]),
             entries: researchEntries.filter((entry) =>
               entry.category_id === (section.payload as { id: string }).id,
-            ).map((entry) => entry.payload as typeof content.investing.sections[number]['entries'][number]),
+            ).map((entry) => ({ ...(entry.payload as typeof content.investing.sections[number]['entries'][number]), ...recordTimes(entry) })),
           })),
-        };
-      }
+      };
       continue;
     }
     const grouped = Object.fromEntries(collections.map((collection) => [
-      collection, entries.filter((row) => row.section === key && row.collection === collection).map((row) => row.payload),
+      collection, entries.filter((row) => row.section === key && row.collection === collection).map((row) => key === 'projects' && collection === 'items'
+        ? { ...(row.payload as object), ...recordTimes(row), createdAt: recordTimes(row).createdAt ?? '' } : row.payload),
     ]));
     Object.assign(content, { [key]: collections.includes('root') ? grouped.root : { ...(content[key] as object), ...grouped } });
   }
@@ -162,8 +163,6 @@ export async function getDocuments(sections?: Section[]) {
     'filmCoverSize',
   );
   content.aiSettings = { ...defaults.aiSettings, ...content.aiSettings };
-  const { travelCover: _oldTravelCover, ...pageSettings } = content.pageSettings as typeof content.pageSettings & { travelCover?: unknown };
-  content.pageSettings = pageSettings;
   if (legacyFilmCoverSettings) {
     if (content.aiSettings.filmCoverPrompt.includes('{{excerpt}}'))
       content.aiSettings.filmCoverPrompt = defaults.aiSettings.filmCoverPrompt;

@@ -9,9 +9,10 @@ const exported = spawnSync('python', ['scripts/export-d1.py'], {
 });
 if (exported.status !== 0) throw new Error(exported.stderr.trim() || '读取旧数据库失败');
 const source = JSON.parse(exported.stdout);
+source.documents = source.documents.filter(({ key }) => key !== 'pageSettings');
 const collections = {
   projects: ['statuses', 'categories', 'items'], stories: ['root'], slides: ['root'],
-  aiNotes: ['root'], bookmarks: ['categories', 'items'], friends: ['categories', 'items'],
+  ai: ['agents', 'skills', 'relays'], bookmarks: ['categories', 'items'], friends: ['categories', 'items'],
   books: ['categories', 'items', 'lists'], tracks: ['scenes', 'items', 'playlists'],
   films: ['categories', 'items'], podcasts: ['categories', 'items'],
   travel: ['categories', 'items'], hobbies: ['categories', 'items'],
@@ -36,8 +37,8 @@ try {
         [category.id, category.name, category.description, category.parentId || null, position]);
     const articles = source.documents.find((row) => row.key === 'writing')?.value ?? [];
     for (const [position, article] of articles.entries())
-      await client.query(`INSERT INTO articles (slug, title, excerpt, body, category_id, published_on, published, cover_url, cover_mode, cover_generated_for, position)
-        VALUES ($1, $2, $3, $4, $5, $6::date, $7, $8, $9, $10, $11)`,
+      await client.query(`INSERT INTO articles (slug, title, excerpt, body, category_id, published_on, published, cover_url, cover_mode, cover_generated_for, position, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6::date, $7, $8, $9, $10, $11, NULL)`,
       [article.slug, article.title, article.excerpt, article.body, article.categoryId,
         article.date.replaceAll('.', '-'), article._published === true, article.cover,
         article.coverMode ?? 'upload', article.coverGeneratedFor ?? '', position]);
@@ -47,12 +48,12 @@ try {
         const items = collection === 'root' ? value : value[collection];
         for (const [position, item] of items.entries()) {
           const occurred = item.date ?? item.createdAt;
-          await client.query(`INSERT INTO cms_entries (section, collection, id, position, published, title, category_id, occurred_at, payload)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
+          await client.query(`INSERT INTO cms_entries (section, collection, id, position, published, title, category_id, occurred_at, payload, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)`,
           [key, collection, item.id ?? `slide-${position}`, position, item._published === true,
             item.title ?? item.name ?? '', item.categoryId ?? null,
             occurred && Number.isFinite(Date.parse(occurred)) ? new Date(occurred) : null,
-            JSON.stringify(item)]);
+            JSON.stringify(item), key === 'projects' && item.createdAt && Number.isFinite(Date.parse(item.createdAt)) ? new Date(item.createdAt) : null]);
           entries++;
         }
       }
