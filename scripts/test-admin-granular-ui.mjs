@@ -150,9 +150,8 @@ try {
   assert.equal(screen.queryByLabelText('上级分类'), null);
   assert.equal(screen.queryByText('内容条目'), null);
   assert.equal(within(screen.getByRole('navigation', { name: '后台栏目' })).queryByRole('button', { name: '页面标题与配图', exact: true }), null);
-  await user.click(within(screen.getByRole('navigation', { name: '后台栏目' })).getByRole('button', { name: '页面固定文案', exact: true }));
-  assert.equal(screen.queryByRole('tab', { name: 'AI', exact: true }), null);
-  assert.equal(screen.queryByRole('tab', { name: '投资', exact: true }), null);
+  assert.equal(within(screen.getByRole('navigation', { name: '后台栏目' })).queryByRole('button', { name: '页面固定文案', exact: true }), null);
+  assert.equal('copy' in defaults, false);
   console.log('PASS per-record admin UI: no bulk fetch, explicit submit, immediate quick action, unsaved drafts and conflict retention');
 } finally {
   cleanup();

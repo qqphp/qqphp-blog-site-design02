@@ -1,5 +1,4 @@
 'use client';
-import { CmsText } from '@/components/cms-text';
 
 import { useContent } from '@/components/content-provider';
 
@@ -369,7 +368,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
                 />
               </label>
               <span>
-                <CmsText page="音乐播放器" name="03 顺序循环" />
+                {"顺序循环"}
               </span>
               <button
                 type="button"

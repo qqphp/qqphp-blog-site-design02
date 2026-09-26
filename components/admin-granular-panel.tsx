@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { defaults, sectionLabels, type Content, type Section } from '@/lib/cms-defaults';
-import { adminCollections, collectionLabels, configScopes, copyGroups } from '@/lib/admin-sections';
+import { adminCollections, collectionLabels, configScopes } from '@/lib/admin-sections';
 import { coverInput } from '@/lib/article-categories';
 import { projectImageInput, type Project } from '@/lib/project-content';
 import { filmCoverInput, type Film } from '@/lib/film-content';
@@ -38,7 +38,7 @@ const sidebarSections: { label?: string; sections: Section[] }[] = [
   { sections: ['writing', 'projects', 'stories', 'ai', 'investing', 'profile'] },
   { label: '网站', sections: ['bookmarks', 'friends'] },
   { label: '生活', sections: ['tracks', 'films', 'podcasts', 'travel', 'hobbies', 'books'] },
-  { label: '设置', sections: ['aiSettings', 'copy', 'site', 'home'] },
+  { label: '设置', sections: ['aiSettings', 'site', 'home'] },
 ];
 const EMPTY_COLLECTIONS: readonly string[] = [];
 const destinations: Partial<Record<Section, string>> = {
@@ -90,11 +90,7 @@ function sampleRecord(section: Section, collection: string, options: Record<stri
   return value as Json;
 }
 
-function sampleConfig(section: Section, scope: string): Json {
-  if (section === 'copy') {
-    const keys = copyGroups.find((group) => group.id === scope)?.keys ?? [];
-    return Object.fromEntries(keys.map((key) => [key, defaults.copy[key as keyof typeof defaults.copy]])) as Json;
-  }
+function sampleConfig(section: Section): Json {
   const source = defaults[section];
   if (!source || typeof source !== 'object' || Array.isArray(source)) return {};
   const collections = adminCollections[section] ?? EMPTY_COLLECTIONS;
@@ -364,7 +360,7 @@ export function AdminGranularPanel() {
     <p role="alert">{message}</p><Link href="/">← 返回博客</Link>
   </form></main>;
 
-  const configSample = activeScope ? sampleConfig(section, activeScope) : null;
+  const configSample = activeScope ? sampleConfig(section) : null;
   const recordSample = activeCollection ? sampleRecord(recordSection, activeCollection, options) : null;
   const canPublish = activeCollection && !['categories', 'statuses', 'scenes', 'sections'].includes(activeCollection)
     && !(section === 'writing' && activeCollection === 'categories');

@@ -69,11 +69,7 @@ try {
     }
     assert.deepEqual(after.updated_at, entry.updated_at, '迁移不能改变历史更新时间');
   }
-  const expectedSections = original.sections.filter((section) => section.section !== 'pageSettings').map((section) => {
-    const value = { ...section.value };
-    if (section.section === 'copy') { delete value['AI页面']; delete value['投资页']; }
-    return { ...section, value };
-  });
+  const expectedSections = original.sections.filter((section) => !['pageSettings', 'copy'].includes(section.section));
   for (const section of expectedSections.filter((item) => item.section !== 'investing'))
     assert.deepEqual(migrated.sections.find((item) => item.section === section.section)?.value,
       section.value, `${section.section} 其余设置应保留`);
@@ -87,8 +83,8 @@ try {
   const testDb = new pg.Client({ connectionString: testUrl.toString() });
   await testDb.connect();
   try {
-    assert.equal((await testDb.query("SELECT count(*)::int AS n FROM cms_sections WHERE section='pageSettings'")).rows[0].n, 0, '迁移和初始化不能恢复已删除配置');
-    assert.equal((await testDb.query("SELECT count(*)::int AS n FROM cms_section_parts WHERE section='pageSettings' OR (section='copy' AND scope IN ('ai','investing'))")).rows[0].n, 0);
+    assert.equal((await testDb.query("SELECT count(*)::int AS n FROM cms_sections WHERE section IN ('pageSettings','copy')")).rows[0].n, 0, '迁移和初始化不能恢复已删除配置');
+    assert.equal((await testDb.query("SELECT count(*)::int AS n FROM cms_section_parts WHERE section IN ('pageSettings','copy')")).rows[0].n, 0);
     assert.equal((await testDb.query('SELECT count(*)::int AS n FROM articles WHERE created_at IS NOT NULL')).rows[0].n, 0);
     assert.equal((await testDb.query("SELECT count(*)::int AS n FROM cms_entries WHERE section='investing' AND collection='entries' AND created_at IS NOT NULL")).rows[0].n, 0);
     for (const item of original.entries.filter((row) => row.section === 'projects' && row.collection === 'items')) {
@@ -138,7 +134,7 @@ try {
   assert.equal(site.data.value.title, 'ISOLATED_GRANULAR_TEST', '测试服务必须连接独立数据库');
   for (const path of [
     ...['writing', 'projects', 'films', 'podcasts', 'travel', 'hobbies', 'investing', 'aiCover', 'travelCover', 'root'].map((scope) => `/api/admin/config/pageSettings/${scope}`),
-    '/api/admin/config/copy/ai', '/api/admin/config/copy/investing',
+    ...['home', 'writing', 'projects', 'stories', 'about', 'bookmarks', 'friends', 'books', 'life', 'player', 'navigation', 'ai', 'investing', 'root'].map((scope) => `/api/admin/config/copy/${scope}`),
   ]) {
     assert.equal((await request(path)).status, 400);
     assert.equal((await request(path, 'PUT', { value: {}, revision: 0 })).status, 400);
@@ -225,11 +221,11 @@ try {
   assert.equal(largeList.status, 200);
   assert.equal(largeList.data.total, 1000);
   assert.equal(largeList.data.items.length, 20);
-  const page = await request('/api/admin/config/copy/home');
-  const pageSaved = await request('/api/admin/config/copy/home', 'PUT',
+  const page = await request('/api/admin/config/home/root');
+  const pageSaved = await request('/api/admin/config/home/root', 'PUT',
     { value: page.data.value, revision: page.data.revision });
   assert.equal(pageSaved.status, 200, JSON.stringify(pageSaved.data));
-  const pageStale = await request('/api/admin/config/copy/home', 'PUT',
+  const pageStale = await request('/api/admin/config/home/root', 'PUT',
     { value: page.data.value, revision: page.data.revision });
   assert.equal(pageStale.status, 409);
   const categoryPath = '/api/admin/records/writing/categories/' + categoryId;

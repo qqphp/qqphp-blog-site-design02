@@ -14,7 +14,6 @@ import { tracks } from './music';
 import { lifeContent } from './life-content';
 import { aiAgents, aiSkills, aiRelays } from './ai-resources';
 import { researchContent } from './research-content';
-import pageCopy from './page-copy.json';
 import articleSeed from './article-seed.json';
 import { categoryId, stripArticleExtras } from './article-categories';
 
@@ -72,7 +71,6 @@ export const defaults = {
   categories: [...new Set(writing.map((item) => item.category))].map(
     (name) => ({ id: categoryId(name), name, description: '', parentId: '' }),
   ),
-  copy: pageCopy,
   site: {
     name: '开发阿雷',
     mark: 'A',
@@ -208,7 +206,6 @@ export type PublicContent = Omit<Content, 'aiSettings'>;
 export type Section = keyof Content;
 export const sectionLabels: Record<Section, string> = {
   aiSettings: 'AI 大模型设置',
-  copy: '页面固定文案',
   site: '站点与导航',
   home: '首页',
   writing: '写作',

@@ -1,6 +1,5 @@
 'use client';
 import { WritingCategoryTree } from '@/components/writing-category-tree';
-import { CmsText } from '@/components/cms-text';
 import {
   ContentPagination,
 } from '@/components/content-pagination';
@@ -62,13 +61,13 @@ export default function WritingPage({ initial }: { initial: WritingArchive & { c
         </div>
         <span>
           共 {archive.total}
-          <CmsText page="写作页" name="01 篇结果" />
+          {" 篇结果"}
         </span>
       </section>
       <section className="archive-layout writing-archive">
         <aside className="archive-side">
           <p>
-            <CmsText page="写作页" name="02 文章分类" />
+            {"文章分类"}
           </p>
           <button
             className={group === '' ? 'active' : ''}
@@ -78,7 +77,7 @@ export default function WritingPage({ initial }: { initial: WritingArchive & { c
               setPage(1);
             }}
           >
-            <CmsText page="写作页" name="03 全部文章" />
+            {"全部文章"}
             <b>{archive.allCount}</b>
           </button>
           <WritingCategoryTree
@@ -98,7 +97,7 @@ export default function WritingPage({ initial }: { initial: WritingArchive & { c
                 '全部文章'}
             </span>
             <span>
-              <CmsText page="写作页" name="04 按最新发布" />
+              {"按最新发布"}
             </span>
           </div>
           {archive.items.map((entry) => (
@@ -135,10 +134,7 @@ export default function WritingPage({ initial }: { initial: WritingArchive & { c
           {error && <div className="archive-end" role="alert">{error}</div>}
           {archive.total === 0 && !error && (
             <div className="archive-end">
-              <CmsText
-                page="写作页"
-                name="05 没有找到匹配的文章，换个关键词试试。"
-              />
+              {"没有找到匹配的文章，换个关键词试试。"}
             </div>
           )}
           <ContentPagination

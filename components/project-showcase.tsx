@@ -1,7 +1,6 @@
 'use client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { CmsText } from '@/components/cms-text';
 import {
   ContentPagination,
   paginateItems,
@@ -41,7 +40,7 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
   const paginated = paginateItems(visible, page, 5);
   const active =
     visible.find((project) => project.id === selected) ?? visible[0];
-  if (!active) return <main className="site-shell"><SiteHeader /><p className="page-intro"><CmsText page="项目页" name="01 暂无已发布项目。" /></p><button type="button" onClick={() => setCategory('全部')}><CmsText page="项目页" name="02 查看全部项目" /></button><SiteFooter /></main>;
+  if (!active) return <main className="site-shell"><SiteHeader /><p className="page-intro">{"暂无已发布项目。"}</p><button type="button" onClick={() => setCategory('全部')}>{"查看全部项目"}</button><SiteFooter /></main>;
   const currentImage = active.images[imageIndex] ?? active.images[0];
   const previousImage = () =>
     setImageIndex(
@@ -58,7 +57,7 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
         text="收录产品原型、设计探索与个人工具，记录每个项目的构思、实现与迭代。"
       />
       <section className="folio-toolbar" aria-label="项目分类筛选">
-        <span className="folio-eyebrow"><CmsText page="项目页" name="03 PROJECT INDEX /" />{String(projects.length).padStart(2, '0')}
+        <span className="folio-eyebrow">{"PROJECT INDEX /"}{String(projects.length).padStart(2, '0')}
         </span>
         <div>
           {categories.map((item) => (
@@ -90,8 +89,8 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
       <section className="folio-workspace">
         <aside className="folio-sidebar">
           <div className="folio-section-label">
-            <span><CmsText page="项目页" name="04 浏览项目" /></span>
-            <span>{String(visible.length).padStart(2, '0')}<CmsText page="项目页" name="05 ENTRIES" /></span>
+            <span>{"浏览项目"}</span>
+            <span>{String(visible.length).padStart(2, '0')}{"ENTRIES"}</span>
           </div>
           <div className="folio-project-list">
             {paginated.items.map((project) => (
@@ -144,8 +143,8 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
             }}
           />
           <div className="folio-note">
-            <span className="folio-eyebrow"><CmsText page="项目页" name="06 ABOUT THIS INDEX" /></span>
-            <h3><CmsText page="项目页" name="07 不只陈列结果，" /><br /><CmsText page="项目页" name="08 也留下思考。" /></h3>
+            <span className="folio-eyebrow">{"ABOUT THIS INDEX"}</span>
+            <h3>{"不只陈列结果，"}<br />{"也留下思考。"}</h3>
           </div>
         </aside>
         <article className="folio-detail">
@@ -179,7 +178,7 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
                 alt={currentImage.alt}
                 priority
               />
-              <span><CmsText page="项目页" name="12 ↗ 放大查看" /></span>
+              <span>{"↗ 放大查看"}</span>
             </button>
             <div className="folio-gallery-bar">
               <span>
@@ -224,11 +223,11 @@ export function ProjectShowcase({ initialId }: { initialId: string }) {
           </div>
           <dl className="folio-facts">
             <div>
-              <dt><CmsText page="项目页" name="13 项目分类" /></dt>
+              <dt>{"项目分类"}</dt>
               <dd>{active.category}</dd>
             </div>
             <div>
-              <dt><CmsText page="项目页" name="14 项目网址" /></dt>
+              <dt>{"项目网址"}</dt>
               <dd>
                 {active.url ? (
                   <a

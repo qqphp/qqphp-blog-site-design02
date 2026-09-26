@@ -1,5 +1,4 @@
 'use client';
-import { CmsText } from '@/components/cms-text';
 
 import { useContent } from '@/components/content-provider';
 
@@ -30,7 +29,7 @@ export function Bookshelf() {
   const filtered = books.filter(book => (category === '全部' || book.category === category) && `${book.title} ${book.author}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const changeTab = (value: string) => { setTab(value); setCategory('全部'); setQuery(''); setLimit(12); };
   return <main className="site-shell"><SiteHeader /><div className="reading-room">
-    <LifePageHeader kind="books" title="书籍" intro={<><CmsText page="书籍页" name="05 读过的留在书架，想读的记在清单。" /> <CmsText page="书籍页" name="06 把相近的思考，整理成下一次阅读的起点" /></>} />
+    <LifePageHeader kind="books" title="书籍" intro={<>{"读过的留在书架，想读的记在清单。"} {"把相近的思考，整理成下一次阅读的起点。"}</>} />
     <LifeNavigation />
     <nav className="reading-tabs" aria-label="书架视图">{['全部书籍', '主题书单'].map(value => <button type="button" aria-pressed={tab === value} onClick={() => changeTab(value)} key={value}>{value}<span>{value === '主题书单' ? booklists.length : books.length}</span></button>)}</nav>
     {tab === '主题书单' && <BooklistGallery lists={booklists} />}
@@ -38,10 +37,10 @@ export function Bookshelf() {
       <div className="reading-tools"><div className="reading-categories" aria-label="书籍分类">{['全部', ...document.categories.map(category => category.name)].map(value => <button type="button" aria-pressed={category === value} key={value} onClick={() => { setCategory(value); setLimit(12); }}>{value}</button>)}</div><label className="reading-search"><Search size={17} /><input aria-label="搜索书名或作者" placeholder="搜索书名、作者" value={query} onChange={event => { setQuery(event.target.value); setLimit(12); }} />{query && <button type="button" aria-label="清空搜索" onClick={() => setQuery('')}><X size={15} /></button>}</label></div>
       <div className="reading-result" aria-live="polite"><span>每本书，都是一个入口。</span><span>{filtered.length} 本</span></div>
       <div className="reading-grid">{filtered.slice(0, limit).map(book => <button type="button" className="reading-book" onClick={() => setOpened(book)} key={book.id} aria-label={`查看《${book.title}》的阅读卡片`}><div className="reading-book-stage"><Cover book={book} /></div><div className="reading-book-meta"><span>{book.category}</span></div><h2>{book.title}</h2><p>{book.author}</p><span className="reading-book-link">阅读笔记 <ArrowUpRight size={15} /></span></button>)}</div>
-      {filtered.length === 0 && <div className="reading-empty"><BookOpen size={30} /><h2><CmsText page="书籍页" name="13 这次没有找到匹配的书" /></h2><p><CmsText page="书籍页" name="14 试试其他书名、作者或分类。" /></p><button type="button" onClick={() => { setQuery(''); setCategory('全部'); }}><CmsText page="书籍页" name="15 清除筛选" /></button></div>}
-      {filtered.length > limit && <button type="button" className="reading-more" onClick={() => setLimit(value => value + 12)}><CmsText page="书籍页" name="16 再看 12 本 · 还有" />{filtered.length - limit} 本</button>}
+      {filtered.length === 0 && <div className="reading-empty"><BookOpen size={30} /><h2>{"这次没有找到匹配的书"}</h2><p>{"试试其他书名、作者或分类。"}</p><button type="button" onClick={() => { setQuery(''); setCategory('全部'); }}>{"清除筛选"}</button></div>}
+      {filtered.length > limit && <button type="button" className="reading-more" onClick={() => setLimit(value => value + 12)}>{"再看 12 本 · 还有"}{filtered.length - limit} 本</button>}
     </section>}
-    <footer className="reading-end"><span><CmsText page="书籍页" name="17 READ · THINK · REV" /></span><p><CmsText page="书籍页" name="18 合上书以后，阅读还在继续。" /></p></footer>
+    <footer className="reading-end"><span>{"READ · THINK · REVISIT"}</span><p>{"合上书以后，阅读还在继续。"}</p></footer>
   </div><SiteFooter />
   <Dialog open={!!opened} onOpenChange={value => { if (!value) setOpened(null); }}><DialogContent className="reading-dialog">{opened && <><Cover book={opened} /><div><DialogTitle className="reading-dialog-title">{opened.title}</DialogTitle><p className="reading-dialog-author">{opened.author} / {opened.category}</p><h3>阅读笔记</h3><p className="reading-note">{opened.note || '暂无阅读笔记。'}</p></div></>}</DialogContent></Dialog>
   </main>;

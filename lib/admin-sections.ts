@@ -24,23 +24,8 @@ export const collectionLabels: Record<string, string> = {
   scenes: '音乐场景', playlists: '歌单',
 };
 
-export const copyGroups = [
-  { id: 'home', label: '首页', keys: ['首页栏目', '首页装饰'] },
-  { id: 'writing', label: '写作页', keys: ['写作页'] },
-  { id: 'projects', label: '项目页', keys: ['项目页'] },
-  { id: 'stories', label: '说说页', keys: ['说说页', '说说图库'] },
-  { id: 'about', label: '关于页', keys: ['关于页'] },
-  { id: 'bookmarks', label: '书签页', keys: ['书签页'] },
-  { id: 'friends', label: '友链页', keys: ['友链页'] },
-  { id: 'books', label: '书籍页', keys: ['书籍页'] },
-  { id: 'life', label: '生活栏目通用', keys: ['生活栏目'] },
-  { id: 'player', label: '全站播放器', keys: ['音乐播放器'] },
-  { id: 'navigation', label: '全站导航', keys: ['导航菜单'] },
-] as const;
-
 export function configScopes(section: Section) {
   if (section === 'ai' || section === 'investing') return [];
-  if (section === 'copy') return copyGroups.map(({ id, label }) => ({ id, label }));
   const value = defaults[section];
   const collections = adminCollections[section] ?? [];
   const metadata = value && typeof value === 'object' && !Array.isArray(value)
@@ -49,7 +34,6 @@ export function configScopes(section: Section) {
 }
 
 export function configKeys(section: Section, scope: string): readonly string[] | null {
-  if (section === 'copy') return copyGroups.find((group) => group.id === scope)?.keys ?? null;
   return scope === 'root' && configScopes(section).length ? [] : null;
 }
 

@@ -3,7 +3,6 @@ import { withDatabase } from './postgres';
 import { defaults, type Section } from './cms-defaults';
 import { validateContent } from './cms-validation';
 import { adminCollections, configKeys, validCollection } from './admin-sections';
-import { migratePageCopy } from './page-copy';
 import { deleteLocalMedia } from './local-media';
 import { recordTimes } from './content-times';
 
@@ -176,70 +175,39 @@ function savedConfig(section: Section, value: Item | undefined) {
 }
 
 export async function getAdminConfig(section: Section, scope: string) {
-  const keys = configKeys(section, scope);
-  if (!keys) throw new Error('设置范围无效');
+  if (!configKeys(section, scope)) throw new Error('设置范围无效');
   return withDatabase(async (db) => {
     const row = await db.query<{ value: Item; revision: number }>(
       'SELECT value, revision FROM cms_sections WHERE section = $1', [section]);
     const base = defaultConfig(section);
     const saved = savedConfig(section, row.rows[0]?.value);
-    const document: Item = section === 'copy'
-      ? migratePageCopy(saved as typeof defaults.copy) as Item : { ...base, ...saved };
-    if (scope === 'root') return { value: document, revision: row.rows[0]?.revision ?? 0 };
-    const part = await db.query<{ revision: number }>(
-      'SELECT revision FROM cms_section_parts WHERE section = $1 AND scope = $2', [section, scope]);
-    return { value: Object.fromEntries(keys.map((key) => [key, document[key]])),
-      revision: part.rows[0]?.revision ?? 0 };
+    return { value: { ...base, ...saved }, revision: row.rows[0]?.revision ?? 0 };
   });
 }
 
 export async function saveAdminConfig(section: Section, scope: string, value: Item, revision: number) {
-  const keys = configKeys(section, scope);
-  if (!keys) throw new Error('设置范围无效');
+  if (!configKeys(section, scope)) throw new Error('设置范围无效');
   if (!Number.isInteger(revision) || revision < 0) throw new Error('版本无效');
   const saved = await withDatabase(async (db) => {
     await db.query('BEGIN');
     try {
       const row = await db.query<{ value: Item; revision: number }>(
         'SELECT value, revision FROM cms_sections WHERE section = $1 FOR UPDATE', [section]);
-      const rawPrevious = savedConfig(section, row.rows[0]?.value);
-      const previous = section === 'copy'
-        ? migratePageCopy(rawPrevious as typeof defaults.copy) as Item : rawPrevious;
-      const next = scope === 'root' ? value : { ...previous, ...value };
-      if (scope !== 'root' &&
-          (Object.keys(value).length !== keys.length || Object.keys(value).some((key) => !keys.includes(key))))
-        throw new Error('只可提交当前页面的字段');
-      if (scope === 'root' && adminCollections[section]?.some((name) => Object.hasOwn(value, name)))
+      const previous = savedConfig(section, row.rows[0]?.value);
+      const next = value;
+      if (adminCollections[section]?.some((name) => Object.hasOwn(value, name)))
         throw new Error('列表内容须逐条提交');
       const sample = defaults[section];
       const full = sample && typeof sample === 'object' && !Array.isArray(sample)
         ? { ...sample, ...next } : next;
       validateContent(section, full);
-      let newRevision: number;
-      if (scope === 'root') {
-        if ((row.rows[0]?.revision ?? 0) !== revision) throw new AdminConflict('此设置已在另一窗口修改');
-        const updated = await db.query<{ revision: number }>(`INSERT INTO cms_sections (section, value, revision)
-          VALUES ($1, $2::jsonb, 1) ON CONFLICT (section) DO UPDATE SET
-          value = excluded.value, revision = cms_sections.revision + 1, updated_at = now()
-          RETURNING revision`, [section, JSON.stringify(next)]);
-        newRevision = updated.rows[0].revision;
-      } else {
-        const part = await db.query<{ revision: number }>(
-          'SELECT revision FROM cms_section_parts WHERE section = $1 AND scope = $2 FOR UPDATE',
-          [section, scope]);
-        if ((part.rows[0]?.revision ?? 0) !== revision) throw new AdminConflict('此页面已在另一窗口修改');
-        await db.query(`INSERT INTO cms_sections (section, value, revision)
-          VALUES ($1, $2::jsonb, 1) ON CONFLICT (section) DO UPDATE SET
-          value = excluded.value, revision = cms_sections.revision + 1, updated_at = now()`,
-        [section, JSON.stringify(next)]);
-        const updated = await db.query<{ revision: number }>(`INSERT INTO cms_section_parts (section, scope, revision)
-          VALUES ($1, $2, 1) ON CONFLICT (section, scope) DO UPDATE SET
-          revision = cms_section_parts.revision + 1 RETURNING revision`, [section, scope]);
-        newRevision = updated.rows[0].revision;
-      }
+      if ((row.rows[0]?.revision ?? 0) !== revision) throw new AdminConflict('此设置已在另一窗口修改');
+      const updated = await db.query<{ revision: number }>(`INSERT INTO cms_sections (section, value, revision)
+        VALUES ($1, $2::jsonb, 1) ON CONFLICT (section) DO UPDATE SET
+        value = excluded.value, revision = cms_sections.revision + 1, updated_at = now()
+        RETURNING revision`, [section, JSON.stringify(next)]);
       await db.query('COMMIT');
-      return { value: scope === 'root' ? next : value, revision: newRevision,
-        previous: scope === 'root' ? previous : Object.fromEntries(keys.map((key) => [key, previous[key]])) };
+      return { value: next, revision: updated.rows[0].revision, previous };
     } catch (error) {
       await db.query('ROLLBACK');
       throw error;

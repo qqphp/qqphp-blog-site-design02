@@ -12,6 +12,6 @@ export async function generateMetadata() {
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const content = await getPublicContent(['site', 'copy', 'tracks']);
+  const content = await getPublicContent(['site', 'tracks']);
   return <html lang="zh-CN" suppressHydrationWarning><head><Script id="theme-preference" strategy="beforeInteractive">{`try { if (localStorage.getItem('site-theme') === 'fresh') document.documentElement.classList.add('fresh-theme'); } catch (_) {}`}</Script></head><body><ContentProvider content={content}><MusicProvider>{children}</MusicProvider></ContentProvider></body></html>;
 }

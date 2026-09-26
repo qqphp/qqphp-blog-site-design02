@@ -9,7 +9,7 @@ const exported = spawnSync('python', ['scripts/export-d1.py'], {
 });
 if (exported.status !== 0) throw new Error(exported.stderr.trim() || '读取旧数据库失败');
 const source = JSON.parse(exported.stdout);
-source.documents = source.documents.filter(({ key }) => key !== 'pageSettings');
+source.documents = source.documents.filter(({ key }) => !['pageSettings', 'copy'].includes(key));
 const collections = {
   projects: ['statuses', 'categories', 'items'], stories: ['root'], slides: ['root'],
   ai: ['agents', 'skills', 'relays'], bookmarks: ['categories', 'items'], friends: ['categories', 'items'],

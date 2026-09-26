@@ -1,4 +1,3 @@
-import { CmsText } from '@/components/cms-text';
 import Image from 'next/image';
 import Link from 'next/link';
 import { HeroGarden } from '@/components/hero-garden';
@@ -32,7 +31,7 @@ export default async function Home() {
       </section>
       <section className="latest">
         <div className="section-label">
-          <span>01</span><CmsText page="首页栏目" name="01 最近更新" /></div>
+          <span>01</span>{"最近更新"}</div>
         <div className="entry-list">
           {latestWriting.map((entry) => (
             <Link
@@ -66,14 +65,14 @@ export default async function Home() {
               <span className="entry-arrow">↗</span>
             </Link>
           ))}
-          <Link className="more-row" href="/writing"><CmsText page="首页栏目" name="02 查看全部写作" /><span>→</span>
+          <Link className="more-row" href="/writing">{"查看全部写作"}<span>→</span>
           </Link>
         </div>
       </section>
       <section className="home-projects">
         <div className="home-project-head">
-          <p className="eyebrow"><CmsText page="首页栏目" name="03 SELECTED WORK" /></p>
-          <Link href="/projects"><CmsText page="首页栏目" name="04 全部项目 →" /></Link>
+          <p className="eyebrow">{"SELECTED WORK"}</p>
+          <Link href="/projects">{"全部项目 →"}</Link>
         </div>
         <div className="project-shelf">
           {latestProjects.map((project, index) => {
@@ -107,13 +106,13 @@ export default async function Home() {
       </section>
       <section className="home-note">
         <div>
-          <p className="eyebrow"><CmsText page="首页栏目" name="05 MOMENTS" /></p>
+          <p className="eyebrow">{"MOMENTS"}</p>
           <h2>{home.noteTitle}</h2>
         </div>
         <p>
           {home.noteText}
         </p>
-        <Link className="line-link" href="/notes"><CmsText page="首页栏目" name="06 查看全部说说" /><span>→</span>
+        <Link className="line-link" href="/notes">{"查看全部说说"}<span>→</span>
         </Link>
       </section>
       <SiteFooter />

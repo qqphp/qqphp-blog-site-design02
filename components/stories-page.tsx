@@ -1,5 +1,4 @@
 'use client';
-import { CmsText } from '@/components/cms-text';
 import {
   ContentPagination,
 } from '@/components/content-pagination';
@@ -54,10 +53,7 @@ export default function StoriesPage({ initial }: { initial: StoryArchive }) {
           <div>
             <h1>{site.name}</h1>
             <p>
-              <CmsText
-                page="说说页"
-                name="01 记录正在发生的事，也保留还没有答案的"
-              />
+              {"记录正在发生的事，也保留还没有答案的问题。"}
             </p>
           </div>
         </div>
@@ -66,11 +62,11 @@ export default function StoriesPage({ initial }: { initial: StoryArchive }) {
         <aside className="story-sidebar calendar-side">
           <p>
             {year}
-            <CmsText page="说说页" name="02 年发布汇总 · 示例" />
+            {"年发布汇总"}
           </p>
           <strong>{archive.yearlyCount}</strong>
           <span>
-            <CmsText page="说说页" name="03 条说说 ·" />
+            {"条说说"}
           </span>
           <div className="calendar-head">
             <button
@@ -110,13 +106,10 @@ export default function StoriesPage({ initial }: { initial: StoryArchive }) {
           </div>
           <div className="today-card">
             <b>
-              <CmsText page="说说页" name="05 阅读间隙" />
+              {"阅读间隙"}
             </b>
             <p>
-              <CmsText
-                page="说说页"
-                name="06 “每一个当下，都是通向未来的入口。”"
-              />
+              {"“每一个当下，都是通向未来的入口。”"}
             </p>
           </div>
         </aside>
@@ -128,7 +121,7 @@ export default function StoriesPage({ initial }: { initial: StoryArchive }) {
               <div className="post-body">
                 <header>
                   <b>
-                    <CmsText page="说说页" name="08 发布名称" />
+                    {"开发阿雷"}
                   </b>
                   <time dateTime={story.date}>
                     {story.date.slice(0, 10).replaceAll('-', '.')}{' '}

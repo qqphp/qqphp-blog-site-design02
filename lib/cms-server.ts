@@ -13,7 +13,6 @@ import { recordTimes } from './content-times';
 import { migrateProjects, resolveProjects } from './project-content';
 import { categoryId, stripArticleExtras } from './article-categories';
 import { migrateStories, newestStoriesFirst } from './story-content';
-import { migratePageCopy } from './page-copy';
 import { categoryBranch } from './article-categories';
 import { monthSummary } from './story-calendar';
 
@@ -157,7 +156,6 @@ export async function getDocuments(sections?: Section[]) {
     Object.assign(content, { [key]: collections.includes('root') ? grouped.root : { ...(content[key] as object), ...grouped } });
   }
   // Existing saved articles predate category IDs and cover generation settings.
-  content.copy = migratePageCopy(content.copy);
   const legacyFilmCoverSettings = !Object.hasOwn(
     content.aiSettings,
     'filmCoverSize',
