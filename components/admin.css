@@ -97,6 +97,16 @@
   color: #315c47;
   font-weight: 700;
 }
+.admin-shell .admin-editor > .admin-settings-tabs {
+  min-height: 68px;
+  padding: 12px 24px 0;
+  align-items: stretch;
+}
+.admin-shell .admin-editor > .admin-settings-tabs button {
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+}
 .admin-ai-settings [role='tabpanel'] {
   outline: none;
 }
