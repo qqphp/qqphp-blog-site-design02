@@ -1,6 +1,7 @@
 .investment-heading {
   position: relative;
   height: 190px;
+  margin-top: 24px;
   padding: 0;
   border: 0;
   overflow: hidden;
@@ -110,15 +111,16 @@
   --koi-eye: #223638;
   --koi-mark: #d85d47;
   --koi-dark-mark: #384746;
-  --koi-travel: 1;
   position: absolute;
+  left: 0;
+  top: 0;
   z-index: 1;
-  width: 146px;
+  width: 120px;
   aspect-ratio: 24 / 11;
   filter: drop-shadow(0 7px 4px #052d363d);
   transform-origin: center;
 }
-.pond-koi-coral { left: 15%; top: 26%; transform: rotate(-20deg); animation: pond-koi-swim-one 27s linear infinite; }
+.pond-koi-coral { left: 15%; top: 26%; transform: rotate(-20deg); }
 .pond-koi-gold {
   --koi-base: #f2dd9e;
   --koi-highlight: #fff5cb;
@@ -127,12 +129,10 @@
   --koi-edge: #ad8a55;
   --koi-line: #b3915b;
   --koi-mark: #d69936;
-  width: 154px;
+  width: 128px;
   left: 46%;
   top: 37%;
   transform: rotate(190deg);
-  animation: pond-koi-swim-two 32s linear infinite;
-  animation-delay: -13s;
 }
 .pond-koi-blue {
   --koi-base: #d9e7e5;
@@ -142,53 +142,30 @@
   --koi-edge: #719495;
   --koi-line: #749698;
   --koi-mark: #427f8d;
-  width: 136px;
+  width: 112px;
   left: 70%;
   top: 27%;
   transform: rotate(-25deg);
-  animation: pond-koi-swim-three 24s linear infinite;
-  animation-delay: -8s;
 }
 .pond-koi-tail {
   transform-box: view-box;
   transform-origin: 42px 55px;
-  animation: pond-tail-sway 1.6s ease-in-out infinite alternate;
 }
-.pond-koi-gold .pond-koi-tail { animation-duration: 1.9s; animation-delay: -.7s; }
-.pond-koi-blue .pond-koi-tail { animation-duration: 1.4s; animation-delay: -.4s; }
 .fresh-theme .pond-koi { filter: drop-shadow(0 5px 3px #47867c35); }
 .fresh-theme .pond-koi-coral { --koi-mark: #c74f3d; --koi-edge: #b39076; }
 .fresh-theme .pond-koi-gold { --koi-mark: #c38a2d; --koi-dark-mark: #354443; }
 .fresh-theme .pond-koi-blue { --koi-mark: #3a7182; --koi-edge: #66898d; }
+.investment-pond[data-paused='true'] * { animation-play-state: paused; }
+
+/* The animation uses pixel coordinates from the pond's upper-left corner. */
+.investment-pond[data-ready='true'] .pond-koi { left: 0; top: 0; }
 
 @keyframes pond-water-drift { to { transform: translateY(7px); opacity: .28; } }
 @keyframes pond-ripple-expand { 0% { transform: scale(.35); opacity: 0; } 15% { opacity: .22; } 100% { transform: scale(1.7); opacity: 0; } }
 @keyframes pond-lotus-float { from { transform: translateY(-2px) rotate(-1deg); } to { transform: translateY(3px) rotate(2deg); } }
-@keyframes pond-tail-sway { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
-@keyframes pond-koi-swim-one {
-  0% { transform: translate(0, 10px) rotate(-20deg); }
-  25% { transform: translate(calc(35px * var(--koi-travel)), -12px) rotate(5deg); }
-  50% { transform: translate(calc(65px * var(--koi-travel)), 10px) rotate(100deg); }
-  75% { transform: translate(calc(30px * var(--koi-travel)), 27px) rotate(190deg); }
-  100% { transform: translate(0, 10px) rotate(340deg); }
-}
-@keyframes pond-koi-swim-two {
-  0% { transform: translate(0, -12px) rotate(190deg); }
-  25% { transform: translate(calc(-40px * var(--koi-travel)), -30px) rotate(220deg); }
-  50% { transform: translate(calc(-60px * var(--koi-travel)), -5px) rotate(310deg); }
-  75% { transform: translate(calc(-25px * var(--koi-travel)), 0) rotate(365deg); }
-  100% { transform: translate(0, -12px) rotate(550deg); }
-}
-@keyframes pond-koi-swim-three {
-  0% { transform: translate(0, 0) rotate(-25deg); }
-  25% { transform: translate(calc(10px * var(--koi-travel)), 23px) rotate(95deg); }
-  50% { transform: translate(calc(-30px * var(--koi-travel)), 29px) rotate(180deg); }
-  75% { transform: translate(calc(-46px * var(--koi-travel)), 3px) rotate(260deg); }
-  100% { transform: translate(0, 0) rotate(335deg); }
-}
 
 @media (max-width: 700px) {
-  .pond-koi { --koi-travel: .25; }
+  .investment-heading { margin-top: 16px; }
   .pond-koi-coral { left: 4%; top: 43%; width: clamp(88px, 29vw, 110px); }
   .pond-koi-gold { left: 34%; top: 35%; width: clamp(82px, 26vw, 100px); }
   .pond-koi-blue { left: 64%; top: 46%; width: clamp(76px, 24vw, 96px); }

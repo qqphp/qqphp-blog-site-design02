@@ -1,3 +1,6 @@
+import { useEffect, useRef } from 'react';
+import { advanceSwimmingKoi, createSwimmingKoi, resizeSwimmingKoi, type PondSize, type SwimmingKoi } from './investment-pond-motion';
+import { koiOutline } from './investment-pond-shape';
 import './investment-pond.css';
 
 type KoiColor = 'coral' | 'gold' | 'blue';
@@ -19,12 +22,12 @@ function Koi({ color }: { color: KoiColor }) {
       </linearGradient>
     </defs>
     <g className="pond-koi-tail">
-      <path d="M48 55C31 51 19 35 6 22C10 39 17 49 27 55C17 62 10 73 6 89C21 76 32 60 48 55Z" fill={`url(#${finGradient})`} stroke="var(--koi-edge)" strokeWidth="1.5" />
+      <path d={koiOutline.tail.d} fill={`url(#${finGradient})`} stroke="var(--koi-edge)" strokeWidth="1.5" strokeLinejoin="round" />
       <path d="M43 55C29 55 20 45 12 34M43 55C27 58 19 69 12 79M39 55L16 48M39 55L15 64" stroke="var(--koi-line)" strokeWidth="1.2" strokeLinecap="round" />
     </g>
-    <path d="M91 40C82 23 66 16 53 17C61 31 68 41 84 48M88 65C79 83 65 91 52 92C59 77 68 67 85 59" fill={`url(#${finGradient})`} stroke="var(--koi-edge)" strokeWidth="1.5" />
-    <path d="M168 38C158 24 155 14 162 8C173 17 179 27 180 41M169 73C158 86 156 97 163 103C174 93 180 83 181 69" fill={`url(#${finGradient})`} stroke="var(--koi-edge)" strokeWidth="1.5" />
-    <path d="M39 55C54 36 90 24 130 27C168 29 198 39 215 49C223 54 223 59 215 64C196 75 166 81 130 83C89 86 54 74 39 55Z" fill={`url(#${bodyGradient})`} stroke="var(--koi-edge)" strokeWidth="2" />
+    <path d={koiOutline.rearFins.d} fill={`url(#${finGradient})`} stroke="var(--koi-edge)" strokeWidth="1.5" strokeLinejoin="round" />
+    <path d={koiOutline.frontFins.d} fill={`url(#${finGradient})`} stroke="var(--koi-edge)" strokeWidth="1.5" strokeLinejoin="round" />
+    <path d={koiOutline.body.d} fill={`url(#${bodyGradient})`} stroke="var(--koi-edge)" strokeWidth="2" strokeLinejoin="round" />
     <path d="M45 55C78 41 121 41 161 48" stroke="var(--koi-highlight)" strokeOpacity=".56" strokeWidth="2" strokeLinecap="round" />
     {color === 'coral' && <g fill="var(--koi-mark)">
       <path d="M72 39C84 30 105 29 116 34C119 44 113 49 102 51C88 53 77 49 72 39Z" />
@@ -67,7 +70,63 @@ function Lotus({ bloom = true }: { bloom?: boolean }) {
 }
 
 export function InvestmentPond() {
-  return <div className="investment-pond" aria-hidden="true">
+  const pondRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const pond = pondRef.current;
+    if (!pond) return;
+    const elements = Array.from(pond.querySelectorAll<HTMLElement>('.pond-koi'));
+    const tails = elements.map(element => element.querySelector<SVGGElement>('.pond-koi-tail')!);
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let size: PondSize = { width: 0, height: 0 };
+    let fish: SwimmingKoi[] = [];
+    let frame = 0, previousTime = 0;
+
+    const paint = () => {
+      pond.dataset.ready = 'true';
+      elements.forEach((element, index) => {
+        const item = fish[index];
+        element.style.transform = `translate(${item.x - item.width / 2}px, ${item.y - item.height / 2}px) rotate(${item.angle}rad)`;
+        tails[index].style.transform = `rotate(${item.tailAngle}rad)`;
+      });
+    };
+    const measure = () => {
+      const next = { width: pond.clientWidth, height: pond.clientHeight };
+      if (!next.width || !next.height) return;
+      const widths = elements.map(element => parseFloat(getComputedStyle(element).width));
+      if (!fish.length || motion.matches) fish = createSwimmingKoi(widths, next);
+      else resizeSwimmingKoi(fish, size, next, widths);
+      size = next;
+      paint();
+    };
+    const animate = (time: number) => {
+      if (previousTime) advanceSwimmingKoi(fish, size, (time - previousTime) / 1000);
+      previousTime = time;
+      paint();
+      frame = requestAnimationFrame(animate);
+    };
+    const syncAnimation = () => {
+      cancelAnimationFrame(frame);
+      previousTime = 0;
+      pond.dataset.paused = String(document.hidden || motion.matches);
+      if (motion.matches) measure();
+      if (!document.hidden && !motion.matches && fish.length) frame = requestAnimationFrame(animate);
+    };
+    const observer = new ResizeObserver(() => { measure(); syncAnimation(); });
+    measure();
+    syncAnimation();
+    observer.observe(pond);
+    motion.addEventListener('change', syncAnimation);
+    document.addEventListener('visibilitychange', syncAnimation);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      motion.removeEventListener('change', syncAnimation);
+      document.removeEventListener('visibilitychange', syncAnimation);
+    };
+  }, []);
+
+  return <div ref={pondRef} className="investment-pond" aria-hidden="true">
     <svg className="pond-water-lines" viewBox="0 0 1200 190" preserveAspectRatio="none" fill="none">
       <path d="M-40 69C106 12 201 95 357 54C487 19 595 83 738 46C890 7 1024 96 1240 34" />
       <path d="M-80 131C101 99 210 165 352 124C522 76 625 158 790 117C925 84 1086 150 1260 109" />
