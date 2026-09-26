@@ -173,6 +173,7 @@ export const defaults = {
   ),
   slides: publish([
     {
+      id: 'slide-0',
       src: '/notes/paper-v2.png',
       title: '纸上远山',
       alt: 'AI 生成的纸艺山水与松林',
@@ -181,6 +182,7 @@ export const defaults = {
       position: 'center 55%',
     },
     {
+      id: 'slide-1',
       src: '/notes/rain-v2.png',
       title: '雨夜河畔',
       alt: 'AI 生成的胶片风格雨夜河畔',
@@ -189,6 +191,7 @@ export const defaults = {
       position: 'center 60%',
     },
     {
+      id: 'slide-2',
       src: '/notes/clay-v2.png',
       title: '柔软小世界',
       alt: 'AI 生成的黏土小屋与彩色树林',
@@ -210,7 +213,10 @@ export const defaults = {
     ...researchContent.investing,
     sections: researchContent.investing.sections.map((section) => ({
       ...section,
-      entries: publish(section.entries),
+      entries: publish(section.entries.map((entry, index) => ({
+        ...entry,
+        id: `${section.id}-${index + 1}`,
+      }))),
     })),
   },
   bookmarks: migrateDirectory(bookmarks),

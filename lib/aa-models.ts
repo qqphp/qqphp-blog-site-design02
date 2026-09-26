@@ -1,4 +1,5 @@
 import { bindings } from './cms-server';
+import { queryOne, withDatabase } from './postgres';
 
 const cacheKey = 'language-models-free';
 const endpoint = 'https://artificialanalysis.ai/api/v2/language/models/free';
@@ -127,21 +128,18 @@ function groupsFromPages(pages: UnknownRecord[]): ModelGroup[] {
 }
 
 async function readSnapshot() {
-  return bindings()
-    .DB.prepare(
-      'SELECT payload, stored_at AS storedAt FROM aa_language_model_snapshots WHERE key = ?',
-    )
-    .bind(cacheKey)
-    .first<{ payload: string; storedAt: string }>();
+  const saved = await queryOne<{ payload: unknown; storedAt: Date }>(
+    'SELECT payload, stored_at AS "storedAt" FROM aa_language_model_snapshots WHERE key = $1',
+    [cacheKey],
+  );
+  return saved ? { payload: JSON.stringify(saved.payload), storedAt: saved.storedAt.toISOString() } : null;
 }
 
 async function configuredKey() {
-  const saved = await bindings()
-    .DB.prepare(
-      'SELECT api_key AS apiKey FROM api_integration_keys WHERE service = ?',
-    )
-    .bind('artificialanalysis')
-    .first<{ apiKey: string }>();
+  const saved = await queryOne<{ apiKey: string }>(
+    'SELECT api_key AS "apiKey" FROM api_integration_keys WHERE service = $1',
+    ['artificialanalysis'],
+  );
   return saved?.apiKey.trim() || bindings().AA_API_KEY?.trim() || '';
 }
 
@@ -193,14 +191,12 @@ async function fetchAllPages(apiKey: string) {
 
 async function saveSnapshot(pages: UnknownRecord[]) {
   const storedAt = new Date().toISOString();
-  await bindings()
-    .DB.prepare(
-      `INSERT INTO aa_language_model_snapshots (key, payload, stored_at)
-       VALUES (?, ?, ?)
-       ON CONFLICT(key) DO UPDATE SET payload = excluded.payload, stored_at = excluded.stored_at`,
-    )
-    .bind(cacheKey, JSON.stringify(pages), storedAt)
-    .run();
+  await withDatabase((db) => db.query(
+    `INSERT INTO aa_language_model_snapshots (key, payload, stored_at)
+     VALUES ($1, $2::jsonb, $3)
+     ON CONFLICT(key) DO UPDATE SET payload = excluded.payload, stored_at = excluded.stored_at`,
+    [cacheKey, JSON.stringify(pages), storedAt],
+  ).then(() => undefined));
   return storedAt;
 }
 

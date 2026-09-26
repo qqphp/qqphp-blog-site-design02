@@ -2,18 +2,14 @@ import { CmsText } from '@/components/cms-text';
 import Image from 'next/image';
 import Link from 'next/link';
 import { HeroGarden } from '@/components/hero-garden';
-import { getPublicContent } from '@/lib/cms-server';
-import {
-  newestArticlesFirst,
-  newestProjectsFirst,
-} from '@/lib/content-order';
+import { getPublicContent, getRecentArticles, getRecentProjects } from '@/lib/cms-server';
 
 import { SiteFooter, SiteHeader } from '@/components/site-chrome';
 
 export default async function Home() {
-  const { writing, projects, home } = await getPublicContent();
-  const latestWriting = newestArticlesFirst(writing).slice(0, 3);
-  const latestProjects = newestProjectsFirst(projects.items).slice(0, 2);
+  const [{ home }, latestWriting, latestProjects] = await Promise.all([
+    getPublicContent(['home']), getRecentArticles(3), getRecentProjects(2),
+  ]);
   return (
     <main className="site-shell">
       <SiteHeader />

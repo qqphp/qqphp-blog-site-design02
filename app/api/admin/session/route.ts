@@ -8,6 +8,7 @@ import {
   sessionCookie,
 } from '@/lib/admin-auth';
 import { bindings } from '@/lib/cms-server';
+import { queryOne, withDatabase } from '@/lib/postgres';
 
 export async function GET(request: Request) {
   return json({
@@ -37,23 +38,17 @@ export async function POST(request: Request) {
   }
   if (typeof body?.password !== 'string' || body.password.length > 256)
     return json({ error: '请输入有效密码' }, 400);
-  const db = bindings().DB;
   const now = Date.now();
   // Single administrator: a durable global window also covers local requests without an IP header.
-  const attempt = await db
-    .prepare(
-      'INSERT INTO cms_login_attempts (key, count, expires) VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET count = CASE WHEN expires <= ? THEN 1 ELSE count + 1 END, expires = CASE WHEN expires <= ? THEN excluded.expires ELSE expires END RETURNING count',
-    )
-    .bind('admin', now + 60000, now, now)
-    .first<{ count: number }>();
+  const attempt = await queryOne<{ count: number }>(
+    'INSERT INTO cms_login_attempts (key, count, expires) VALUES ($1, 1, $2) ON CONFLICT(key) DO UPDATE SET count = CASE WHEN cms_login_attempts.expires <= $3 THEN 1 ELSE cms_login_attempts.count + 1 END, expires = CASE WHEN cms_login_attempts.expires <= $3 THEN excluded.expires ELSE cms_login_attempts.expires END RETURNING count',
+    ['admin', now + 60000, now],
+  );
   if ((attempt?.count ?? 99) > 10)
     return json({ error: '尝试次数过多，请一分钟后重试。' }, 429);
   if (!(await checkPassword(body.password)))
     return json({ error: '密码不正确' }, 401);
-  await db
-    .prepare('DELETE FROM cms_login_attempts WHERE key = ?')
-    .bind('admin')
-    .run();
+  await withDatabase((db) => db.query('DELETE FROM cms_login_attempts WHERE key = $1', ['admin']).then(() => undefined));
   return Response.json(
     { ok: true },
     { headers: { ...noCache, 'Set-Cookie': await sessionCookie(request) } },

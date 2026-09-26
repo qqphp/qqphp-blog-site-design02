@@ -3,11 +3,13 @@ import { categoryBranch, type CategoryNode } from '@/lib/article-categories';
 export function WritingCategoryTree({
   categories,
   articles,
+  counts,
   selected,
   onSelect,
 }: {
   categories: CategoryNode[];
-  articles: { categoryId: string }[];
+  articles?: { categoryId: string }[];
+  counts?: Record<string, number>;
   selected: string;
   onSelect: (id: string) => void;
 }) {
@@ -18,9 +20,9 @@ export function WritingCategoryTree({
           .filter((category) => category.parentId === parentId)
           .map((category) => {
             const ids = categoryBranch(categories, category.id);
-            const count = articles.filter((article) =>
-              ids.has(article.categoryId),
-            ).length;
+            const count = counts
+              ? [...ids].reduce((sum, id) => sum + (counts[id] ?? 0), 0)
+              : (articles ?? []).filter((article) => ids.has(article.categoryId)).length;
             return (
               <li key={category.id}>
                 <button

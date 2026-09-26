@@ -1,4 +1,4 @@
-import { AdminPanel } from '@/components/admin-panel';
+import { AdminGranularPanel } from '@/components/admin-granular-panel';
 import '@/components/admin.css';
 
 export const metadata = {
@@ -6,5 +6,5 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 export default function AdminPage() {
-  return <AdminPanel />;
+  return <AdminGranularPanel />;
 }

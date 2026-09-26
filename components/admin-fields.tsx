@@ -25,6 +25,15 @@ const names: Record<string, string> = {
   meta: '阅读时长',
   tag: '标签',
   category: '分类',
+  categoryId: '分类',
+  statusId: '状态',
+  moodId: '场景',
+  sectionId: '研究分组',
+  parentId: '上级分类',
+  coverMode: '封面来源',
+  mode: '图片来源',
+  createdAt: '创建时间',
+  audio: '音频地址',
   cover: '封面地址',
   slug: '文章路径标识',
   id: '唯一标识',
@@ -106,6 +115,8 @@ export function fresh(sample: Json): Json {
         key,
         key === '_published'
           ? false
+          : key === 'coverMode' || key === 'mode'
+            ? 'upload'
           : key === 'id' || key === 'slug'
             ? `new-${crypto.randomUUID().slice(0, 8)}`
             : key === 'title' || key === 'name'
@@ -179,29 +190,22 @@ export async function upload(file: File) {
     body: file,
   });
 }
-export function download(value: unknown, filename: string) {
-  const url = URL.createObjectURL(
-    new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }),
-  );
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 export function Field({
   value,
   sample,
   onChange,
   label,
   path,
+  options = {},
+  immutableIdentity = false,
 }: {
   value: Json;
   sample: Json;
   onChange: (value: Json) => void;
   label: string;
   path: string;
+  options?: Record<string, { id: string; name: string }[]>;
+  immutableIdentity?: boolean;
 }) {
   const [message, setMessage] = useState('');
   if (Array.isArray(value)) {
@@ -240,7 +244,7 @@ export function Field({
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm('删除这项内容？保存栏目后生效。'))
+                  if (window.confirm('从当前表单中删除这项内容？点击“确认提交”后生效。'))
                     onChange(value.filter((_, i) => i !== index));
                 }}
               >
@@ -255,6 +259,8 @@ export function Field({
               onChange={(next) =>
                 onChange(value.map((old, i) => (i === index ? next : old)))
               }
+              options={options}
+              immutableIdentity={immutableIdentity}
             />
           </details>
         ))}
@@ -276,7 +282,12 @@ export function Field({
       <div className="admin-object">
         <h3>{label}</h3>
         <div className="admin-fields">
-          {Object.entries(value).map(([key, item]) => (
+          {Object.entries(value).filter(([key]) =>
+            !['id', 'coverGeneratedFor', 'generatedFor'].includes(key) &&
+            !(key === 'category' && Object.hasOwn(value, 'categoryId')) &&
+            !(key === 'status' && Object.hasOwn(value, 'statusId')) &&
+            !(key === 'mood' && Object.hasOwn(value, 'moodId')),
+          ).map(([key, item]) => (
             <Field
               key={key}
               path={`${path}.${key}`}
@@ -284,6 +295,8 @@ export function Field({
               sample={template[key] ?? item}
               value={item}
               onChange={(next) => onChange({ ...value, [key]: next })}
+              options={options}
+              immutableIdentity={immutableIdentity}
             />
           ))}
         </div>
@@ -303,7 +316,7 @@ export function Field({
       </label>
     );
   const field = path.split('.').at(-1)!;
-  const asset = /^(src|cover|image|publicAccountQr)$/.test(field);
+  const asset = /^(src|cover|image|audio|publicAccountQr)$/.test(field) || /\.album\.\d+$/.test(path);
   const long =
     typeof value === 'string' &&
     ((typeof sample === 'string' &&
@@ -312,7 +325,13 @@ export function Field({
   return (
     <div className="admin-field">
       <label htmlFor={path}>{label}</label>
-      {long ? (
+      {options[field] ? (
+        <select id={path} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)}>
+          <option value="">请选择</option>
+          {options[field].map((option) =>
+            <option key={option.id} value={option.id}>{option.name}</option>)}
+        </select>
+      ) : long ? (
         <textarea
           id={path}
           rows={field === 'body' ? 18 : 4}
@@ -323,6 +342,7 @@ export function Field({
         <input
           id={path}
           type={typeof value === 'number' ? 'number' : 'text'}
+          disabled={immutableIdentity && field === 'id'}
           value={String(value ?? '')}
           onChange={(e) =>
             onChange(
@@ -353,7 +373,7 @@ export function Field({
                 try {
                   const result = await upload(file);
                   onChange(result.url);
-                  setMessage('已上传，请保存栏目。');
+                  setMessage('已上传，点击表单底部“确认提交”后生效。');
                 } catch (error) {
                   setMessage(String(error));
                 }

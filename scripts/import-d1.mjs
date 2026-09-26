@@ -1,0 +1,74 @@
+import { spawnSync } from 'node:child_process';
+import pg from 'pg';
+import { ensureManagedPostgres } from './managed-postgres.mjs';
+
+if (!process.env.DATABASE_URL) throw new Error('请先配置 DATABASE_URL');
+await ensureManagedPostgres();
+const exported = spawnSync('python', ['scripts/export-d1.py'], {
+  encoding: 'utf8', maxBuffer: 50 * 1024 * 1024,
+});
+if (exported.status !== 0) throw new Error(exported.stderr.trim() || '读取旧数据库失败');
+const source = JSON.parse(exported.stdout);
+const collections = {
+  projects: ['statuses', 'categories', 'items'], stories: ['root'], slides: ['root'],
+  aiNotes: ['root'], bookmarks: ['categories', 'items'], friends: ['categories', 'items'],
+  books: ['categories', 'items', 'lists'], tracks: ['scenes', 'items', 'playlists'],
+  films: ['categories', 'items'], podcasts: ['categories', 'items'],
+  travel: ['categories', 'items'], hobbies: ['categories', 'items'],
+};
+const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+await client.connect();
+try {
+  const existing = await client.query('SELECT count(*)::int AS count FROM cms_sections');
+  if (existing.rows[0].count) throw new Error('目标数据库已有博客内容，已取消导入以避免覆盖');
+  await client.query('BEGIN');
+  try {
+    for (const { key, value, revision } of source.documents) {
+      const names = collections[key] ?? [];
+      const metadata = names.length
+        ? Array.isArray(value) ? {} : Object.fromEntries(Object.entries(value).filter(([name]) => !names.includes(name)))
+        : key === 'writing' || key === 'categories' ? {} : value;
+      await client.query('INSERT INTO cms_sections (section, value, revision) VALUES ($1, $2::jsonb, $3)', [key, JSON.stringify(metadata), revision]);
+    }
+    const categories = source.documents.find((row) => row.key === 'categories')?.value ?? [];
+    for (const [position, category] of categories.entries())
+      await client.query('INSERT INTO article_categories (id, name, description, parent_id, position) VALUES ($1, $2, $3, $4, $5)',
+        [category.id, category.name, category.description, category.parentId || null, position]);
+    const articles = source.documents.find((row) => row.key === 'writing')?.value ?? [];
+    for (const [position, article] of articles.entries())
+      await client.query(`INSERT INTO articles (slug, title, excerpt, body, category_id, published_on, published, cover_url, cover_mode, cover_generated_for, position)
+        VALUES ($1, $2, $3, $4, $5, $6::date, $7, $8, $9, $10, $11)`,
+      [article.slug, article.title, article.excerpt, article.body, article.categoryId,
+        article.date.replaceAll('.', '-'), article._published === true, article.cover,
+        article.coverMode ?? 'upload', article.coverGeneratedFor ?? '', position]);
+    let entries = 0;
+    for (const { key, value } of source.documents) {
+      for (const collection of collections[key] ?? []) {
+        const items = collection === 'root' ? value : value[collection];
+        for (const [position, item] of items.entries()) {
+          const occurred = item.date ?? item.createdAt;
+          await client.query(`INSERT INTO cms_entries (section, collection, id, position, published, title, category_id, occurred_at, payload)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
+          [key, collection, item.id ?? `slide-${position}`, position, item._published === true,
+            item.title ?? item.name ?? '', item.categoryId ?? null,
+            occurred && Number.isFinite(Date.parse(occurred)) ? new Date(occurred) : null,
+            JSON.stringify(item)]);
+          entries++;
+        }
+      }
+    }
+    for (const row of source.snapshots)
+      await client.query('INSERT INTO aa_language_model_snapshots (key, payload, stored_at) VALUES ($1, $2::jsonb, $3)',
+        [row.key, JSON.stringify(row.payload), row.stored_at]);
+    for (const row of source.keys)
+      await client.query('INSERT INTO api_integration_keys (service, api_key, updated_at) VALUES ($1, $2, $3)',
+        [row.service, row.api_key, row.updated_at]);
+    await client.query('COMMIT');
+    console.log(`已导入 ${source.documents.length} 个栏目、${articles.length} 篇文章、${entries} 条其他记录和 ${source.snapshots.length} 份模型缓存。旧 D1 数据保持原样。`);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  }
+} finally {
+  await client.end();
+}

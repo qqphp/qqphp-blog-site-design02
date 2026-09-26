@@ -1,3 +1,4 @@
 import { LifePage } from '@/components/life-page';
+import { SectionContent } from '@/components/section-content';
 export const metadata = { title: '电影 · 开发阿雷' };
-export default function FilmsPage() { return <LifePage type="films" />; }
+export default function FilmsPage() { return <SectionContent sections={['films']}><LifePage type="films" /></SectionContent>; }

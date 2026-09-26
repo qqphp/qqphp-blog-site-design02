@@ -1,0 +1,513 @@
+import type { Client } from 'pg';
+import { withDatabase } from './postgres';
+import { defaults, type Section } from './cms-defaults';
+import { validateContent } from './cms-validation';
+import { adminCollections, configKeys, validCollection } from './admin-sections';
+import { migratePageCopy } from './page-copy';
+import { deleteLocalMedia } from './local-media';
+
+type Item = Record<string, unknown>;
+type RecordKey = { section: Section; collection: string; id: string };
+type ListOptions = { page: number; size: number; q: string; status: string; categoryId: string };
+export class AdminConflict extends Error {}
+export class AdminNotFound extends Error {}
+
+function assertCollection(section: Section, collection: string) {
+  if (!validCollection(section, collection)) throw new Error('栏目或列表无效');
+}
+function itemId(section: Section, collection: string, value: Item) {
+  const id = section === 'writing' && collection === 'articles' ? value.slug : value.id;
+  if (typeof id !== 'string' || !id.trim() || !/^[a-zA-Z0-9_-]+$/.test(id))
+    throw new Error('记录标识无效');
+  return id;
+}
+function searchText(value: Item) {
+  return ['title', 'name', 'description', 'excerpt', 'text', 'summary', 'author', 'artist', 'tag']
+    .map((key) => typeof value[key] === 'string' ? value[key] : '').join(' ');
+}
+function rowFields(value: Item) {
+  return {
+    published: value._published === true,
+    title: typeof value.title === 'string' ? value.title : typeof value.name === 'string' ? value.name : '',
+    categoryId: typeof value.categoryId === 'string' ? value.categoryId
+      : typeof value.statusId === 'string' ? value.statusId
+        : typeof value.moodId === 'string' ? value.moodId
+          : typeof value.sectionId === 'string' ? value.sectionId : null,
+    occurredAt: typeof value.date === 'string' && Number.isFinite(Date.parse(value.date))
+      ? new Date(value.date).toISOString()
+      : typeof value.createdAt === 'string' && Number.isFinite(Date.parse(value.createdAt))
+        ? new Date(value.createdAt).toISOString() : null,
+    search: searchText(value),
+  };
+}
+function payloadValue(section: Section, collection: string, value: Item) {
+  if (section === 'investing' && collection === 'entries') {
+    const { sectionId: _sectionId, ...entry } = value;
+    return entry;
+  }
+  if (section === 'investing' && collection === 'sections') {
+    const { entries: _entries, ...sectionValue } = value;
+    return sectionValue;
+  }
+  return value;
+}
+
+export async function listAdminRecords(section: Section, collection: string, input: ListOptions) {
+  assertCollection(section, collection);
+  const page = Math.max(1, Math.trunc(input.page) || 1);
+  const size = Math.min(50, Math.max(1, Math.trunc(input.size) || 20));
+  const q = input.q.trim();
+  const pattern = `%${q.replace(/[\\%_]/g, '\\$&')}%`;
+  return withDatabase(async (db) => {
+    if (section === 'writing' && collection === 'articles') {
+      const where = `($1 = '' OR (a.title || ' ' || a.excerpt) ILIKE $2 ESCAPE '\\')
+        AND ($3 = 'all' OR a.published = ($3 = 'published'))
+        AND ($4 = '' OR a.category_id = $4)`;
+      const params = [q, pattern, input.status, input.categoryId];
+      const total = await db.query<{ count: number }>(`SELECT count(*)::int AS count FROM articles a WHERE ${where}`, params);
+      const rows = await db.query(`SELECT a.slug AS id, a.title, a.excerpt, a.category_id AS "categoryId",
+        c.name AS category, a.published, to_char(a.published_on, 'YYYY.MM.DD') AS date,
+        a.position, a.revision FROM articles a JOIN article_categories c ON c.id = a.category_id
+        WHERE ${where} ORDER BY a.published_on DESC, a.slug LIMIT $5 OFFSET $6`,
+      [...params, size, (page - 1) * size]);
+      return { items: rows.rows, total: total.rows[0].count, page, size };
+    }
+    if (section === 'writing' && collection === 'categories') {
+      const where = `($1 = '' OR name ILIKE $2 ESCAPE '\\')`;
+      const total = await db.query<{ count: number }>(`SELECT count(*)::int AS count FROM article_categories WHERE ${where}`, [q, pattern]);
+      const rows = await db.query(`SELECT id, name AS title, parent_id AS "parentId", position, revision
+        FROM article_categories WHERE ${where} ORDER BY position, id LIMIT $3 OFFSET $4`,
+      [q, pattern, size, (page - 1) * size]);
+      return { items: rows.rows, total: total.rows[0].count, page, size };
+    }
+    const where = `section = $1 AND collection = $2 AND ($3 = '' OR search_text ILIKE $4 ESCAPE '\\')
+      AND ($5 = 'all' OR published = ($5 = 'published')) AND ($6 = '' OR category_id = $6)`;
+    const params = [section, collection, q, pattern, input.status, input.categoryId];
+    const total = await db.query<{ count: number }>(`SELECT count(*)::int AS count FROM cms_entries WHERE ${where}`, params);
+    const order = (section === 'stories' || (section === 'investing' && collection === 'entries'))
+      ? 'occurred_at DESC NULLS LAST, position, id' : 'position, id';
+    const rows = await db.query(`SELECT id, title, left(search_text, 160) AS excerpt,
+      category_id AS "categoryId", published, occurred_at AS date, position, revision
+      FROM cms_entries WHERE ${where} ORDER BY ${order} LIMIT $7 OFFSET $8`,
+    [...params, size, (page - 1) * size]);
+    return { items: rows.rows, total: total.rows[0].count, page, size };
+  });
+}
+
+async function readRecord(db: Client, key: RecordKey) {
+  const { section, collection, id } = key;
+  if (section === 'writing' && collection === 'articles') {
+    const row = await db.query(`SELECT a.slug, a.title, a.excerpt, a.body,
+      a.category_id AS "categoryId", c.name AS category,
+      to_char(a.published_on, 'YYYY.MM.DD') AS date, a.published AS "_published",
+      a.cover_url AS cover, a.cover_mode AS "coverMode",
+      a.cover_generated_for AS "coverGeneratedFor", a.revision
+      FROM articles a JOIN article_categories c ON c.id = a.category_id WHERE a.slug = $1`, [id]);
+    if (!row.rowCount) return null;
+    const { revision, ...value } = row.rows[0];
+    return { value, revision: Number(revision) };
+  }
+  if (section === 'writing' && collection === 'categories') {
+    const row = await db.query(`SELECT id, name, description, coalesce(parent_id, '') AS "parentId", revision
+      FROM article_categories WHERE id = $1`, [id]);
+    if (!row.rowCount) return null;
+    const { revision, ...value } = row.rows[0];
+    return { value, revision: Number(revision) };
+  }
+  const row = await db.query<{ payload: Item; category_id: string | null; revision: number }>(
+    'SELECT payload, category_id, revision FROM cms_entries WHERE section = $1 AND collection = $2 AND id = $3',
+    [section, collection, id]);
+  if (!row.rowCount) return null;
+  const result = row.rows[0];
+  return {
+    value: section === 'investing' && collection === 'entries'
+      ? { ...result.payload, sectionId: result.category_id } : result.payload,
+    revision: result.revision,
+  };
+}
+
+export async function getAdminRecord(key: RecordKey) {
+  assertCollection(key.section, key.collection);
+  return withDatabase((db) => readRecord(db, key));
+}
+
+export async function getAdminOptions(section: Section) {
+  const collections = adminCollections[section] ?? [];
+  const optionCollections = collections.filter((name) =>
+    ['categories', 'statuses', 'scenes', 'sections', 'items'].includes(name) &&
+    name !== 'items');
+  if (section === 'writing') return withDatabase(async (db) => {
+    const rows = await db.query('SELECT id, name, description, coalesce(parent_id, \'\') AS "parentId" FROM article_categories ORDER BY position');
+    return { categories: rows.rows };
+  });
+  return withDatabase(async (db) => {
+    const rows = await db.query<{ collection: string; payload: Item }>(
+      'SELECT collection, payload FROM cms_entries WHERE section = $1 AND collection = ANY($2::text[]) ORDER BY collection, position',
+      [section, optionCollections]);
+    return Object.fromEntries(optionCollections.map((collection) =>
+      [collection, rows.rows.filter((row) => row.collection === collection).map((row) => row.payload)]));
+  });
+}
+
+function defaultConfig(section: Section): Item {
+  const value = defaults[section];
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const collections = adminCollections[section] ?? [];
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !collections.includes(key)));
+}
+
+function savedConfig(section: Section, value: Item | undefined) {
+  const fallback = defaultConfig(section);
+  const allowed = new Set(Object.keys(fallback));
+  return Object.fromEntries(Object.entries(value ?? fallback)
+    .filter(([key]) => allowed.has(key)));
+}
+
+export async function getAdminConfig(section: Section, scope: string) {
+  const keys = configKeys(section, scope);
+  if (!keys) throw new Error('设置范围无效');
+  return withDatabase(async (db) => {
+    const row = await db.query<{ value: Item; revision: number }>(
+      'SELECT value, revision FROM cms_sections WHERE section = $1', [section]);
+    const base = defaultConfig(section);
+    const saved = savedConfig(section, row.rows[0]?.value);
+    const document: Item = section === 'copy'
+      ? migratePageCopy(saved as typeof defaults.copy) as Item : { ...base, ...saved };
+    if (scope === 'root') return { value: document, revision: row.rows[0]?.revision ?? 0 };
+    const part = await db.query<{ revision: number }>(
+      'SELECT revision FROM cms_section_parts WHERE section = $1 AND scope = $2', [section, scope]);
+    return { value: Object.fromEntries(keys.map((key) => [key, document[key]])),
+      revision: part.rows[0]?.revision ?? 0 };
+  });
+}
+
+export async function saveAdminConfig(section: Section, scope: string, value: Item, revision: number) {
+  const keys = configKeys(section, scope);
+  if (!keys) throw new Error('设置范围无效');
+  if (!Number.isInteger(revision) || revision < 0) throw new Error('版本无效');
+  const saved = await withDatabase(async (db) => {
+    await db.query('BEGIN');
+    try {
+      const row = await db.query<{ value: Item; revision: number }>(
+        'SELECT value, revision FROM cms_sections WHERE section = $1 FOR UPDATE', [section]);
+      const rawPrevious = savedConfig(section, row.rows[0]?.value);
+      const previous = section === 'copy'
+        ? migratePageCopy(rawPrevious as typeof defaults.copy) as Item : rawPrevious;
+      const next = scope === 'root' ? value : { ...previous, ...value };
+      if (scope !== 'root' &&
+          (Object.keys(value).length !== keys.length || Object.keys(value).some((key) => !keys.includes(key))))
+        throw new Error('只可提交当前页面的字段');
+      if (scope === 'root' && adminCollections[section]?.some((name) => Object.hasOwn(value, name)))
+        throw new Error('列表内容须逐条提交');
+      const sample = defaults[section];
+      const full = sample && typeof sample === 'object' && !Array.isArray(sample)
+        ? { ...sample, ...next } : next;
+      validateContent(section, full);
+      let newRevision: number;
+      if (scope === 'root') {
+        if ((row.rows[0]?.revision ?? 0) !== revision) throw new AdminConflict('此设置已在另一窗口修改');
+        const updated = await db.query<{ revision: number }>(`INSERT INTO cms_sections (section, value, revision)
+          VALUES ($1, $2::jsonb, 1) ON CONFLICT (section) DO UPDATE SET
+          value = excluded.value, revision = cms_sections.revision + 1, updated_at = now()
+          RETURNING revision`, [section, JSON.stringify(next)]);
+        newRevision = updated.rows[0].revision;
+      } else {
+        const part = await db.query<{ revision: number }>(
+          'SELECT revision FROM cms_section_parts WHERE section = $1 AND scope = $2 FOR UPDATE',
+          [section, scope]);
+        if ((part.rows[0]?.revision ?? 0) !== revision) throw new AdminConflict('此页面已在另一窗口修改');
+        await db.query(`INSERT INTO cms_sections (section, value, revision)
+          VALUES ($1, $2::jsonb, 1) ON CONFLICT (section) DO UPDATE SET
+          value = excluded.value, revision = cms_sections.revision + 1, updated_at = now()`,
+        [section, JSON.stringify(next)]);
+        const updated = await db.query<{ revision: number }>(`INSERT INTO cms_section_parts (section, scope, revision)
+          VALUES ($1, $2, 1) ON CONFLICT (section, scope) DO UPDATE SET
+          revision = cms_section_parts.revision + 1 RETURNING revision`, [section, scope]);
+        newRevision = updated.rows[0].revision;
+      }
+      await db.query('COMMIT');
+      return { value: scope === 'root' ? next : value, revision: newRevision,
+        previous: scope === 'root' ? previous : Object.fromEntries(keys.map((key) => [key, previous[key]])) };
+    } catch (error) {
+      await db.query('ROLLBACK');
+      throw error;
+    }
+  });
+  const failedMedia = await cleanupUnreferencedMedia(saved.previous, saved.value);
+  return { value: saved.value, revision: saved.revision, failedMedia };
+}
+
+async function validateRecord(db: Client, key: Omit<RecordKey, 'id'>, value: Item, oldId?: string) {
+  const { section, collection } = key;
+  itemId(section, collection, value);
+  if (section === 'writing' && collection === 'articles') {
+    validateContent('writing', [value]);
+    const category = await db.query('SELECT 1 FROM article_categories WHERE id = $1', [value.categoryId]);
+    if (!category.rowCount) throw new Error('所选文章分类不存在');
+    return;
+  }
+  if (section === 'writing' && collection === 'categories') {
+    const rows = await db.query<{ id: string; name: string; description: string; parentId: string }>(
+      `SELECT id, name, description, coalesce(parent_id, '') AS "parentId"
+       FROM article_categories WHERE id <> $1`, [oldId ?? '']);
+    validateContent('categories', [...rows.rows, value]);
+    return;
+  }
+  if (section === 'investing') {
+    if (collection === 'sections') {
+      if (Array.isArray(value.entries) && value.entries.length) throw new Error('研究条目须逐条提交');
+      validateContent('investing', {
+        ...defaults.investing,
+        sections: [{ ...value, entries: [] }],
+      });
+    } else {
+      if (typeof value.sectionId !== 'string') throw new Error('请选择研究分组');
+      const parent = await db.query('SELECT 1 FROM cms_entries WHERE section = $1 AND collection = $2 AND id = $3',
+        ['investing', 'sections', value.sectionId]);
+      if (!parent.rowCount) throw new Error('研究分组不存在');
+      const { sectionId: _sectionId, ...entry } = value;
+      validateContent('investing', {
+        ...defaults.investing,
+        sections: [{ ...defaults.investing.sections[0], entries: [entry] }],
+      });
+    }
+    return;
+  }
+  if (['stories', 'slides', 'aiNotes'].includes(section)) {
+    validateContent(section, [value]);
+    return;
+  }
+  const sample = defaults[section];
+  if (!sample || typeof sample !== 'object' || Array.isArray(sample)) throw new Error('栏目不支持逐条编辑');
+  const collections = adminCollections[section] ?? [];
+  const doc: Item = { ...sample };
+  for (const name of collections) doc[name] = name === collection ? [value] : [];
+  for (const name of collections.filter((name) =>
+    ['categories', 'statuses', 'scenes'].includes(name) && name !== collection)) {
+    const rows = await db.query<{ payload: Item }>(
+      'SELECT payload FROM cms_entries WHERE section = $1 AND collection = $2 ORDER BY position',
+      [section, name]);
+    doc[name] = rows.rows.map((row) => row.payload);
+  }
+  validateContent(section, doc);
+  if (['categories', 'statuses', 'scenes'].includes(collection)) {
+    const existing = await db.query<{ payload: Item }>(
+      'SELECT payload FROM cms_entries WHERE section = $1 AND collection = $2 AND id <> $3',
+      [section, collection, oldId ?? '']);
+    const names = [...existing.rows.map((row) => row.payload.name), value.name]
+      .map((name) => String(name).trim());
+    if (new Set(names).size !== names.length || names.includes('全部'))
+      throw new Error('名称不能重复或命名为“全部”');
+  }
+}
+
+function mediaKeys(value: unknown) {
+  const keys = new Set<string>();
+  const visit = (item: unknown) => {
+    if (typeof item === 'string') {
+      const match = /^\/api\/media\/([a-f0-9-]+\.(?:png|jpg|gif|webp|mp3|wav))$/.exec(item);
+      if (match) keys.add(match[1]);
+    } else if (Array.isArray(item)) item.forEach(visit);
+    else if (item && typeof item === 'object') Object.values(item).forEach(visit);
+  };
+  visit(value);
+  return keys;
+}
+
+async function cleanupUnreferencedMedia(before: unknown, after: unknown) {
+  const remaining = mediaKeys(after);
+  const failedMedia: string[] = [];
+  for (const key of mediaKeys(before)) {
+    if (remaining.has(key)) continue;
+    const url = `/api/media/${key}`;
+    try {
+      const referenced = await withDatabase(async (db) => {
+        const rows = await db.query<{ used: boolean }>(`SELECT
+          EXISTS (SELECT 1 FROM articles WHERE cover_url = $1 OR body LIKE '%' || $1 || '%') OR
+          EXISTS (SELECT 1 FROM cms_entries WHERE payload::text LIKE '%' || $1 || '%') OR
+          EXISTS (SELECT 1 FROM cms_sections WHERE value::text LIKE '%' || $1 || '%') AS used`, [url]);
+        return rows.rows[0].used;
+      });
+      if (!referenced) await deleteLocalMedia(key);
+    } catch { failedMedia.push(key); }
+  }
+  return failedMedia;
+}
+
+function articleParams(value: Item) {
+  return [value.slug, value.title, value.excerpt, value.body, value.categoryId,
+    String(value.date).replaceAll('.', '-'), value._published, value.cover,
+    value.coverMode, value.coverGeneratedFor];
+}
+
+export async function createAdminRecord(section: Section, collection: string, value: Item) {
+  assertCollection(section, collection);
+  const id = itemId(section, collection, value);
+  return withDatabase(async (db) => {
+    await db.query('BEGIN');
+    try {
+      await validateRecord(db, { section, collection }, value);
+      if (section === 'writing' && collection === 'articles') {
+        await db.query(`INSERT INTO articles (slug, title, excerpt, body, category_id, published_on,
+          published, cover_url, cover_mode, cover_generated_for, position)
+          VALUES ($1,$2,$3,$4,$5,$6::date,$7,$8,$9,$10,
+            (SELECT coalesce(max(position) + 1, 0) FROM articles))`, articleParams(value));
+      } else if (section === 'writing' && collection === 'categories') {
+        await db.query(`INSERT INTO article_categories (id, name, description, parent_id, position)
+          VALUES ($1,$2,$3,nullif($4, ''),
+            (SELECT coalesce(max(position) + 1, 0) FROM article_categories))`,
+        [id, value.name, value.description, value.parentId]);
+      } else {
+        const fields = rowFields(value);
+        await db.query(`INSERT INTO cms_entries (section, collection, id, position, published,
+          title, category_id, occurred_at, payload, search_text)
+          VALUES ($1,$2,$3,(SELECT coalesce(max(position) + 1, 0) FROM cms_entries
+            WHERE section = $1 AND collection = $2),$4,$5,$6,$7,$8::jsonb,$9)`,
+        [section, collection, id, fields.published, fields.title, fields.categoryId,
+          fields.occurredAt, JSON.stringify(payloadValue(section, collection, value)), fields.search]);
+      }
+      await db.query(`INSERT INTO cms_sections (section, value) VALUES ($1, '{}'::jsonb)
+        ON CONFLICT DO NOTHING`, [section]);
+      await db.query('COMMIT');
+      return { id, value, revision: 1 };
+    } catch (error) {
+      await db.query('ROLLBACK');
+      if ((error as { code?: string }).code === '23505') throw new AdminConflict('标识或名称已存在');
+      throw error;
+    }
+  });
+}
+
+export async function updateAdminRecord(key: RecordKey, value: Item, revision: number) {
+  assertCollection(key.section, key.collection);
+  if (!Number.isInteger(revision) || revision < 1) throw new Error('版本无效');
+  const id = itemId(key.section, key.collection, value);
+  if (!(key.section === 'writing' && key.collection === 'articles') && id !== key.id)
+    throw new Error('记录标识不能修改');
+  const before = await withDatabase(async (db) => {
+    await db.query('BEGIN');
+    try {
+      const previous = await readRecord(db, key);
+      if (!previous) throw new AdminNotFound('记录不存在');
+      if (previous.revision !== revision) throw new AdminConflict('此记录已在另一窗口修改');
+      await validateRecord(db, key, value, key.id);
+      let updated;
+      if (key.section === 'writing' && key.collection === 'articles') {
+        updated = await db.query(`UPDATE articles SET slug=$1,title=$2,excerpt=$3,body=$4,
+          category_id=$5,published_on=$6::date,published=$7,cover_url=$8,
+          cover_mode=$9,cover_generated_for=$10,revision=revision+1,updated_at=now()
+          WHERE slug=$11 AND revision=$12`, [...articleParams(value), key.id, revision]);
+      } else if (key.section === 'writing' && key.collection === 'categories') {
+        updated = await db.query(`UPDATE article_categories SET name=$1,description=$2,
+          parent_id=nullif($3,''),revision=revision+1 WHERE id=$4 AND revision=$5`,
+        [value.name, value.description, value.parentId, key.id, revision]);
+      } else {
+        const fields = rowFields(value);
+        updated = await db.query(`UPDATE cms_entries SET published=$1,title=$2,category_id=$3,
+          occurred_at=$4,payload=$5::jsonb,search_text=$6,revision=revision+1,
+          updated_at=now() WHERE section=$7 AND collection=$8 AND id=$9 AND revision=$10`,
+        [fields.published, fields.title, fields.categoryId, fields.occurredAt,
+          JSON.stringify(payloadValue(key.section, key.collection, value)), fields.search,
+          key.section, key.collection, key.id, revision]);
+      }
+      if (!updated.rowCount) throw new AdminConflict('此记录已在另一窗口修改');
+      await db.query('COMMIT');
+      return previous.value;
+    } catch (error) {
+      await db.query('ROLLBACK');
+      if ((error as { code?: string }).code === '23505') throw new AdminConflict('标识或名称已存在');
+      throw error;
+    }
+  });
+  const failedMedia = await cleanupUnreferencedMedia(before, value);
+  return { id, value, revision: revision + 1, failedMedia };
+}
+
+export async function deleteAdminRecord(key: RecordKey, revision: number) {
+  assertCollection(key.section, key.collection);
+  if (!Number.isInteger(revision) || revision < 1) throw new Error('版本无效');
+  const previous = await withDatabase(async (db) => {
+    await db.query('BEGIN');
+    try {
+      const before = await readRecord(db, key);
+      if (!before) throw new AdminNotFound('记录不存在');
+      if (before.revision !== revision) throw new AdminConflict('此记录已在另一窗口修改');
+      if (key.section === 'writing' && key.collection === 'categories') {
+        const used = await db.query(`SELECT
+          EXISTS (SELECT 1 FROM articles WHERE category_id = $1) OR
+          EXISTS (SELECT 1 FROM article_categories WHERE parent_id = $1) AS used`, [key.id]);
+        if (used.rows[0].used) throw new Error('分类仍被文章或子分类使用');
+      } else if (['categories', 'statuses', 'scenes', 'sections'].includes(key.collection)) {
+        const field = key.collection === 'statuses' ? 'statusId'
+          : key.collection === 'scenes' ? 'moodId' : 'categoryId';
+        const used = await db.query(`SELECT 1 FROM cms_entries WHERE section=$1 AND
+          ((collection='items' AND payload->>$2=$3) OR
+           (collection='entries' AND category_id=$3)) LIMIT 1`, [key.section, field, key.id]);
+        if (used.rowCount) throw new Error('此选项仍被内容使用');
+      }
+      let deleted;
+      if (key.section === 'writing' && key.collection === 'articles')
+        deleted = await db.query('DELETE FROM articles WHERE slug=$1 AND revision=$2', [key.id, revision]);
+      else if (key.section === 'writing' && key.collection === 'categories')
+        deleted = await db.query('DELETE FROM article_categories WHERE id=$1 AND revision=$2', [key.id, revision]);
+      else deleted = await db.query('DELETE FROM cms_entries WHERE section=$1 AND collection=$2 AND id=$3 AND revision=$4',
+        [key.section, key.collection, key.id, revision]);
+      if (!deleted.rowCount) throw new AdminConflict('此记录已在另一窗口修改');
+      await db.query('COMMIT');
+      return before.value;
+    } catch (error) {
+      await db.query('ROLLBACK');
+      throw error;
+    }
+  });
+  const failedMedia = await cleanupUnreferencedMedia(previous, null);
+  return { deleted: true, failedMedia };
+}
+
+export async function setAdminPublication(key: RecordKey, published: boolean, revision: number) {
+  if (typeof published !== 'boolean') throw new Error('发布状态无效');
+  const current = await getAdminRecord(key);
+  if (!current) throw new AdminNotFound('记录不存在');
+  return updateAdminRecord(key, { ...current.value, _published: published }, revision);
+}
+
+export async function moveAdminRecord(key: RecordKey, direction: -1 | 1, revision: number) {
+  assertCollection(key.section, key.collection);
+  if (![-1, 1].includes(direction) || !Number.isInteger(revision) || revision < 1)
+    throw new Error('排序请求无效');
+  return withDatabase(async (db) => {
+    await db.query('BEGIN');
+    try {
+      const table = key.section === 'writing'
+        ? key.collection === 'articles' ? 'articles' : 'article_categories' : 'cms_entries';
+      const idField = table === 'articles' ? 'slug' : 'id';
+      const filter = table === 'cms_entries' ? 'section=$2 AND collection=$3' : 'true';
+      const params = table === 'cms_entries' ? [key.id, key.section, key.collection] : [key.id];
+      const current = await db.query<{ position: number; revision: number }>(
+        `SELECT position, revision FROM ${table} WHERE ${idField}=$1 AND ${filter} FOR UPDATE`, params);
+      if (!current.rowCount) throw new AdminNotFound('记录不存在');
+      if (current.rows[0].revision !== revision) throw new AdminConflict('此记录已在另一窗口修改');
+      const comparator = direction < 0 ? '<' : '>';
+      const order = direction < 0 ? 'DESC' : 'ASC';
+      const neighbor = await db.query<{ id: string; position: number }>(
+        `SELECT ${idField} AS id, position FROM ${table} WHERE ${filter.replace('$2', '$1').replace('$3', '$2')}
+          AND position ${comparator} $${table === 'cms_entries' ? 3 : 1}
+          ORDER BY position ${order}, ${idField} ${order} LIMIT 1 FOR UPDATE`,
+        table === 'cms_entries' ? [key.section, key.collection, current.rows[0].position]
+          : [current.rows[0].position]);
+      if (!neighbor.rowCount) throw new Error('已经位于列表边界');
+      const base = table === 'cms_entries' ? [key.section, key.collection] : [];
+      await db.query(`UPDATE ${table} SET position=$1,revision=revision+1 WHERE ${idField}=$2
+        ${table === 'cms_entries' ? 'AND section=$3 AND collection=$4' : ''}`,
+      [neighbor.rows[0].position, key.id, ...base]);
+      await db.query(`UPDATE ${table} SET position=$1,revision=revision+1 WHERE ${idField}=$2
+        ${table === 'cms_entries' ? 'AND section=$3 AND collection=$4' : ''}`,
+      [current.rows[0].position, neighbor.rows[0].id, ...base]);
+      await db.query('COMMIT');
+      return { revision: revision + 1 };
+    } catch (error) {
+      await db.query('ROLLBACK');
+      throw error;
+    }
+  });
+}

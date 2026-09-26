@@ -7,11 +7,11 @@ import '@/components/life.css';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata() {
-  const { site } = await getPublicContent();
+  const { site } = await getPublicContent(['site']);
   return { title: site.title, description: site.description, icons: { icon: '/favicon.ico' } };
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const content = await getPublicContent();
+  const content = await getPublicContent(['site', 'copy', 'pageSettings', 'tracks']);
   return <html lang="zh-CN" suppressHydrationWarning><head><Script id="theme-preference" strategy="beforeInteractive">{`try { if (localStorage.getItem('site-theme') === 'fresh') document.documentElement.classList.add('fresh-theme'); } catch (_) {}`}</Script></head><body><ContentProvider content={content}><MusicProvider>{children}</MusicProvider></ContentProvider></body></html>;
 }

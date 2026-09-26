@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { getPublicContent } from '@/lib/cms-server';
+import { getPublicArticle, getPublicContent } from '@/lib/cms-server';
 import { SiteFooter, SiteHeader } from '@/components/site-chrome';
 
 export default async function ArticlePage({
@@ -11,8 +11,9 @@ export default async function ArticlePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { writing, site } = await getPublicContent();
-  const article = writing.find((item) => item.slug === slug);
+  const [{ site }, article] = await Promise.all([
+    getPublicContent(['site']), getPublicArticle(slug),
+  ]);
   if (!article) notFound();
   const headings = article.body
     .split('\n')

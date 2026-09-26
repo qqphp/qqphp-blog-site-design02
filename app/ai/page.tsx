@@ -1,5 +1,6 @@
 import { SiteFooter, SiteHeader } from '@/components/site-chrome';
 import { AiNotebook } from '@/components/ai-notebook';
+import { SectionContent } from '@/components/section-content';
 export const metadata = {
   title: 'AI 实验档案 · 开发阿雷',
   description:
@@ -7,10 +8,10 @@ export const metadata = {
 };
 export default function AiPage() {
   return (
-    <main className="site-shell">
+    <SectionContent sections={['aiNotes', 'prompt']}><main className="site-shell">
       <SiteHeader />
       <AiNotebook />
       <SiteFooter />
-    </main>
+    </main></SectionContent>
   );
 }

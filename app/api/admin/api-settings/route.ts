@@ -5,14 +5,12 @@ import {
   sameOrigin,
 } from '@/lib/admin-auth';
 import { bindings } from '@/lib/cms-server';
+import { queryOne, withDatabase } from '@/lib/postgres';
 
 const service = 'artificialanalysis';
 
 async function getStatus() {
-  const saved = await bindings()
-    .DB.prepare('SELECT api_key FROM api_integration_keys WHERE service = ?')
-    .bind(service)
-    .first<{ api_key: string }>();
+  const saved = await queryOne<{ api_key: string }>('SELECT api_key FROM api_integration_keys WHERE service = $1', [service]);
   if (saved?.api_key.trim())
     return { configured: true, source: 'admin' as const };
   if (bindings().AA_API_KEY?.trim())
@@ -45,23 +43,19 @@ export async function PUT(request: Request) {
   )
     return json({ error: '请填写有效的 API 密钥' }, 400);
 
-  await bindings()
-    .DB.prepare(
-      `INSERT INTO api_integration_keys (service, api_key, updated_at)
-       VALUES (?, ?, ?)
-       ON CONFLICT(service) DO UPDATE SET api_key = excluded.api_key, updated_at = excluded.updated_at`,
-    )
-    .bind(service, body.apiKey.trim(), new Date().toISOString())
-    .run();
+  const apiKey = body.apiKey.trim();
+  await withDatabase((db) => db.query(
+    `INSERT INTO api_integration_keys (service, api_key, updated_at)
+     VALUES ($1, $2, now())
+     ON CONFLICT(service) DO UPDATE SET api_key = excluded.api_key, updated_at = excluded.updated_at`,
+    [service, apiKey],
+  ).then(() => undefined));
   return json({ artificialAnalysis: { configured: true, source: 'admin' } });
 }
 
 export async function DELETE(request: Request) {
   if (!sameOrigin(request)) return json({ error: '请求来源无效' }, 403);
   if (!(await authenticated(request))) return json({ error: '请先登录' }, 401);
-  await bindings()
-    .DB.prepare('DELETE FROM api_integration_keys WHERE service = ?')
-    .bind(service)
-    .run();
+  await withDatabase((db) => db.query('DELETE FROM api_integration_keys WHERE service = $1', [service]).then(() => undefined));
   return json({ artificialAnalysis: await getStatus() });
 }

@@ -63,7 +63,9 @@ export function validateContent(key: Section, value: unknown) {
     if (Array.isArray(sample)) {
       if (!Array.isArray(input)) fail('需要列表');
       const list = input as unknown[];
-      if (list.length > 500) fail('最多 500 项');
+      const growingCollection = path === key || path === `${key}.items` || path === `${key}.lists`;
+      if (list.length > (growingCollection ? 10000 : 500))
+        fail(growingCollection ? '最多 10000 项' : '最多 500 项');
       const itemSample = sample[0] ?? '';
       list.forEach((item, i) => walk(item, itemSample, `${path}[${i + 1}]`));
       for (const identity of ['id', 'slug']) {

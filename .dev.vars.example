@@ -1,6 +1,11 @@
 # 运行 npm run admin:password 生成本地 .dev.vars，密码至少 12 位。
 ADMIN_PASSWORD=
 
+# PostgreSQL 博客专用账号连接串。本地建库后由 npm run db:setup 写入。
+DATABASE_URL=
+# 首次建库前临时填写；成功后 db:setup 会移除此项。
+# PG_ADMIN_URL=postgresql://postgres:密码@127.0.0.1:5432/postgres
+
 # Teamorouter / OpenAI 兼容中转站密钥，仅供服务端使用。
 TEAMOROUTER_KEY=
 

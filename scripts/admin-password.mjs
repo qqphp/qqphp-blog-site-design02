@@ -1,5 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { restrictSecretFile } from './secret-permissions.mjs';
 
 const file = new URL('../.dev.vars', import.meta.url);
 const previous = existsSync(file) ? readFileSync(file, 'utf8') : '';
@@ -11,6 +13,7 @@ if (/^ADMIN_PASSWORD=/m.test(previous) && !process.argv.includes('--reset')) {
   const password = randomBytes(18).toString('base64url');
   const retained = previous.replace(/^ADMIN_PASSWORD=.*(?:\r?\n|$)/gm, '');
   writeFileSync(file, `${retained.trimEnd()}\nADMIN_PASSWORD=${password}\n`);
+  restrictSecretFile(fileURLToPath(file));
   console.log(
     `管理员密码：${password}\n已保存至 .dev.vars（请勿提交）。重启 npm run dev 后生效。`,
   );

@@ -80,8 +80,10 @@
   gap: 28px;
   border-bottom: 1px solid #d5dad1;
   margin-bottom: 28px;
+  overflow-x: auto;
 }
 .admin-shell .admin-settings-tabs button {
+  flex: none;
   padding: 0 2px 14px;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -89,7 +91,8 @@
   background: transparent;
   font-size: 16px;
 }
-.admin-shell .admin-settings-tabs button[data-active] {
+.admin-shell .admin-settings-tabs button[data-active],
+.admin-shell .admin-settings-tabs button[aria-selected='true'] {
   border-bottom-color: #315c47;
   color: #315c47;
   font-weight: 700;
@@ -832,7 +835,6 @@
   padding: 30px 36px 70px;
 }
 .admin-topbar,
-.admin-toolbar,
 .admin-record-heading {
   display: flex;
   justify-content: space-between;
@@ -851,19 +853,11 @@
   margin: 0 0 4px;
 }
 .admin-topbar > div:last-child,
-.admin-toolbar > div,
 .admin-record-heading > div {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-.admin-toolbar {
-  padding: 18px 0;
-}
-.admin-toolbar > span {
-  font-size: 12px;
-  color: #68786c;
 }
 .admin-status {
   min-height: 30px;
@@ -941,6 +935,19 @@
 .admin-form {
   padding: 26px;
   min-width: 0;
+}
+.admin-form > fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.admin-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--admin-line);
 }
 .admin-record-heading {
   margin-bottom: 24px;
@@ -1255,7 +1262,6 @@ body:has(.admin-login) .music-dock {
   .admin-form {
     padding: 18px;
   }
-  .admin-toolbar,
   .admin-topbar {
     align-items: flex-start;
     flex-direction: column;

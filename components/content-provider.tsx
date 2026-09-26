@@ -7,11 +7,12 @@ export function ContentProvider({
   content,
   children,
 }: {
-  content: Content;
+  content: Partial<Content>;
   children: React.ReactNode;
 }) {
+  const parent = useContext(ContentContext);
   return (
-    <ContentContext.Provider value={content}>
+    <ContentContext.Provider value={{ ...parent, ...content } as Content}>
       {children}
     </ContentContext.Provider>
   );
