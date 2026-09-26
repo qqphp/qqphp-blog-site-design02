@@ -30,6 +30,7 @@ export function ResearchHub({ type }: { type: 'ai' | 'investing' }) {
   const page = type === 'investing' ? investing : researchContent.ai;
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const search = query.trim().toLowerCase();
 
   const sectionsForDisplay: ResearchSection[] = type === 'investing'
@@ -48,6 +49,13 @@ export function ResearchHub({ type }: { type: 'ai' | 'investing' }) {
     .filter((section) => section.entries.length > 0);
   const count = visibleSections.reduce((sum, section) => sum + section.entries.length, 0);
   const total = sectionsForDisplay.reduce((sum, section) => sum + section.entries.length, 0);
+  const investmentEntries = type === 'investing' ? investing.sections
+    .filter((section) => category === 'all' || (section.id === 'review' ? 'sharing' : section.id) === category)
+    .flatMap((section) => section.entries.map((entry) => ({
+      id: `${section.id}:${entry.id}`,
+      entry,
+    }))) : [];
+  const activeEntry = investmentEntries.find((item) => item.id === selectedId) ?? investmentEntries[0];
 
   return (
     <div className={`research-hub research-${type}`}>
@@ -60,10 +68,9 @@ export function ResearchHub({ type }: { type: 'ai' | 'investing' }) {
           <nav className="research-topic-grid investment-topic-grid" aria-label="投资研究栏目">
             {investmentCategories.map((item, index) => {
               const Icon = item.icon;
-              const section = sectionsForDisplay.find((candidate) => candidate.id === item.id);
-              const entryCount = section?.entries.length ?? 0;
+              const entryCount = sectionsForDisplay.filter((section) => section.id === item.id).reduce((sum, section) => sum + section.entries.length, 0);
               return (
-                <button className={`investment-topic investment-topic-${item.id}`} type="button" key={item.id} aria-pressed={category === item.id} onClick={() => { setCategory(item.id); setQuery(''); }}>
+                <button className={`investment-topic investment-topic-${item.id}`} type="button" key={item.id} aria-pressed={category === item.id} onClick={() => { setCategory(category === item.id ? 'all' : item.id); setSelectedId(null); }}>
                   <span className="investment-topic-index">0{index + 1}</span>
                   <Icon className="investment-topic-icon" size={19} strokeWidth={1.6} aria-hidden="true" />
                   <span className="investment-topic-copy"><strong>{item.title}</strong><small>{entryCount ? `${entryCount} 篇笔记` : '持续整理中'}</small></span>
@@ -81,24 +88,51 @@ export function ResearchHub({ type }: { type: 'ai' | 'investing' }) {
       )}
 
       <section id="research-library" className={`research-library${type === 'investing' ? ' investment-library' : ''}`} aria-label="研究目录">
-        {type === 'investing' && <div className="investment-archive-heading"><span>投资研究 / {String(count).padStart(2, '0')}</span><h2>{category === 'all' ? '研究笔记' : investmentCategories.find((item) => item.id === category)?.title}</h2></div>}
+        {type === 'investing' ? (
+          <div className="investment-reader">
+            <nav className="investment-article-list" aria-label="投资文章列表">
+              {investmentEntries.map(({ id, entry }) => (
+                <button type="button" key={id} aria-pressed={activeEntry?.id === id} aria-controls="investment-article" onClick={() => setSelectedId(id)}>
+                  {entry.title}
+                </button>
+              ))}
+              {!investmentEntries.length && <p className="investment-empty">暂无文章</p>}
+            </nav>
+            <article id="investment-article" className="investment-article" aria-labelledby={activeEntry ? 'investment-article-title' : undefined}>
+              {activeEntry ? (
+                <>
+                  <header className="investment-article-heading">
+                    <h2 id="investment-article-title">{activeEntry.entry.title}</h2>
+                    <p>{activeEntry.entry.description}</p>
+                  </header>
+                  <div className="investment-markdown">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>{activeEntry.entry.paragraphs.join('\n\n')}</ReactMarkdown>
+                  </div>
+                </>
+              ) : <p className="investment-empty">暂无文章</p>}
+            </article>
+          </div>
+        ) : (
+        <>
         <div className="research-toolbar">
-          <div><button type="button" aria-pressed={category === 'all'} onClick={() => setCategory('all')}><CmsText page="投资页" name="03 全部笔记" /></button>{category !== 'all' && <span>{(type === 'investing' ? investmentCategories.find((item) => item.id === category)?.title : sectionsForDisplay.find((section) => section.id === category)?.title)}</span>}<output aria-live="polite">{count} 篇</output></div>
+          <div><button type="button" aria-pressed={category === 'all'} onClick={() => setCategory('all')}><CmsText page="投资页" name="03 全部笔记" /></button>{category !== 'all' && <span>{sectionsForDisplay.find((section) => section.id === category)?.title}</span>}<output aria-live="polite">{count} 篇</output></div>
           <label className="research-search"><Search size={16} /><input type="search" aria-label="搜索研究笔记" placeholder="搜索主题、关键词…" value={query} onChange={(event) => setQuery(event.target.value)} />{query && <button type="button" aria-label="清空搜索" onClick={() => setQuery('')}><X size={16} /></button>}</label>
         </div>
         {visibleSections.map((section) => (
-          <section className={`research-section${type === 'investing' ? ` investment-section investment-section-${section.id}` : ''}`} key={section.id}>
-            <div className="research-section-heading"><span className="investment-section-code">{type === 'investing' ? investmentCategories.findIndex((item) => item.id === section.id) + 1 < 10 ? `0${investmentCategories.findIndex((item) => item.id === section.id) + 1}` : '' : ''}</span><h2>{section.title}</h2><p>{section.description}</p></div>
-            <div className="research-entries">{section.entries.map((entry, index) => (
-              <article className={type === 'investing' ? `investment-entry investment-entry-${section.id}` : undefined} key={entry.title}>
-                <div className="investment-entry-overline"><span className="research-entry-tag">{entry.tag}</span>{type === 'investing' && <span>NOTE / {String(index + 1).padStart(2, '0')}</span>}</div>
+          <section className="research-section" key={section.id}>
+            <div className="research-section-heading"><span className="investment-section-code" /><h2>{section.title}</h2><p>{section.description}</p></div>
+            <div className="research-entries">{section.entries.map((entry) => (
+              <article key={entry.title}>
+                <div className="investment-entry-overline"><span className="research-entry-tag">{entry.tag}</span></div>
                 <h3>{entry.title}</h3><p>{entry.description}</p>
-                <details><summary><CmsText page="投资页" name="04 展开笔记" /><span aria-hidden="true">+</span></summary><div className={type === 'investing' ? 'investment-markdown' : undefined}>{entry.paragraphs.map((paragraph, paragraphIndex) => type === 'investing' ? <ReactMarkdown key={`${entry.title}-${paragraphIndex}`} remarkPlugins={[remarkGfm]} skipHtml>{paragraph}</ReactMarkdown> : <p key={`${entry.title}-${paragraphIndex}`}>{paragraph}</p>)}</div></details>
+                <details><summary><CmsText page="投资页" name="04 展开笔记" /><span aria-hidden="true">+</span></summary><div>{entry.paragraphs.map((paragraph, paragraphIndex) => <p key={`${entry.title}-${paragraphIndex}`}>{paragraph}</p>)}</div></details>
               </article>
             ))}</div>
           </section>
         ))}
         {count === 0 && <div className="research-empty"><Search size={25} /><h2><CmsText page="投资页" name="05 暂时没有相关笔记" /></h2><p><CmsText page="投资页" name="06 换个关键词，或回到完整目录。" /></p><button type="button" onClick={() => { setQuery(''); setCategory('all'); }}><CmsText page="投资页" name="07 重置筛选" /></button></div>}
+        </>
+        )}
       </section>
       <p className="research-disclosure">{type === 'investing' ? pageSettings.investing.disclosure : '本页为内容与实践框架示例，未接入实时产品资讯或实际评测结果。'}</p>
     </div>

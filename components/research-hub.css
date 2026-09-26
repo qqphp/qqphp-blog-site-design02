@@ -60,38 +60,43 @@
 .investment-topic-copy strong { font-size: .85rem; font-weight: 500; }
 .investment-topic-copy small { color: var(--muted); font-size: .66rem; }
 .investment-library { margin-top: 0; }
-.investment-library .research-toolbar { padding: 13px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.investment-archive-heading { display: flex; align-items: baseline; gap: 18px; margin-bottom: 17px; }
-.investment-archive-heading > span { color: var(--lime); font: .62rem ui-monospace, monospace; letter-spacing: .06em; }
-.investment-archive-heading h2 { margin: 0; font-size: 1.1rem; font-weight: 500; }
-.research-investing .research-section { grid-template-columns: 185px minmax(0, 1fr); gap: 28px; padding: 27px 0; border-bottom: 1px solid var(--line); }
-.research-investing .research-section-heading { padding-left: 24px; border-left: 1px solid var(--lime); }
 .investment-section-code { display: block; margin-bottom: 8px; color: var(--lime); font: .6rem ui-monospace, monospace; }
-.research-investing .research-section-heading h2 { margin: 0 0 8px; font-size: .96rem; font-weight: 500; }
-.research-investing .research-section-heading p { margin: 0; color: var(--muted); font-size: .7rem; line-height: 1.75; }
-.research-investing .research-entries { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.research-investing .investment-entry { display: flex; min-height: 195px; flex-direction: column; padding: 17px; border: 1px solid var(--line); background: color-mix(in srgb, var(--lime) 2%, var(--navy)); }
 .investment-entry-overline { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font: .58rem ui-monospace, monospace; }
 .investment-entry-overline .research-entry-tag { color: var(--lime); font: .7rem Arial, 'Microsoft YaHei', sans-serif; }
-.research-investing .research-entries h3 { margin: 16px 0 8px; font-size: .95rem; font-weight: 500; line-height: 1.55; }
-.research-investing .research-entries article > p { margin: 0 0 13px; color: var(--muted); font-size: .72rem; line-height: 1.8; }
-.research-investing .research-entries details { margin-top: auto; border-top: 1px solid var(--line); }
-.research-investing .research-entries summary { min-height: 34px; color: var(--lime); font-size: .68rem; }
-.investment-markdown { padding: 6px 0; }
-.investment-markdown p, .investment-markdown li { color: var(--muted); font-size: .78rem; line-height: 1.85; }
-.investment-markdown blockquote { margin-left: 0; padding-left: 13px; border-left: 2px solid var(--lime); }
+.investment-reader { display: grid; grid-template-columns: 260px minmax(0, 1fr); align-items: start; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.investment-article-list { display: block; min-width: 0; padding: 14px 20px 14px 0; }
+.investment-article-list button { display: block; width: 100%; padding: 13px 15px; border: 0; border-left: 2px solid transparent; background: transparent; color: var(--muted); text-align: left; font: inherit; font-size: .8rem; line-height: 1.7; overflow-wrap: anywhere; cursor: pointer; }
+.investment-article-list button:hover { color: var(--ink); background: color-mix(in srgb, var(--lime) 3%, transparent); }
+.investment-article-list button[aria-pressed='true'] { border-left-color: var(--lime); color: var(--lime); background: color-mix(in srgb, var(--lime) 6%, transparent); }
+.investment-article { min-width: 0; min-height: 320px; padding: 26px 0 32px 32px; border-left: 1px solid var(--line); overflow-wrap: anywhere; }
+.investment-article-heading { padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.investment-article-heading h2 { margin: 0 0 12px; color: var(--ink); font-size: clamp(1.25rem, 2vw, 1.65rem); font-weight: 500; line-height: 1.5; }
+.investment-article-heading p { margin: 0; color: var(--muted); font-size: .83rem; line-height: 1.85; }
+.investment-empty { margin: 0; padding: 26px 15px; color: var(--muted); font-size: .8rem; }
+.investment-markdown { padding-top: 10px; color: var(--ink); font-size: .9rem; line-height: 1.95; }
+.investment-markdown p { margin: 18px 0; }
+.investment-markdown :is(h1, h2, h3, h4, h5, h6) { margin: 1.5em 0 .6em; font-weight: 500; line-height: 1.5; }
+.investment-markdown h1 { font-size: 1.5rem; }
+.investment-markdown h2 { font-size: 1.3rem; }
+.investment-markdown h3 { font-size: 1.1rem; }
+.investment-markdown ul { list-style: disc; padding-left: 1.5em; }
+.investment-markdown ol { list-style: decimal; padding-left: 1.5em; }
+.investment-markdown li { margin: 6px 0; }
+.investment-markdown blockquote { margin-inline: 0; padding-left: 16px; border-left: 2px solid var(--lime); color: var(--muted); }
+.investment-markdown img { max-width: 100%; height: auto; }
 .investment-markdown pre, .investment-markdown table { max-width: 100%; overflow-x: auto; }
-.investment-markdown pre { padding: 12px; background: color-mix(in srgb, var(--lime) 5%, var(--navy)); }
+.investment-markdown pre { padding: 16px; background: color-mix(in srgb, var(--lime) 5%, var(--navy)); font-size: .8rem; }
+.investment-markdown pre code { white-space: pre; overflow-wrap: normal; }
 .investment-markdown table { display: block; border-collapse: collapse; }
-.investment-markdown th, .investment-markdown td { padding: 7px 10px; border: 1px solid var(--line); text-align: left; font-size: .72rem; }
+.investment-markdown th, .investment-markdown td { padding: 8px 12px; border: 1px solid var(--line); text-align: left; font-size: .8rem; }
 .investment-markdown th, .investment-markdown a { color: var(--lime); }
+.investment-markdown a { text-decoration: underline; }
 .research-investing .research-disclosure { padding-top: 15px; border-top: 1px solid var(--line); font-size: .68rem; }
 @media (prefers-reduced-motion: reduce) { .research-investing .investment-topic { transition: none; } }
 @media (max-width: 950px) {
   .research-investing .investment-topic-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .research-investing .investment-topic:nth-child(2) { border-right: 0; }
   .research-investing .investment-topic:nth-child(n + 3) { border-top: 1px solid var(--line); }
-  .research-investing .research-section { grid-template-columns: 150px minmax(0, 1fr); gap: 20px; }
 }
 @media (max-width: 700px) {
   .research-investing { padding: 0 22px 42px; }
@@ -99,13 +104,7 @@
   .research-investing .investment-topic { min-height: 76px; gap: 10px; padding: 12px; }
   .investment-topic-copy strong { font-size: .78rem; }
   .investment-topic-copy small { font-size: .61rem; }
-  .investment-library .research-toolbar { align-items: stretch; gap: 12px; }
-  .investment-library .research-toolbar > div:first-child { flex-wrap: wrap; }
-  .investment-library .research-search { width: 100%; }
-  .investment-archive-heading { gap: 11px; }
-  .investment-archive-heading h2 { font-size: 1rem; }
-  .research-investing .research-section { grid-template-columns: 1fr; gap: 15px; padding: 22px 0; }
-  .research-investing .research-section-heading { padding-left: 13px; }
-  .research-investing .research-entries { grid-template-columns: 1fr; }
-  .research-investing .investment-entry { min-height: 0; }
+  .investment-reader { grid-template-columns: minmax(0, 1fr); }
+  .investment-article-list { padding: 12px 0; }
+  .investment-article { min-height: 0; padding: 24px 0; border-left: 0; border-top: 1px solid var(--line); }
 }

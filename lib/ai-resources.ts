@@ -30,6 +30,7 @@ export interface AiRelay {
   id: string;
   name: string;
   mark: string;
+  logo: string;
   category: string;
   description: string;
   features: string[];
@@ -172,50 +173,55 @@ export const aiRelays: AiRelay[] = [
     id: 'openrouter',
     name: 'OpenRouter',
     mark: 'OR',
+    logo: '/ai/relays/openrouter.png',
     category: '模型聚合',
     description: '通过统一接口访问不同供应商的模型，集中管理调用入口。',
     features: ['统一 API', '模型路由', '备用模型'],
     focus: '想在同一项目里尝试不同模型',
     endpoint: 'https://openrouter.ai/api/v1',
-    href: 'https://openrouter.ai/docs/quickstart',
+    href: 'https://openrouter.ai',
   },
   {
     id: 'poe',
     name: 'Poe API',
     mark: 'POE',
+    logo: '/ai/relays/poe.png',
     category: '生态聚合',
     description: '提供主流模型及大量社区创建的定制机器人接口。',
     features: ['丰富机器人', '订阅式访问', '即插即用'],
     focus: '需要直接调用社区现成配置的机器人',
     endpoint: 'https://api.poe.com/v1',
-    href: 'https://developer.poe.com',
+    href: 'https://poe.com',
   },
   {
     id: 'teamorouter',
     name: 'TeamoRouter',
     mark: 'TR',
+    logo: '/ai/relays/teamorouter.ico',
     category: '私有中转',
     description: '项目专属的稳定代理服务，确保国内环境的连通性及调用统计。',
     features: ['高稳定性', '数据可视化', '负载均衡'],
     focus: '项目生产环境的稳定调用',
     endpoint: 'https://api.teamorouter.com/v1',
-    href: 'https://teamorouter.com/docs',
+    href: 'https://teamorouter.com',
   },
   {
     id: 'siliconflow',
     name: 'SiliconFlow (硅基流动)',
     mark: 'SF',
+    logo: '/ai/relays/siliconflow.svg',
     category: '云端推理',
     description: '提供极具性价比的开源大模型云端推理 API 服务，主打低延迟。',
     features: ['超低延迟', '高并发', '开源模型友好'],
     focus: '需要高速且低成本调用开源模型',
     endpoint: 'https://api.siliconflow.cn/v1',
-    href: 'https://siliconflow.cn/developer',
+    href: 'https://siliconflow.cn',
   },
   {
     id: 'oneapi',
     name: 'One API / 松鼠AI',
     mark: 'ONE',
+    logo: '/ai/relays/oneapi.png',
     category: '聚合分发',
     description: '兼容多种大模型 API，支持多额度、多渠道管理的分发系统。',
     features: ['渠道管理', '额度控制', '兼容 OpenAI 格式'],

@@ -394,6 +394,7 @@ function SkillsSection() {
 
 function RelaysSection() {
   const relays = aiRelays;
+  const [failedLogos, setFailedLogos] = useState<string[]>([]);
 
   return (
     <section id="ai-relays" className="ai-section" aria-label="中转站 API">
@@ -401,30 +402,24 @@ function RelaysSection() {
         {relays.map((relay) => (
           <article className="ai-relay-card" key={relay.id}>
             <div className="ai-relay-top">
-              <span className="ai-relay-mark" aria-hidden="true">{relay.mark}</span>
-              <span className="ai-relay-category">{relay.category}</span>
+              <span className="ai-relay-mark" aria-hidden="true">
+                {failedLogos.includes(relay.id) ? relay.mark : (
+                  <Image src={relay.logo} alt="" width={40} height={40} unoptimized onError={() => setFailedLogos((ids) => ids.includes(relay.id) ? ids : [...ids, relay.id])} />
+                )}
+              </span>
+              <h3>{relay.name}</h3>
             </div>
-            <h3>{relay.name}</h3>
             <p>{relay.description}</p>
-            <code className="ai-relay-endpoint">{relay.endpoint}</code>
-            <p className="ai-relay-focus">适合：{relay.focus}</p>
-            <a
-              className="ai-resource-link"
-              href={relay.href}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              接入文档 <ArrowUpRight size={16} />
-            </a>
+            <div className="ai-relay-links">
+              <a className="ai-relay-url" href={relay.href} title={relay.href} target="_blank" rel="noopener noreferrer">{relay.href}</a>
+              <a className="ai-relay-go" href={relay.href} aria-label={`前往 ${relay.name}`} target="_blank" rel="noopener noreferrer">前往 <ArrowUpRight size={14} aria-hidden="true" /></a>
+            </div>
           </article>
         ))}
       </div>
       {!relays.length && (
         <p className="ai-empty">暂无中转站推荐。</p>
       )}
-      <p className="ai-source-note">
-        按公开文档整理，尚未附个人实测；可用模型、费用与数据政策请查看各平台说明。
-      </p>
     </section>
   );
 }
